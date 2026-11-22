@@ -229,19 +229,20 @@ def test_project_aliases_forward_annotations_and_reexports(tmp_path: Path) -> No
     assert symbols(rows, "feature-envy") == {"read"}
 
 
-def test_clump_ignores_candidates_requiring_three_way_intersection(
+def test_clump_prunes_infrequent_names_before_pairwise_intersection(
     tmp_path: Path,
 ) -> None:
     source = "\n".join(
         f"class {name}:\n" + "\n".join(f" {field}: int" for field in fields)
-        for name, fields in [("A", "abcdef"), ("B", "abcdeg"), ("C", "abcdfg")]
+        for name, fields in [("A", "abcdxy"), ("B", "abcdxz"), ("C", "abcdyz")]
     )
     rows = [
         row
         for row in scan(tmp_path, {"records.py": source})
         if row["rule"] == "data-clump"
     ]
-    assert rows == []
+    assert {row["symbol"] for row in rows} == {"A", "B", "C"}
+    assert [row["detail"] for row in rows] == ["a, b, c, d"] * 3
 
 
 @pytest.mark.parametrize("complement", [False, True], ids=["one-extra", "all-but-one"])

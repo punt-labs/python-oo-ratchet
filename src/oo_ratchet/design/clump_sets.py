@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from itertools import combinations
 from typing import Self
 
@@ -25,6 +26,12 @@ class ClumpSets:
             )
             if len(owners) >= 3:
                 groups.setdefault(owners, []).append(candidate)
+        return self._maximal(groups)
+
+    @staticmethod
+    def _maximal(
+        groups: dict[tuple[int, ...], list[frozenset[str]]],
+    ) -> list[tuple[frozenset[str], tuple[int, ...]]]:
         return [
             (names, owners)
             for owners, candidates in groups.items()
@@ -33,9 +40,16 @@ class ClumpSets:
         ]
 
     def _intersections(self) -> set[frozenset[str]]:
-        owners = [names for names in self._sets if len(names) >= 4]
+        owners = [names for names in self._supported_sets() if len(names) >= 4]
         return {
             candidate
             for left, right in combinations(owners, 2)
             if len(candidate := left & right) >= 4
         }
+
+    def _supported_sets(self) -> list[frozenset[str]]:
+        counts = Counter(name for names in self._sets for name in names)
+        return [
+            frozenset(name for name in names if counts[name] >= 3)
+            for names in self._sets
+        ]

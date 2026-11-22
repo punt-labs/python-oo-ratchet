@@ -103,8 +103,10 @@ domain and unlayered modules remain eligible:
   one explicitly typed project-class parameter; in methods that must exceed
   the number read on `self`. `from_*` classmethods are exempt.
 - `data-clump` (D3): at least four field/parameter names are shared by at least
-  three class/signature owners. Candidates are pairwise intersections of declared
-  name sets, retaining maximal sets for each identical owner group. Each occurrence
+  three class/signature owners. Names occurring in fewer than three owners are
+  pruned before pairwise intersections, retaining maximal sets for each identical
+  owner group. Higher-order subsets can still be missed when every pair has extra
+  names that survive this global frequency filter. Each occurrence
   is keyed on its owner, with comma-separated sorted names in `detail`.
 - `misplaced-function` (D4): a public module function's first positional
   parameter is annotated with a project class, or its return annotation names

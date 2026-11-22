@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import ast
+from collections import Counter
 from typing import Self
 
 from .declaration import Declaration
 from .layer_imports import LayerImports
 from .modules import Module, ModuleIndex
+from .receiver_bindings import ReceiverBindings
 from .type_reference import TypeReference
 
 
@@ -17,6 +19,7 @@ class ProjectTypes:
     _classes: dict[str, Declaration]
     _aliases: dict[str, set[str]]
     _names: LayerImports
+    _ambiguous: set[str]
 
     def __new__(cls, index: ModuleIndex, declarations: list[Declaration]) -> Self:
         self = super().__new__(cls)
@@ -27,6 +30,7 @@ class ProjectTypes:
             if d.kind == "class"
         }
         self._aliases = {}
+        self._ambiguous = set()
         for module in index.modules():
             self._imports(module)
         return self
@@ -34,11 +38,22 @@ class ProjectTypes:
     def resolve(self, module: Module, node: ast.expr | None) -> Declaration | None:
         """Resolve a direct or quoted annotation/name to a project declaration."""
         name = TypeReference.name(node)
-        return self._lookup(f"{self._names.name(module)}.{name}") or self._lookup(name)
+        local = f"{self._names.name(module)}.{name}"
+        if self._is_ambiguous(local):
+            return None
+        return self._lookup(local) or self._lookup(name)
+
+    def _is_ambiguous(self, name: str) -> bool:
+        parts = name.split(".")
+        return any(
+            ".".join(parts[:i]) in self._ambiguous for i in range(1, len(parts) + 1)
+        )
 
     def _lookup(self, name: str) -> Declaration | None:
         visited: set[str] = set()
         while name:
+            if self._is_ambiguous(name):
+                return None
             if name in self._classes:
                 return self._classes[name]
             parts = name.split(".")
@@ -59,7 +74,12 @@ class ProjectTypes:
 
     def _imports(self, module: Module) -> None:
         prefix = self._names.name(module)
-        for node in self._module_nodes(module.tree):
+        nodes = self._module_nodes(module.tree)
+        counts = Counter(name for n in nodes for name in ReceiverBindings._names(n))
+        self._ambiguous.update(
+            f"{prefix}.{name}" for name, count in counts.items() if count > 1
+        )
+        for node in nodes:
             for bound, target in self._import_targets(module, node):
                 self._aliases.setdefault(f"{prefix}.{bound}", set()).add(target)
 
@@ -69,10 +89,8 @@ class ProjectTypes:
         out: list[ast.AST] = []
         while pending:
             node = pending.pop()
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-                continue
             out.append(node)
-            pending.extend(reversed(list(ast.iter_child_nodes(node))))
+            pending.extend(reversed(ReceiverBindings._children(node)))
         return out
 
     def _import_targets(self, module: Module, node: ast.AST) -> list[tuple[str, str]]:

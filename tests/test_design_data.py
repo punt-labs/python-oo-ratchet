@@ -482,6 +482,45 @@ def test_module_imports_include_top_level_blocks(tmp_path: Path, imports: str) -
 @pytest.mark.parametrize(
     "binding",
     [
+        "Item = object()",
+        "def Item(): pass",
+        "class Item: pass",
+        "from .model import Item",
+        "if flag:\n Item = object()",
+        "try:\n Item = object()\nexcept Exception:\n pass",
+        "for Item in values:\n pass",
+        "with resource() as Item:\n pass",
+        "def nested(arg=(Item := None)): pass",
+    ],
+)
+def test_repeated_module_bindings_are_ambiguous(tmp_path: Path, binding: str) -> None:
+    source = (
+        "from .model import Item\n"
+        + binding
+        + "\ndef read(x: Item): return x.a + x.b + x.c"
+    )
+    assert scan(tmp_path, {"model.py": MODEL, "consumer.py": source}) == []
+
+
+def test_repeated_module_bindings_block_imported_class_target(tmp_path: Path) -> None:
+    source = "from .model import Item\ndef read(x: Item): return x.a + x.b + x.c"
+    assert (
+        scan(tmp_path, {"model.py": MODEL + "Item = unknown()", "consumer.py": source})
+        == []
+    )
+
+
+def test_repeated_module_bindings_block_module_alias(tmp_path: Path) -> None:
+    source = (
+        "import pkg.model as models\nmodels = unknown()\n"
+        "def read(x: models.Item): return x.a + x.b + x.c"
+    )
+    assert scan(tmp_path, {"model.py": MODEL, "consumer.py": source}) == []
+
+
+@pytest.mark.parametrize(
+    "binding",
+    [
         "try:\n pass\nexcept Exception as x:\n pass",
         "try:\n pass\nexcept* Exception as x:\n pass",
         "for x in values:\n pass",

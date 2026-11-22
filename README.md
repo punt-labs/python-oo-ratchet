@@ -115,7 +115,8 @@ by parameter annotations, local annotations, or a direct `name = ProjectClass(..
 assignment to an imported or locally declared project class name. Repeated
 bindings (including a parameter's initial binding) discard a receiver's type;
 statement order is irrelevant. Import aliases and re-exports are followed as
-module-level declarations only. Other bindings include captures, loop/with
+module-level declarations only; any repeated module-level binding makes the
+name ambiguous, regardless of statement order or branch. Other bindings include captures, loop/with
 targets, imports, nested def/class names, walrus targets, global/nonlocal
 declarations and deletions. Value aliases, factory results, call chains and container
 annotations do not propagate receiver types. Nested function bodies are checked

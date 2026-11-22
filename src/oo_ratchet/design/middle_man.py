@@ -7,6 +7,7 @@ from typing import Self
 
 from .declaration import Declaration
 from .project_types import ProjectTypes
+from .protocol_imports import ProtocolImports
 from .shape import ClassShape, Method
 
 
@@ -50,19 +51,28 @@ class MiddleMan:
         node = self._owner.node
         if not isinstance(node, ast.ClassDef):
             return False
+        aliases = ProtocolImports(self._owner.module).names()
         for base in node.bases:
-            if ClassShape._name(base) == "Protocol":
+            if self._marker(base, aliases):
                 return True
             reference = base.value if isinstance(base, ast.Subscript) else base
             target = self._types.resolve(self._owner.module, reference)
-            if target is not None and self._declares_protocol(target.node):
+            if target is not None and self._declares_protocol(target):
                 return True
         return False
 
+    @classmethod
+    def _declares_protocol(cls, owner: Declaration) -> bool:
+        if not isinstance(owner.node, ast.ClassDef):
+            return False
+        aliases = ProtocolImports(owner.module).names()
+        return any(cls._marker(base, aliases) for base in owner.node.bases)
+
     @staticmethod
-    def _declares_protocol(node: ast.AST) -> bool:
-        return isinstance(node, ast.ClassDef) and any(
-            ClassShape._name(base) == "Protocol" for base in node.bases
+    def _marker(base: ast.expr, aliases: set[str]) -> bool:
+        reference = base.value if isinstance(base, ast.Subscript) else base
+        return ClassShape._name(base) == "Protocol" or (
+            isinstance(reference, ast.Name) and reference.id in aliases
         )
 
     @classmethod

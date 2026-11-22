@@ -322,7 +322,7 @@
     "avg_lcom": 0.0
   },
   "src/oo_ratchet/design/middle_man.py": {
-    "efferent_coupling": 3.0,
+    "efferent_coupling": 4.0,
     "public_names": 1.0,
     "circular_imports": 0.0,
     "max_lcom": 0.5,
@@ -355,6 +355,13 @@
     "circular_imports": 0.0,
     "max_lcom": 0.333,
     "avg_lcom": 0.333
+  },
+  "src/oo_ratchet/design/protocol_imports.py": {
+    "efferent_coupling": 3.0,
+    "public_names": 1.0,
+    "circular_imports": 0.0,
+    "max_lcom": 0.0,
+    "avg_lcom": 0.0
   },
   "src/oo_ratchet/design/receiver_bindings.py": {
     "efferent_coupling": 2.0,

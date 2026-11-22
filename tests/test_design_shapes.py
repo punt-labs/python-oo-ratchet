@@ -144,6 +144,26 @@ FACADE = (
 
 
 @pytest.mark.parametrize(
+    "prelude,base,expected",
+    [
+        ("from typing import Protocol as P\n", "P", set()),
+        ("from typing_extensions import Protocol as P\n", "P", set()),
+        ("from typing import Protocol as P\n", "P[T]", set()),
+        ("if TYPE_CHECKING:\n from typing import Protocol as P\n", "P", set()),
+        ("from typing import Protocol as P\nclass Port(P): pass\n", "Port", set()),
+        ("from typing import Protocol as P\nP = object\n", "P", {"Facade"}),
+        ("def f():\n from typing import Protocol as P\n", "P", {"Facade"}),
+        ("from .typing import Protocol as P\n", "P", {"Facade"}),
+    ],
+)
+def test_middle_man_protocol_import_aliases(
+    tmp_path: Path, prelude: str, base: str, expected: set[str]
+) -> None:
+    source = prelude + FACADE.format(base=f"({base})")
+    assert symbols(scan(tmp_path, source), "middle-man") == expected
+
+
+@pytest.mark.parametrize(
     "base,prelude,expected",
     [
         ("", "", {"Facade"}),

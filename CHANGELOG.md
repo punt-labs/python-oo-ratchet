@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Added
+
+- Seeded library-loan design eval pairs with behavior equivalence, finding-key
+  recall/precision and ordering checks, and strict future-rule xfails.
+- `make lint` and `make type` (hence `make check`) now also cover `evals/`.
+  Design rules and ratchet gates on `src/` are unchanged.
+
 ## [0.3.1] - 2026-11-19
 
 ### Fixed

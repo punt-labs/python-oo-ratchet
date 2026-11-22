@@ -59,6 +59,15 @@ stateful concrete classes imported across top-level subpackages instead of a
 Protocol/ABC. It has no baseline and always exits 0; it is not part of
 `make check`.
 
+**Design evals.** `evals/design/` seeds eleven library-loan bad/good pairs with
+shared behavior checks and stable `(rule, path, symbol)` keys in `expected.toml`.
+`tests/test_design_evals.py` checks implemented-rule recall, precision and ordering;
+future-rule expectations are strict xfails, so implementing a rule forces their
+promotion. Known false positives are strict xfails too, never fixture workarounds.
+`make check` lints and type-checks the fixtures and runs the harness, but the
+self-ratchets still scan only `src/oo_ratchet/`. The layer-leak pair's `layers.toml`
+is a future layer contract, not configuration consumed by today's scanner.
+
 ## Configure
 
 Optional per-repository settings live in `pyproject.toml`; with none the strict

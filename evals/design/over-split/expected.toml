@@ -1,0 +1,16 @@
+# Keys are relative to the variant's loans/ package, never line numbers.
+[bad]
+findings = [
+  {rule = "stateless-single-method", path = "validate.py", symbol = "Validate"},
+  {rule = "stateless-single-method", path = "grace.py", symbol = "Grace"},
+  {rule = "stateless-single-method", path = "multiply.py", symbol = "Multiply"},
+  {rule = "stateless-single-method", path = "cap.py", symbol = "Cap"},
+  {rule = "stateless-single-method", path = "round.py", symbol = "Round"},
+  {rule = "stateless-single-method", path = "receipt.py", symbol = "Receipt"},
+  {rule = "stateless-function-bag", path = "rules.py", symbol = "FeeRules"},
+]
+
+[good]
+findings = [
+
+]

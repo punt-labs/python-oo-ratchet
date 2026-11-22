@@ -49,13 +49,15 @@ class GitRepo:
         return Path(out.strip()) if out is not None else None
 
     @staticmethod
-    def _run(args: list[str], cwd: Path | None) -> str | None:
+    def _run(
+        args: list[str], cwd: Path | None, *, timeout: float = _TIMEOUT
+    ) -> str | None:
         try:
             result = subprocess.run(
                 args,
                 capture_output=True,
                 text=True,
-                timeout=_TIMEOUT,
+                timeout=timeout,
                 cwd=cwd,
             )
         except (FileNotFoundError, subprocess.TimeoutExpired):
@@ -67,10 +69,14 @@ class GitRepo:
             return None
         return result.stdout
 
-    def _git(self, args: list[str]) -> str | None:
+    def _git(self, args: list[str], *, timeout: float = _TIMEOUT) -> str | None:
         if self._root is None:
             return None  # not in a repo: degrade, never run against the ambient CWD
-        return self._run(["git", "-c", "core.quotePath=false", *args], cwd=self._root)
+        return self._run(
+            ["git", "-c", "core.quotePath=false", *args],
+            cwd=self._root,
+            timeout=timeout,
+        )
 
     def short_head(self) -> str | None:
         """Return the abbreviated HEAD commit hash."""

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import os.path
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Self
@@ -26,6 +27,14 @@ class Module:
         """Return whether the file is a package ``__init__``."""
         return self.path.name == "__init__.py"
 
+    @property
+    def import_key(self) -> str:
+        """Return the logical import spelling, even for a shadowed file."""
+        if not self.key.startswith("/"):
+            return self.key
+        parts = Path(self.key[1:]).with_suffix("").parts
+        return PackageLayout._parts_to_key(parts)
+
 
 class ModuleIndex:
     """Parse every module under a package root and index it by layout key.
@@ -37,13 +46,18 @@ class ModuleIndex:
     _layout: PackageLayout
     _modules: dict[str, Module]
     _skipped: list[Path]
+    _package_name: str
 
-    def __new__(cls, root: Path) -> Self:
+    def __new__(cls, root: Path, *, package_name: str | None = None) -> Self:
         self = super().__new__(cls)
         self._layout = PackageLayout(root)
+        self._package_name = (
+            package_name or Path(os.path.normpath(root.absolute())).name
+        )
         self._modules = {}
         self._skipped = []
-        for path in self._layout.root_files():
+        paths = self._layout.root_files()
+        for path in sorted(paths, key=lambda p: (p.name != "__init__.py", p)):
             self._add(path)
         return self
 
@@ -53,13 +67,26 @@ class ModuleIndex:
         return self._layout
 
     @property
+    def package_name(self) -> str:
+        """Return the logical scan name, independent of symlink transport."""
+        return self._package_name
+
+    @property
     def skipped(self) -> list[Path]:
         """Return files that could not be read or parsed."""
         return list(self._skipped)
 
     def modules(self) -> list[Module]:
         """Return every parsed module in path order."""
-        return list(self._modules.values())
+        return sorted(self._modules.values(), key=lambda m: m.path)
+
+    def key_for(self, path: Path) -> str:
+        """Return a parsed file's unique identity, retaining shadowed paths."""
+        key = self._layout.key_for(path)
+        module = self._modules.get(key)
+        return (
+            key if module is not None and module.path == path else self._path_key(path)
+        )
 
     def get(self, key: str) -> Module | None:
         """Return the module with layout key ``key``, if it was parsed."""
@@ -67,6 +94,9 @@ class ModuleIndex:
 
     def component(self, key: str) -> str:
         """Return the top-level sub-package a key belongs to ('' for the root)."""
+        if key.startswith("/"):
+            parts = Path(key[1:]).parts
+            return parts[0] if len(parts) > 1 else ""
         head = key.split(".")[0]
         return head if (self._layout.root / head).is_dir() else ""
 
@@ -91,4 +121,9 @@ class ModuleIndex:
             if isinstance(node, ast.ClassDef)
         }
         key = self._layout.key_for(path)
+        if key in self._modules:
+            key = self._path_key(path)
         self._modules[key] = Module(key, path, tree, classes)
+
+    def _path_key(self, path: Path) -> str:
+        return "/" + path.relative_to(self._layout.root).as_posix()

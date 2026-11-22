@@ -31,6 +31,11 @@ class DesignCli:
         parser.add_argument("src", help="package directory to scan")
         parser.add_argument("--json", action="store_true", help="emit JSON")
         parser.add_argument("--layers", help="TOML layer configuration override")
+        parser.add_argument(
+            "--shadow-check",
+            metavar="GIT_REF",
+            help="compare merge-base debt, advisory only",
+        )
         return parser
 
     @staticmethod

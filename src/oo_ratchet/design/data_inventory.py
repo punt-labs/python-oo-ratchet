@@ -25,7 +25,7 @@ class DataInventory:
             m.key
             for m in index.modules()
             if config is None
-            or config.layer(names.name(m)) not in {"entry", "adapters"}
+            or config.layer(names.canonical_name(m)) not in {"entry", "adapters"}
         }
         for module in index.modules():
             self._walk(module, module.tree, ("", "module"))

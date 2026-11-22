@@ -23,7 +23,7 @@ class ImportTargets:
     def __new__(cls, index: ModuleIndex) -> Self:
         self = super().__new__(cls)
         self._index = index
-        self._pkg_name = index.layout.name
+        self._pkg_name = index.package_name
         return self
 
     def key_for(self, module: Module, node: ast.ImportFrom) -> str | None:
@@ -42,10 +42,10 @@ class ImportTargets:
 
     @staticmethod
     def _relative(module: Module, node: ast.ImportFrom) -> list[str] | None:
-        if module.key == "__init__":
+        if module.import_key == "__init__":
             base: list[str] = []
         else:
-            parts = module.key.split(".")
+            parts = module.import_key.split(".")
             base = parts if module.is_package else parts[:-1]
         climb = node.level - 1
         if climb > len(base):

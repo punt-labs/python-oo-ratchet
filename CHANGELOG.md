@@ -4,6 +4,17 @@
 
 ### Changed
 
+- Shadow scans preserve symlink package spelling for layer matching and stable
+  keys in both the merge-base and working-tree scans.
+- Shadow merge-base checkout allows 300 seconds without changing the default
+  timeout of other Git calls. Owned temporary files and worktree registrations
+  are cleaned up after checkout timeouts, errors, or interrupted scans.
+- Design scans retain files whose module names collide with packages instead of
+  silently replacing them. Shadowed files receive stable source-relative keys;
+  plain reports retain both paths and layer rules apply to both files.
+- Shadow comparisons preserve finding multiplicity for stable design keys:
+  repeated keys count as additional debt instead of being silently deduplicated.
+  Added/removed lists repeat keys for each changed occurrence.
 - `domain-io` is purely import-based, including os, os.path, pathlib, io,
   tempfile and glob, with TYPE_CHECKING imports exempt and findings keyed by
   the imported module. Domain code reaches the filesystem and environment
@@ -12,6 +23,13 @@
 
 ### Added
 
+- Shadow-mode `design <src> --shadow-check <git-ref> [--layers FILE] [--json]`
+  compares a merge-base scan to the working tree using stable, line-independent
+  design keys and the existing OO per-file comparisons. Ordered Tier 0/Tier 1
+  debt checks bound repository-wide trades; no weighted sum, rename matching or
+  baseline file is used. Deterministic text/JSON reports remain advisory (exit 0
+  for every verdict, exit 2 for input errors); adopter gates and releases are
+  unchanged.
 - Advisory `primitive-params`, `tag-switch`, `middle-man`, `split-cohesion` and
   Tier 0 `size-cap` checks, using syntactic signatures, explicit project classes
   and LCOM4 components. Initializers are excluded from cohesion; layer-specific

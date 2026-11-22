@@ -32,7 +32,7 @@ class ShapeRules:
         self = super().__new__(cls)
         names = LayerImports(index)
         layers = (
-            {m.key: config.layer(names.name(m)) for m in index.modules()}
+            {m.key: config.layer(names.canonical_name(m)) for m in index.modules()}
             if config is not None
             else {}
         )

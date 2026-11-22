@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import ast
-import os.path
-from pathlib import Path
 from typing import Self
 
 from .modules import Module, ModuleIndex
@@ -18,13 +16,22 @@ class LayerImports:
 
     def __new__(cls, index: ModuleIndex) -> Self:
         self = super().__new__(cls)
-        self._package = Path(os.path.normpath(index.layout.root.absolute())).name
-        self._names = frozenset(self.name(module) for module in index.modules())
+        self._package = index.package_name
+        self._names = frozenset(
+            self.canonical_name(module) for module in index.modules()
+        )
         return self
 
     def name(self, module: Module) -> str:
-        """Return a config-facing module name, normalizing root __init__."""
+        """Return a unique namespace, normalizing root __init__."""
+        if module.key.startswith("/"):
+            return self._package + ":" + module.key[1:]
         return self._package + ("" if module.key == "__init__" else f".{module.key}")
+
+    def canonical_name(self, module: Module) -> str:
+        """Return the config/import-facing name independent of shadowing."""
+        key = module.import_key
+        return self._package + ("" if key == "__init__" else f".{key}")
 
     def imports(self, module: Module) -> list[tuple[ast.stmt, str, str]]:
         """Return (node, imported symbol, target module), type-only included."""
@@ -33,7 +40,7 @@ class LayerImports:
             if isinstance(node, ast.Import):
                 rows.extend((node, alias.name, alias.name) for alias in node.names)
             elif isinstance(node, ast.ImportFrom):
-                base = self._base(module, node, self.name(module))
+                base = self._base(module, node, self.canonical_name(module))
                 for alias in node.names:
                     child = f"{base}.{alias.name}"
                     target = child if child in self._names else base

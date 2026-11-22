@@ -71,12 +71,19 @@ class LayersRatchet:
                 "FAIL: the base has a layers baseline but the tree has none; "
                 "restore it or run --update"
             )
+        if not self._git.exists_at(base, self._package_marker(scan)):
+            return self._verdict(scan, None, base, allow_config_change=True)
         label = f"{base}:{LayersBaseline.FILENAME}"
         parsed = LayersBaseline.parse(text, label)
         scoped = frozenset(e for e in parsed if e.within(scan.package))
         return self._verdict(
             scan, scoped, base, allow_config_change=allow_config_change
         )
+
+    def _package_marker(self, scan: LayerScan) -> str:
+        """Return the repo-relative path of the package's ``__init__.py``."""
+        rel = scan.src.resolve().relative_to(self._root.resolve())
+        return (rel / "__init__.py").as_posix()
 
     def _verdict(
         self,

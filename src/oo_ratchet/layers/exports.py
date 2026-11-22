@@ -1,91 +1,77 @@
-"""The names a package ``__init__`` re-exports, from its module-scope bindings."""
+"""The names a package ``__init__`` re-exports, from its module-scope flow."""
 
 from __future__ import annotations
 
 import ast
 from collections import defaultdict
-from collections.abc import Container, Iterator
+from collections.abc import Mapping
 from typing import Self
 
 from oo_ratchet.design.layer_violations import Site
 
-_COMPOUND = ("body", "orelse", "finalbody")
+from .flow import BindingFlow, Bindings, Origin
+from .public import PublicNames
 
 
 class Reexports:
-    """Map each name an ``__init__`` binds at module scope to what it came from.
+    """Map each name an ``__init__`` can leave bound to an import to its origins.
 
-    Statements are read in order, so a later assignment, ``def`` or ``class``
-    of the same name ends the re-export. Imports inside functions or classes
-    bind nothing at module scope and are ignored. ``from .a import X`` maps
-    ``X`` to ``(module a, "X")``; ``import pkg.a as X`` maps ``X`` to
-    ``(module pkg.a, "")``.
+    The module-scope flow decides which bindings survive (see ``BindingFlow``).
+    ``from .a import X`` binds ``X`` to ``(module a, "X")``; ``import pkg.a as X``
+    binds it to ``(module pkg.a, "")``; ``from .a import *`` binds every public
+    name of ``a`` (its literal ``__all__``, else its names without a leading
+    underscore) to ``(module a, name)``.
     """
 
-    _names: dict[str, tuple[str, str]]
+    _rows: defaultdict[int, dict[str, str]]
+    _trees: Mapping[str, ast.Module]
+    _names: Bindings
 
     def __new__(
         cls,
         tree: ast.Module,
         rows: list[tuple[Site, str, str]],
-        known: Container[str],
+        trees: Mapping[str, ast.Module],
     ) -> Self:
         self = super().__new__(cls)
-        resolved: defaultdict[int, list[tuple[str, str]]] = defaultdict(list)
+        self._rows = defaultdict(dict)
         for node, symbol, target in rows:
-            resolved[id(node)].append((symbol, target))
-        self._names = {}
-        for stmt in cls._scope(tree.body):
-            if isinstance(stmt, ast.ImportFrom):
-                self._from(stmt, resolved[id(stmt)])
-            elif isinstance(stmt, ast.Import):
-                self._import(stmt, known)
-            else:
-                for name in cls._rebound(stmt):
-                    self._names.pop(name, None)
+            self._rows[id(node)][symbol] = target
+        self._trees = trees
+        self._names = BindingFlow(self._imports).run(tree.body)
         return self
 
-    def get(self, name: str) -> tuple[str, str] | None:
-        """Return ``(module, original name)`` for a re-exported ``name``."""
-        return self._names.get(name)
+    def get(self, name: str) -> frozenset[Origin]:
+        """Return the ``(module, original name)`` origins of a re-exported name."""
+        return self._names.get(name, frozenset())
 
-    def _from(self, stmt: ast.ImportFrom, rows: list[tuple[str, str]]) -> None:
-        by_symbol = dict(rows)
+    def _imports(self, stmt: ast.Import | ast.ImportFrom) -> Bindings:
+        if isinstance(stmt, ast.Import):
+            return self._import(stmt)
+        found = self._rows[id(stmt)]
+        bound: Bindings = {}
         for alias in stmt.names:
-            bound = alias.asname or alias.name
-            self._names.pop(bound, None)
-            if alias.name in by_symbol:
-                self._names[bound] = (by_symbol[alias.name], alias.name)
+            if alias.name == "*":
+                bound.update(self._wildcard(found.get("*")))
+            else:
+                origin = (
+                    {(found[alias.name], alias.name)} if alias.name in found else set()
+                )
+                bound[alias.asname or alias.name] = frozenset(origin)
+        return bound
 
-    def _import(self, stmt: ast.Import, known: Container[str]) -> None:
+    def _import(self, stmt: ast.Import) -> Bindings:
+        bound: Bindings = {}
         for alias in stmt.names:
-            bound = alias.asname or alias.name.split(".")[0]
-            self._names.pop(bound, None)
-            if alias.asname and alias.name in known:
-                self._names[bound] = (alias.name, "")
+            module = alias.name if alias.asname and alias.name in self._trees else None
+            origin = frozenset({(module, "")}) if module else frozenset()
+            bound[alias.asname or alias.name.split(".")[0]] = origin
+        return bound
 
-    @classmethod
-    def _scope(cls, stmts: list[ast.stmt]) -> Iterator[ast.stmt]:
-        """Yield module-scope statements in order, entering blocks but not defs."""
-        for stmt in stmts:
-            yield stmt
-            if isinstance(stmt, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef):
-                continue
-            for field in _COMPOUND:
-                yield from cls._scope(getattr(stmt, field, []))
-            for handler in getattr(stmt, "handlers", []):
-                yield from cls._scope(handler.body)
-
-    @staticmethod
-    def _rebound(stmt: ast.stmt) -> list[str]:
-        if isinstance(stmt, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef):
-            return [stmt.name]
-        if isinstance(stmt, ast.Assign | ast.AnnAssign | ast.AugAssign):
-            targets = stmt.targets if isinstance(stmt, ast.Assign) else [stmt.target]
-            return [
-                n.id
-                for target in targets
-                for n in ast.walk(target)
-                if isinstance(n, ast.Name)
-            ]
-        return []
+    def _wildcard(self, target: str | None) -> Bindings:
+        if target is None or target not in self._trees:
+            return {}
+        return {
+            name: frozenset({(target, name)})
+            for name in PublicNames.of(self._trees[target])
+        }

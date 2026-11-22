@@ -10,10 +10,8 @@ from oo_ratchet.design.layer_edges import Edge, Violation
 from oo_ratchet.design.layer_violations import LayerViolations, Site
 from oo_ratchet.design.modules import Module, ModuleIndex
 
+from .chain import ExportChain
 from .dynamic import DynamicImports
-from .exports import Reexports
-
-_HOPS = 8
 
 
 class StrictViolations(LayerViolations):
@@ -29,19 +27,26 @@ class StrictViolations(LayerViolations):
     """
 
     _by_name: dict[str, Module]
+    _chain: ExportChain
 
     def __new__(cls, index: ModuleIndex, config: LayerConfig) -> Self:
         self = super().__new__(cls, index, config)
         self._by_name = {self.name(m): m for m in index.modules()}
+        self._chain = ExportChain(self._by_name, self._plain)
         return self
 
     def targets(self, module: Module) -> list[tuple[Site, str, str]]:
         """Return the design check's edges plus re-exported and dynamic ones."""
         rows = super().targets(module)
         for node, symbol, target in list(rows):
-            rows.extend((node, symbol, hop) for hop in self._hops(target, symbol))
+            rows.extend(
+                (node, symbol, hop) for hop in self._chain.follow(target, symbol)
+            )
         rows.extend(DynamicImports(module.tree, self._by_name).targets())
         return rows
+
+    def _plain(self, module: Module) -> list[tuple[Site, str, str]]:
+        return LayerViolations.targets(self, module)
 
     def violations(self) -> list[Violation]:
         """Return every refused edge, one per source and target module."""
@@ -73,18 +78,3 @@ class StrictViolations(LayerViolations):
                 if isinstance(node, ast.ImportFrom) and node.level > depth
             )
         return sorted(found)
-
-    def _hops(self, target: str, symbol: str) -> list[str]:
-        """Follow ``symbol`` through the package ``__init__`` files re-exporting it."""
-        hops: list[str] = []
-        for _ in range(_HOPS):
-            module = self._by_name.get(target)
-            if module is None or not module.is_package:
-                break
-            exports = Reexports(module.tree, super().targets(module), self._by_name)
-            source = exports.get(symbol)
-            if source is None or source[0] == target:
-                break
-            target, symbol = source
-            hops.append(target)
-        return hops

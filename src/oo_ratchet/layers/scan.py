@@ -91,6 +91,11 @@ class LayerScan:
         return self._unassigned
 
     @property
+    def src(self) -> Path:
+        """Return the scanned package directory."""
+        return self._src
+
+    @property
     def package(self) -> str:
         """Return the scanned package's name, the prefix of its module names."""
         return self._package

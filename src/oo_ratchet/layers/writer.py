@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Self
 
 from oo_ratchet.coupling.outcome import Outcome
+from oo_ratchet.design.layer_edges import Edge
 
 from .audit import LayersAudit
 from .baseline import LayersBaseline
@@ -54,9 +55,11 @@ class LayersWriter:
             return blocked
         current = frozenset(v.edge for v in scan.violations)
         recorded = self._baseline.scoped(scan.package)
-        adopting = not self._baseline.exists
+        adopting = not recorded
+        retired = self._retired(scan.package)
         before = self._baseline.raw()
-        self._baseline.save((self._baseline.edges - recorded) | current)
+        kept = self._baseline.edges - recorded - retired
+        self._baseline.save(kept | current)
         try:
             self._audit.append(
                 verdict="adopt" if adopting else "pass",
@@ -67,6 +70,7 @@ class LayersWriter:
                 commit=self._git.short_head(),
                 source=source,
                 config_change=config_change,
+                retired=retired,
             )
         except OSError:
             self._baseline.restore(before)
@@ -96,7 +100,19 @@ class LayersWriter:
         return None
 
     def _added(self, scan: LayerScan) -> list[str]:
-        if not self._baseline.exists:
-            return []
         known = self._baseline.scoped(scan.package)
+        if not known:
+            return []
         return [str(e) for e in sorted(scan.edges - known)]
+
+    def _retired(self, package: str) -> frozenset[Edge]:
+        """Return rows whose package directory no longer exists in the repository."""
+        gone = {
+            e.source.split(".")[0]
+            for e in self._baseline.edges
+            if not e.within(package)
+        }
+        dead = {n for n in gone if n.isidentifier() and not self._git.has_package(n)}
+        return frozenset(
+            e for e in self._baseline.edges if e.source.split(".")[0] in dead
+        )

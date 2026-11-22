@@ -245,6 +245,64 @@ def test_clump_prunes_infrequent_names_before_pairwise_intersection(
     assert [row["detail"] for row in rows] == ["a, b, c, d"] * 3
 
 
+@pytest.mark.parametrize("decorator", ["overload", "typing.overload"])
+@pytest.mark.parametrize("prefix", ["def", "async def"])
+def test_clump_excludes_overload_stubs(
+    tmp_path: Path, decorator: str, prefix: str
+) -> None:
+    source = "\n".join(
+        f"@{decorator}\n{prefix} make(a: int,b: int,c: int,d: int): ..."
+        for _ in range(3)
+    )
+    assert not symbols(scan(tmp_path, {"api.py": source}), "data-clump")
+
+
+@pytest.mark.parametrize("base", ["Protocol", "typing.Protocol", "Protocol[T]"])
+def test_clump_excludes_protocol_methods(tmp_path: Path, base: str) -> None:
+    source = "\n".join(
+        f"class {name}({base}):\n def send(self,a:int,b:int,c:int,d:int): ..."
+        for name in ("A", "B", "C")
+    )
+    assert not symbols(scan(tmp_path, {"ports.py": source}), "data-clump")
+
+
+@pytest.mark.parametrize("extra_owner", ["", "def external(a,b,c,d): pass"])
+def test_clump_class_and_methods_cannot_support_each_other(
+    tmp_path: Path, extra_owner: str
+) -> None:
+    source = (
+        "class Record:\n a:int\n b:int\n c:int\n d:int\n"
+        " def __init__(self,a,b,c,d): pass\n"
+        " def __new__(cls,a,b,c,d): pass\n"
+        " @classmethod\n def create(cls,a,b,c,d): pass\n" + extra_owner
+    )
+    assert not symbols(scan(tmp_path, {"records.py": source}), "data-clump")
+
+
+def test_clump_reports_each_class_family_once(tmp_path: Path) -> None:
+    source = "\n".join(
+        f"class {name}:\n a:int\n b:int\n c:int\n d:int\n"
+        " def __init__(self,a,b,c,d): pass\n"
+        " @classmethod\n def create(cls,a,b,c,d): pass\n"
+        for name in ("A", "B", "C")
+    )
+    rows = [
+        r for r in scan(tmp_path, {"records.py": source}) if r["rule"] == "data-clump"
+    ]
+    assert [r["symbol"] for r in rows] == ["A", "B", "C"]
+
+
+def test_clump_does_not_union_separate_signatures_in_class_family(
+    tmp_path: Path,
+) -> None:
+    source = (
+        "class A:\n def first(self,a,b): pass\n def second(self,c,d): pass\n"
+        "class B:\n a:int\n b:int\n c:int\n d:int\n"
+        "class C:\n a:int\n b:int\n c:int\n d:int\n"
+    )
+    assert not symbols(scan(tmp_path, {"records.py": source}), "data-clump")
+
+
 @pytest.mark.parametrize("complement", [False, True], ids=["one-extra", "all-but-one"])
 def test_clump_adversarial_thirty_owners_under_one_second(
     tmp_path: Path, complement: bool

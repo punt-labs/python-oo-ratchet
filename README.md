@@ -108,6 +108,10 @@ domain and unlayered modules remain eligible:
   owner group. Higher-order subsets can still be missed when every pair has extra
   names that survive this global frequency filter. Each occurrence
   is keyed on its owner, with comma-separated sorted names in `detail`.
+  Overload stubs and Protocol methods are not owners. A class and its methods
+  count as one independent owner, reported once on the first matching declaration
+  (the class when its fields match). Separate signature name sets are never
+  unioned to fabricate support.
 - `misplaced-function` (D4): a public module function's first positional
   parameter is annotated with a project class, or its return annotation names
   a project class whose fields it reads. `create_*` functions are exempt.

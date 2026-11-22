@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+from collections import Counter
 from typing import Self
 
 from .declaration import Declaration
@@ -28,28 +29,30 @@ class ReceiverTypes:
     def known(self) -> dict[str, Declaration]:
         """Return explicit receiver types only, with no ordering or propagation."""
         writes = ReceiverBindings(self._owner).counts()
-        candidates = self._candidates()
+        candidates = self._candidates(writes)
         return {
             name: owner
             for name, owner in candidates.items()
             if owner is not None and writes[name] == 1
         }
 
-    def _candidates(self) -> dict[str, Declaration | None]:
+    def _candidates(self, bindings: Counter[str]) -> dict[str, Declaration | None]:
         parameters = self._shape.parameters()
         candidates = {
             a.arg: self._types.resolve(self._owner.module, a.annotation)
             for a in parameters
         }
         for node in self._shape.nodes():
-            candidate = self._statement(node)
+            candidate = self._statement(node, bindings)
             if candidate is not None:
                 name, annotation = candidate
                 candidates[name] = self._types.resolve(self._owner.module, annotation)
         return candidates
 
     @staticmethod
-    def _statement(node: ast.AST) -> tuple[str, ast.expr] | None:
+    def _statement(
+        node: ast.AST, bindings: Counter[str]
+    ) -> tuple[str, ast.expr] | None:
         if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
             return node.target.id, node.annotation
         if (
@@ -57,8 +60,10 @@ class ReceiverTypes:
             and len(node.targets) == 1
             and isinstance(node.targets[0], ast.Name)
         ):
-            if isinstance(node.value, ast.Call) and isinstance(
-                node.value.func, ast.Name
+            if (
+                isinstance(node.value, ast.Call)
+                and isinstance(node.value.func, ast.Name)
+                and not bindings[node.value.func.id]
             ):
                 return node.targets[0].id, node.value.func
         return None

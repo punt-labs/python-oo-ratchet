@@ -521,6 +521,46 @@ def test_repeated_module_bindings_block_module_alias(tmp_path: Path) -> None:
 @pytest.mark.parametrize(
     "binding",
     [
+        "Item = factory",
+        "Item: object",
+        "def Item(): pass",
+        "class Item: pass",
+        "from external import Item",
+        "for Item in values:\n pass",
+        "with resource() as Item:\n pass",
+        "try:\n pass\nexcept Exception as Item:\n pass",
+        "(Item := factory)",
+    ],
+)
+@pytest.mark.parametrize("later", [False, True])
+def test_locally_bound_constructor_name_has_no_receiver_type(
+    tmp_path: Path, binding: str, later: bool
+) -> None:
+    statements = ["x = Item()", binding] if later else [binding, "x = Item()"]
+    body = "\n".join(" " + line for s in statements for line in s.splitlines())
+    source = "from .model import Item\ndef read():\n" + body + "\n return x.a + x.b"
+    rows = scan(tmp_path, {"model.py": MODEL, "consumer.py": source})
+    assert symbols(rows, "envied-data") == set()
+
+
+def test_parameter_bound_constructor_name_has_no_receiver_type(tmp_path: Path) -> None:
+    source = "from .model import Item\ndef read(Item):\n x = Item()\n return x.a + x.b"
+    rows = scan(tmp_path, {"model.py": MODEL, "consumer.py": source})
+    assert symbols(rows, "envied-data") == set()
+
+
+def test_nested_parameter_does_not_bind_constructor_name(tmp_path: Path) -> None:
+    source = (
+        "from .model import Item\ndef read():\n"
+        " def nested(Item): pass\n x = Item()\n return x.a + x.b"
+    )
+    rows = scan(tmp_path, {"model.py": MODEL, "consumer.py": source})
+    assert symbols(rows, "envied-data") == {"Item"}
+
+
+@pytest.mark.parametrize(
+    "binding",
+    [
         "try:\n pass\nexcept Exception as x:\n pass",
         "try:\n pass\nexcept* Exception as x:\n pass",
         "for x in values:\n pass",

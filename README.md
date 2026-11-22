@@ -121,6 +121,8 @@ targets, imports, nested def/class names, walrus targets, global/nonlocal
 declarations and deletions. Value aliases, factory results, call chains and container
 annotations do not propagate receiver types. Nested function bodies are checked
 separately, not attributed to their enclosing function.
+Direct constructor assignment is ignored when the constructor name is bound
+anywhere in that function; explicit annotations remain separate syntactic sources.
 
 **Design evals.** `evals/design/` seeds eleven library-loan bad/good pairs with
 shared behavior checks and stable `(rule, path, symbol)` keys in `expected.toml`.

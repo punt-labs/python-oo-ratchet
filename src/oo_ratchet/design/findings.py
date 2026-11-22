@@ -34,24 +34,22 @@ class Rules:
     STATELESS_BAG = "stateless-function-bag"
     GETTER_HEAVY = "getter-heavy"
     CONCRETE_IMPORT = "concrete-cross-package-import"
+    LAYER_IMPORT = "layer-import"
+    DOMAIN_IO = "domain-io"
+    UNLAYERED_MODULE = "unlayered-module"
+    THICK_ENTRY = "thick-entry"
 
     DESCRIPTIONS: ClassVar[dict[str, str]] = {
-        STATELESS_SINGLE: (
-            "class with no instance state and one public method: a function "
-            "wearing a class"
-        ),
-        STATELESS_BAG: (
-            "class with no instance state and several public methods: a "
-            "namespace of free functions"
-        ),
-        GETTER_HEAVY: (
-            "most public members only return a stored field: the behavior that "
-            "uses the data lives elsewhere"
-        ),
+        STATELESS_SINGLE: "stateless class with one public method: a function-object",
+        STATELESS_BAG: "stateless class with several public methods: a namespace",
+        GETTER_HEAVY: "most public members only return a stored field",
         CONCRETE_IMPORT: (
-            "a stateful concrete class imported from another package instead of "
-            "an abstraction (Protocol/ABC) at the boundary"
+            "stateful concrete class imported across packages, not a Protocol/ABC"
         ),
+        LAYER_IMPORT: "module imports a layer further out",
+        DOMAIN_IO: "domain module imports IO or calls builtin open",
+        UNLAYERED_MODULE: "module matches no declared layer",
+        THICK_ENTRY: "entry function has cyclomatic complexity greater than four",
     }
 
     @classmethod

@@ -52,12 +52,45 @@ so a repo switches over without rebaselining.
 
 ### Advisory design check
 
-`oo-ratchet design src/pkg/ [--json]` reports OO design smells the metric
+`oo-ratchet design src/pkg/ [--json] [--layers FILE]` reports OO design smells the metric
 gates cannot see: stateless classes with one public method (a function wearing
 a class) or several (a namespace of free functions), getter-heavy classes, and
 stateful concrete classes imported across top-level subpackages instead of a
-Protocol/ABC. It has no baseline and always exits 0; it is not part of
-`make check`.
+Protocol/ABC. Findings always exit 0; invalid input/configuration exits 2.
+It has no baseline and is not part of adopter `make check` gates.
+
+Optional layers come from the **nearest** `pyproject.toml` above the scanned
+package, or `--layers FILE` (the same TOML table):
+
+```toml
+[tool.oo-ratchet.layers]
+entry = ["pkg", "pkg.cli*"]
+adapters = ["pkg.adapters", "pkg.adapters.*"]
+application = ["pkg.application", "pkg.application.*"]
+domain = ["pkg.domain", "pkg.domain.*"]
+```
+
+Globs match full dotted module names, case-sensitively; `*` spans dots.
+Overlaps use the first match in **entry → adapters → application → domain**
+order, regardless of TOML order. Root `__init__.py` is named `pkg`. Missing
+layer keys mean empty lists; unknown keys or non-list/non-string values error.
+No table means no layer findings; an empty table marks every module unlayered.
+
+- `layer-import`: imports an in-tree module in a layer further out, including
+  relative, submodule and `TYPE_CHECKING` imports.
+- `domain-io`: imports subprocess, socket, shutil, json, sqlite3, httpx, requests,
+  urllib.request, typer, rich, mcp, fastmcp, logging.handlers, os, os.path,
+  pathlib, io, tempfile or glob. Findings are purely import-based, once per
+  imported module per import statement, keyed by that module; `TYPE_CHECKING`
+  imports are exempt. Even `os.path.join` or `PurePath` usage triggers the rule.
+  Domain code reaches the filesystem and environment through an injected port.
+  Bare `open(...)` calls also fire, but any binding of `open` anywhere in the
+  module (including parameters, nested definitions and pattern captures)
+  suppresses all of them. Qualified calls and dynamic imports are not analyzed;
+  there is no alias, scope or control-flow inference.
+- `unlayered-module`: matches no declared glob.
+- `thick-entry`: an entry function/method exceeds cyclomatic complexity 4,
+  using the same scope-aware computation as the OO metrics.
 
 **Design evals.** `evals/design/` seeds eleven library-loan bad/good pairs with
 shared behavior checks and stable `(rule, path, symbol)` keys in `expected.toml`.
@@ -66,7 +99,7 @@ future-rule expectations are strict xfails, so implementing a rule forces their
 promotion. Known false positives are strict xfails too, never fixture workarounds.
 `make check` lints and type-checks the fixtures and runs the harness, but the
 self-ratchets still scan only `src/oo_ratchet/`. The layer-leak pair's `layers.toml`
-is a future layer contract, not configuration consumed by today's scanner.
+is consumed by the scanner with `--layers` (and by the eval harness).
 
 ## Configure
 

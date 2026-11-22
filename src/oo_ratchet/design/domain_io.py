@@ -1,0 +1,87 @@
+"""Import-based IO dependencies and conservatively unbound bare open calls."""
+
+from __future__ import annotations
+
+import ast
+from typing import ClassVar, Self
+
+from .builtin_open import BuiltinOpen
+from .findings import Finding, Rules
+from .modules import Module
+from .targets import ImportTargets
+
+
+class DomainIO:
+    """Keep domain modules independent of IO libraries, irrespective of usage."""
+
+    IO: ClassVar[tuple[str, ...]] = (
+        "subprocess",
+        "socket",
+        "shutil",
+        "json",
+        "sqlite3",
+        "httpx",
+        "requests",
+        "urllib.request",
+        "typer",
+        "rich",
+        "mcp",
+        "fastmcp",
+        "logging.handlers",
+        "os",
+        "os.path",
+        "pathlib",
+        "io",
+        "tempfile",
+        "glob",
+    )
+    _module: Module
+
+    def __new__(cls, module: Module) -> Self:
+        self = super().__new__(cls)
+        self._module = module
+        return self
+
+    def findings(self) -> list[Finding]:
+        """Return one finding per IO module import, plus bare unbound opens."""
+        out = [self._finding(node, name) for node, name in self._imports()]
+        out.extend(
+            self._finding(node, "open")
+            for node in BuiltinOpen(self._module.tree).calls()
+        )
+        return out
+
+    def _imports(self) -> list[tuple[ast.stmt, str]]:
+        type_only = ImportTargets.type_only(self._module.tree)
+        return [
+            (node, name)
+            for node in ast.walk(self._module.tree)
+            if isinstance(node, (ast.Import, ast.ImportFrom))
+            and id(node) not in type_only
+            for name in dict.fromkeys(self._imported(node))
+            if self._is_io(name)
+        ]
+
+    @classmethod
+    def _imported(cls, node: ast.Import | ast.ImportFrom) -> list[str]:
+        if isinstance(node, ast.Import):
+            return [alias.name for alias in node.names]
+        if node.level:
+            return []
+        base = node.module or ""
+        if cls._is_io(base):
+            return [base]
+        return [f"{base}.{alias.name}" for alias in node.names]
+
+    @classmethod
+    def _is_io(cls, name: str) -> bool:
+        return any(name == io or name.startswith(io + ".") for io in cls.IO)
+
+    def _finding(self, node: ast.stmt | ast.expr, symbol: str) -> Finding:
+        return Finding(
+            Rules.DOMAIN_IO,
+            str(self._module.path),
+            node.lineno,
+            symbol,
+            "domain module depends on IO; use an injected port",
+        )

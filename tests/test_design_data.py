@@ -396,3 +396,51 @@ def test_no_config_domain_and_unlayered_are_eligible(
     assert symbols(rows, "envied-data") == {"Item"}
     assert symbols(rows, "feature-envy") == {"read"}
     assert symbols(rows, "misplaced-function") == {"read"}
+
+
+@pytest.mark.parametrize(
+    "local",
+    [
+        "def load():\n from .model import Item\n",
+        "class Namespace:\n from .model import Item\n",
+        "async def load():\n from .model import Item\n",
+    ],
+)
+def test_module_imports_ignore_nested_declarations(tmp_path: Path, local: str) -> None:
+    rows = scan(
+        tmp_path,
+        {
+            "model.py": MODEL,
+            "consumer.py": local + "def read(x: Item): return x.a + x.b + x.c",
+        },
+    )
+    assert rows == []
+
+
+def test_module_imports_ignore_function_local_constructor_import(
+    tmp_path: Path,
+) -> None:
+    source = (
+        "def read():\n from .model import Item\n x = Item()\n return x.a + x.b + x.c"
+    )
+    assert scan(tmp_path, {"model.py": MODEL, "consumer.py": source}) == []
+
+
+@pytest.mark.parametrize(
+    "imports",
+    [
+        "if TYPE_CHECKING:\n from .model import Item\n",
+        "try:\n from .model import Item\nexcept ImportError:\n pass\n",
+        "from .model import Item\ndef load():\n from external import Item\n",
+    ],
+)
+def test_module_imports_include_top_level_blocks(tmp_path: Path, imports: str) -> None:
+    rows = scan(
+        tmp_path,
+        {
+            "model.py": MODEL,
+            "consumer.py": imports + "def read(x: Item): return x.a + x.b + x.c",
+        },
+    )
+    assert symbols(rows, "envied-data") == {"Item"}
+    assert symbols(rows, "feature-envy") == {"read"}

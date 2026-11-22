@@ -59,9 +59,21 @@ class ProjectTypes:
 
     def _imports(self, module: Module) -> None:
         prefix = self._names.name(module)
-        for node in ast.walk(module.tree):
+        for node in self._module_nodes(module.tree):
             for bound, target in self._import_targets(module, node):
                 self._aliases.setdefault(f"{prefix}.{bound}", set()).add(target)
+
+    @staticmethod
+    def _module_nodes(tree: ast.Module) -> list[ast.AST]:
+        pending: list[ast.AST] = list(reversed(tree.body))
+        out: list[ast.AST] = []
+        while pending:
+            node = pending.pop()
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                continue
+            out.append(node)
+            pending.extend(reversed(list(ast.iter_child_nodes(node))))
+        return out
 
     def _import_targets(self, module: Module, node: ast.AST) -> list[tuple[str, str]]:
         if isinstance(node, ast.Import):

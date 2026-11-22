@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import ast
-from typing import Self
+from typing import TYPE_CHECKING, Self
 
 from .findings import Finding, Rules
 from .modules import Module, ModuleIndex
 from .targets import ImportTargets
+
+if TYPE_CHECKING:
+    from .shape import ClassShape
 
 
 class BoundaryCheck:
@@ -78,30 +81,37 @@ class BoundaryCheck:
         )
 
     def _is_concrete(self, key: str, name: str) -> bool:
-        resolved = self._resolve(key, name, hops=1)
-        if resolved is None:
+        shape = self._resolve(key, name, hops=1)
+        if shape is None:
             return False
-        shape = resolved.classes[name]
         return not (shape.is_exempt or shape.is_abstract)
 
-    def _resolve(self, key: str, name: str, hops: int) -> Module | None:
+    def _resolve(self, key: str, name: str, hops: int) -> ClassShape | None:
         module = self._index.get(key)
         if module is None:
             return None
         if name in module.classes:
-            return module
+            return module.classes[name]
         if not module.is_package or hops == 0:
             return None
-        node = self._reexport(module, name)
-        inner = None if node is None else self._targets.key_for(module, node)
-        return None if inner is None else self._resolve(inner, name, hops - 1)
+        found = self._reexport(module, name)
+        if found is None:
+            return None
+        node, source = found
+        inner = self._targets.key_for(module, node)
+        return None if inner is None else self._resolve(inner, source, hops - 1)
 
     @staticmethod
-    def _reexport(module: Module, name: str) -> ast.ImportFrom | None:
-        """Return the ``from X import name`` in a package ``__init__``."""
+    def _reexport(module: Module, name: str) -> tuple[ast.ImportFrom, str] | None:
+        """Return the import in a package ``__init__`` exporting ``name``.
+
+        Also returns the name the class has in its source module, which
+        differs from ``name`` for ``from .core import Engine as PublicEngine``.
+        """
         for node in module.tree.body:
-            if isinstance(node, ast.ImportFrom) and any(
-                a.name == name and a.asname in {None, name} for a in node.names
-            ):
-                return node
+            if not isinstance(node, ast.ImportFrom):
+                continue
+            for alias in node.names:
+                if (alias.asname or alias.name) == name:
+                    return node, alias.name
         return None

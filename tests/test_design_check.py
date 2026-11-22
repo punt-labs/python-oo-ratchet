@@ -62,6 +62,50 @@ class Dynamic:
         return 1
 """
 
+_QODO_STATE = """
+class Allocated:
+    def __new__(cls) -> "Allocated":
+        obj = super().__new__(cls)
+        obj.value = 1
+        return obj
+
+    def get(self) -> int:
+        return 1
+
+
+class DictBacked:
+    def put(self, key: str) -> None:
+        self.__dict__[key] = 1
+"""
+
+_EMPTY_SLOTS = """
+class Strings:
+    __slots__ = ""
+
+    def run(self) -> int:
+        return 1
+"""
+
+_SPLIT_INTERFACES = """
+from typing import Protocol
+
+
+class Reader(Protocol):
+    def read(self) -> str: ...
+
+
+class Writer(Protocol):
+    def write(self) -> None: ...
+
+
+class Unrelated:
+    def read(self) -> str:
+        return ""
+
+    def write(self) -> None:
+        return None
+"""
+
 _EXEMPT = """
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -152,6 +196,7 @@ from typing import TYPE_CHECKING
 
 from pkg.engine.core import Engine, EngineValue
 from ..engine import Engine as Reexported
+from pkg.engine import PublicEngine
 
 if TYPE_CHECKING:
     from pkg.engine.core import Engine as TypedEngine
@@ -205,6 +250,21 @@ def test_every_kind_of_state_suppresses_stateless_rules(tmp_path: Path) -> None:
     assert _symbols(found, Rules.STATELESS_SINGLE) == set()
 
 
+def test_new_local_and_dict_writes_are_state(tmp_path: Path) -> None:
+    found = _findings(_tree(tmp_path, {"q.py": _QODO_STATE}))
+    assert _symbols(found, Rules.STATELESS_SINGLE) == set()
+
+
+def test_empty_string_slots_are_not_state(tmp_path: Path) -> None:
+    found = _findings(_tree(tmp_path, {"s.py": _EMPTY_SLOTS}))
+    assert _symbols(found, Rules.STATELESS_SINGLE) == {"Strings"}
+
+
+def test_methods_split_across_interfaces_do_not_exempt(tmp_path: Path) -> None:
+    found = _findings(_tree(tmp_path, {"i.py": _SPLIT_INTERFACES}))
+    assert _symbols(found, Rules.STATELESS_BAG) == {"Unrelated"}
+
+
 def test_interfaces_value_types_and_implementations_are_exempt(
     tmp_path: Path,
 ) -> None:
@@ -221,7 +281,9 @@ def test_concrete_cross_package_imports(tmp_path: Path) -> None:
     root = _tree(
         tmp_path,
         {
-            "engine/__init__.py": "from .core import Engine\n",
+            "engine/__init__.py": (
+                "from .core import Engine\nfrom .core import Engine as PublicEngine\n"
+            ),
             "engine/core.py": _ENGINE,
             "car/__init__.py": "",
             "car/body.py": _CAR,
@@ -229,8 +291,14 @@ def test_concrete_cross_package_imports(tmp_path: Path) -> None:
         },
     )
     rows = [f for f in _findings(root) if f.rule == Rules.CONCRETE_IMPORT]
-    assert sorted(f.symbol for f in rows) == ["Engine", "Engine", "Engine"]
+    assert sorted(f.symbol for f in rows) == [
+        "Engine",
+        "Engine",
+        "Engine",
+        "PublicEngine",
+    ]
     assert all(f.path.endswith("body.py") for f in rows)
+    assert any("PublicEngine" in f.detail for f in rows)
     assert sum("type-only" in f.detail for f in rows) == 1
 
 

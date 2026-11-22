@@ -12,8 +12,9 @@ class StateProbe:
     """Look for instance state in a class body and its methods.
 
     State is a non-``ClassVar`` annotated field in the class body, a non-empty
-    ``__slots__``, or any write to an attribute of the instance: ``self.x =``
-    in a method, the ``self`` local of a ``__new__`` constructor, or a
+    ``__slots__``, or any write to an attribute of the instance: ``self.x =`` or
+    ``self.__dict__[k] =`` in a method, the local a ``__new__`` constructor
+    binds to ``super().__new__(cls)``, or a
     ``setattr``/``object.__setattr__`` call on it. Class-level constants are
     shared configuration, not state.
     """
@@ -61,7 +62,9 @@ class StateProbe:
             isinstance(t, ast.Name) and t.id == "__slots__" for t in node.targets
         )
         value = node.value
-        empty = isinstance(value, (ast.Tuple, ast.List)) and not value.elts
+        empty = (isinstance(value, (ast.Tuple, ast.List)) and not value.elts) or (
+            isinstance(value, ast.Constant) and value.value == ""
+        )
         return named and not empty
 
     @classmethod
@@ -71,10 +74,10 @@ class StateProbe:
             return False
         return any(cls._is_write(n, receiver) for n in ast.walk(method))
 
-    @staticmethod
-    def _receiver(method: Method) -> str | None:
+    @classmethod
+    def _receiver(cls, method: Method) -> str | None:
         if method.name == "__new__":
-            return "self"
+            return cls._allocated(method)
         if any(
             isinstance(d, ast.Name) and d.id in {"staticmethod", "classmethod"}
             for d in method.decorator_list
@@ -82,6 +85,20 @@ class StateProbe:
             return None
         args = method.args.posonlyargs + method.args.args
         return args[0].arg if args else None
+
+    @staticmethod
+    def _allocated(method: Method) -> str:
+        """Return the local a ``__new__`` binds to ``....__new__(cls)``."""
+        for node in ast.walk(method):
+            if (
+                isinstance(node, ast.Assign)
+                and isinstance(node.value, ast.Call)
+                and isinstance(node.value.func, ast.Attribute)
+                and node.value.func.attr == "__new__"
+                and isinstance(node.targets[0], ast.Name)
+            ):
+                return node.targets[0].id
+        return "self"
 
     @classmethod
     def _is_write(cls, node: ast.AST, receiver: str) -> bool:
@@ -96,6 +113,8 @@ class StateProbe:
     def _is_own_attr(target: ast.expr, receiver: str) -> bool:
         if isinstance(target, (ast.Tuple, ast.List)):
             return any(StateProbe._is_own_attr(t, receiver) for t in target.elts)
+        if isinstance(target, ast.Subscript):
+            return StateProbe._is_own_attr(target.value, receiver)
         return (
             isinstance(target, ast.Attribute)
             and isinstance(target.value, ast.Name)

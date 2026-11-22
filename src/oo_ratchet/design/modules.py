@@ -70,14 +70,13 @@ class ModuleIndex:
         head = key.split(".")[0]
         return head if (self._layout.root / head).is_dir() else ""
 
-    def interface_methods(self) -> frozenset[str]:
-        """Return method names declared by any abstract class in the tree."""
-        return frozenset(
-            name
+    def interface_methods(self) -> tuple[frozenset[str], ...]:
+        """Return the method names of each abstract class in the tree."""
+        return tuple(
+            frozenset(shape.method_names())
             for module in self._modules.values()
             for shape in module.classes.values()
             if shape.is_abstract
-            for name in shape.method_names()
         )
 
     def _add(self, path: Path) -> None:

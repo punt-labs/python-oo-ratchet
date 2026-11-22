@@ -20,11 +20,11 @@ class ClassRules:
     GETTER_MIN: ClassVar[int] = 3
     GETTER_SHARE: ClassVar[float] = 0.5
 
-    _interface: frozenset[str]
+    _interfaces: tuple[frozenset[str], ...]
 
-    def __new__(cls, interface_methods: frozenset[str]) -> Self:
+    def __new__(cls, interface_methods: tuple[frozenset[str], ...]) -> Self:
         self = super().__new__(cls)
-        self._interface = interface_methods
+        self._interfaces = interface_methods
         return self
 
     def findings(self, module: Module) -> list[Finding]:
@@ -44,7 +44,7 @@ class ClassRules:
         methods = shape.public_methods()
         if not methods or shape.is_subclass or shape.has_state:
             return "", ""
-        if all(m in self._interface for m in methods):
+        if any(iface.issuperset(methods) for iface in self._interfaces):
             return "", ""
         listed = ", ".join(methods[:4]) + (", ..." if len(methods) > 4 else "")
         if len(methods) == 1:

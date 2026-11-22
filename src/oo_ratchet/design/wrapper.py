@@ -49,55 +49,69 @@ class ValueWrapper:
 
     @classmethod
     def _plain_fields(cls, node: ast.ClassDef) -> bool:
-        fields = {
+        fields = cls._annotations(node)
+        slots = cls._slot_names(node)
+        if slots is None or not slots <= fields.keys():
+            return False
+        return all(cls._names(a) <= cls._DATA_TYPES for a in fields.values())
+
+    @staticmethod
+    def _annotations(node: ast.ClassDef) -> dict[str, ast.expr]:
+        return {
             item.target.id: item.annotation
             for item in node.body
             if isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name)
         }
-        slots = cls._slot_names(node)
-        return (
-            slots is not None
-            and slots <= fields.keys()
-            and all(cls._names(a) <= cls._DATA_TYPES for a in fields.values())
-        )
 
     @staticmethod
-    def _slot_names(node: ast.ClassDef) -> set[str] | None:
-        """Return the literal ``__slots__`` names, or None if not literal."""
-        for item in node.body:
-            if not (
-                isinstance(item, ast.Assign)
-                and any(
-                    isinstance(t, ast.Name) and t.id == "__slots__"
-                    for t in item.targets
+    def _slots_value(node: ast.ClassDef) -> ast.expr | None:
+        assigns = (item for item in node.body if isinstance(item, ast.Assign))
+        return next(
+            (
+                a.value
+                for a in assigns
+                if any(
+                    isinstance(t, ast.Name) and t.id == "__slots__" for t in a.targets
                 )
-            ):
-                continue
-            value = item.value
-            elts = value.elts if isinstance(value, (ast.Tuple, ast.List)) else [value]
-            if not all(
-                isinstance(e, ast.Constant) and isinstance(e.value, str) for e in elts
-            ):
-                return None
-            return {str(e.value) for e in elts if isinstance(e, ast.Constant)}
-        return None
+            ),
+            None,
+        )
+
+    @classmethod
+    def _slot_names(cls, node: ast.ClassDef) -> set[str] | None:
+        """Return the literal ``__slots__`` names, or None if not literal."""
+        value = cls._slots_value(node)
+        if value is None:
+            return None
+        elts = value.elts if isinstance(value, (ast.Tuple, ast.List)) else [value]
+        names = [e.value for e in elts if isinstance(e, ast.Constant)]
+        strings = {n for n in names if isinstance(n, str)}
+        return strings if len(strings) == len(elts) else None
 
     @classmethod
     def _names(cls, node: ast.expr) -> set[str]:
         """Return the type names in an annotation, quoted parts included."""
+        leaf = cls._leaf_names(node)
+        if leaf is not None:
+            return leaf
+        names: set[str] = set()
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, ast.expr):
+                names |= cls._names(child)
+        return names
+
+    @classmethod
+    def _leaf_names(cls, node: ast.expr) -> set[str] | None:
         if isinstance(node, ast.Constant):
             return cls._constant_names(node.value)
         if isinstance(node, ast.Name):
             return {node.id}
         if isinstance(node, ast.Attribute):
             return {node.attr}
-        if isinstance(node, ast.Subscript) and cls._names(node.value) == {"Literal"}:
-            return {"Literal"}
-        names: set[str] = set()
-        for child in ast.iter_child_nodes(node):
-            if isinstance(child, ast.expr):
-                names |= cls._names(child)
-        return names
+        literal = isinstance(node, ast.Subscript) and cls._names(node.value) == {
+            "Literal"
+        }
+        return {"Literal"} if literal else None
 
     @classmethod
     def _constant_names(cls, value: object) -> set[str]:

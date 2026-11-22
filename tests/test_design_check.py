@@ -183,6 +183,41 @@ class Engine:
         return self._rpm
 
 
+class Wrapper:
+    __slots__ = ("_data", "_where")
+    _data: dict[str, int]
+    _where: "str | None"
+
+    def __new__(cls, data: dict[str, int]) -> "Wrapper":
+        self = super().__new__(cls)
+        self._data = data
+        return self
+
+    def require(self, key: str) -> int:
+        return self._data[key]
+
+
+class Mutable:
+    __slots__ = ("_n",)
+    _n: int
+
+    def __init__(self) -> None:
+        self._n = 0
+
+    def bump(self) -> None:
+        self._n += 1
+
+
+class Handle:
+    __slots__ = ("_path",)
+    _path: Path
+
+    def __new__(cls, path: Path) -> "Handle":
+        self = super().__new__(cls)
+        self._path = path
+        return self
+
+
 class EngineValue:
     def __eq__(self, other: object) -> bool:
         return self is other
@@ -194,7 +229,7 @@ class EngineValue:
 _CAR = """
 from typing import TYPE_CHECKING
 
-from pkg.engine.core import Engine, EngineValue
+from pkg.engine.core import Engine, EngineValue, Mutable, Wrapper, Handle
 from ..engine import Engine as Reexported
 from pkg.engine import PublicEngine
 
@@ -295,6 +330,8 @@ def test_concrete_cross_package_imports(tmp_path: Path) -> None:
         "Engine",
         "Engine",
         "Engine",
+        "Handle",
+        "Mutable",
         "PublicEngine",
     ]
     assert all(f.path.endswith("body.py") for f in rows)

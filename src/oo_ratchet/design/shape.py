@@ -6,6 +6,7 @@ import ast
 from typing import ClassVar, Self
 
 from .state import StateProbe
+from .wrapper import ValueWrapper
 
 type Method = ast.FunctionDef | ast.AsyncFunctionDef
 
@@ -70,6 +71,11 @@ class ClassShape:
             or any(b.endswith(self._ERROR_SUFFIXES) for b in self._bases)
             or any(m.name in {"__eq__", "__hash__"} for m in self._methods)
         )
+
+    @property
+    def is_value_wrapper(self) -> bool:
+        """Return whether the class is a slotted wrapper around plain data."""
+        return ValueWrapper(self._node, self._methods).found
 
     @property
     def is_abstract(self) -> bool:

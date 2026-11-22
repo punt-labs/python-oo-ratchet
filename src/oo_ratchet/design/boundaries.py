@@ -84,7 +84,7 @@ class BoundaryCheck:
         shape = self._resolve(key, name, hops=1)
         if shape is None:
             return False
-        return not (shape.is_exempt or shape.is_abstract)
+        return not (shape.is_exempt or shape.is_abstract or shape.is_value_wrapper)
 
     def _resolve(self, key: str, name: str, hops: int) -> ClassShape | None:
         module = self._index.get(key)

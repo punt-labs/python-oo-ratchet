@@ -23,15 +23,26 @@ class StateProbe:
 
     def __new__(cls, node: ast.ClassDef, methods: tuple[Method, ...]) -> Self:
         self = super().__new__(cls)
-        self._found = cls._body_declares(node) or any(
-            cls._writes_instance(m) for m in methods
-        )
+        self._found = cls._body_declares(node) or cls.writes_any(methods)
         return self
 
     @property
     def found(self) -> bool:
         """Return whether the class holds instance state."""
         return self._found
+
+    @classmethod
+    def declares_slots(cls, node: ast.ClassDef) -> bool:
+        """Return whether the class body declares a non-empty ``__slots__``."""
+        return any(
+            isinstance(item, ast.Assign) and cls._non_empty_slots(item)
+            for item in node.body
+        )
+
+    @classmethod
+    def writes_any(cls, methods: tuple[Method, ...]) -> bool:
+        """Return whether any of ``methods`` writes an instance attribute."""
+        return any(cls._writes_instance(m) for m in methods)
 
     @classmethod
     def _body_declares(cls, node: ast.ClassDef) -> bool:

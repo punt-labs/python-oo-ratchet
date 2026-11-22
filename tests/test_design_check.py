@@ -208,6 +208,11 @@ class Mutable:
         self._n += 1
 
 
+class Helper:
+    def help(self) -> int:
+        return 1
+
+
 class Handle:
     __slots__ = ("_path",)
     _path: Path
@@ -229,7 +234,7 @@ class EngineValue:
 _CAR = """
 from typing import TYPE_CHECKING
 
-from pkg.engine.core import Engine, EngineValue, Mutable, Wrapper, Handle
+from pkg.engine.core import Engine, EngineValue, Mutable, Wrapper, Handle, Helper
 from ..engine import Engine as Reexported
 from pkg.engine import PublicEngine
 

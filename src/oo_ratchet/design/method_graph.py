@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import ast
 from itertools import combinations
-from typing import Self, cast
+from typing import Self
 
 from oo_ratchet.coupling.metrics import ModuleCouplingMetrics
 
 from .declaration import Declaration
 from .function_shape import FunctionShape
-from .shape import ClassShape
+from .shape import ClassShape, Method
 
 type _Footprint = tuple[str, set[str], set[str]]
 
@@ -30,20 +30,27 @@ class MethodGraph:
         methods = self._methods(self._owner)
         if len(methods) < 3:
             return 1
-        names = set(ClassShape(cast("ast.ClassDef", self._owner.node)).method_names())
+        names = {n.name for n in self._members(self._owner)}
         return self._count([self._footprint(m, names) for m in methods])
 
+    @classmethod
+    def _methods(cls, owner: Declaration) -> list[Declaration]:
+        return [
+            Declaration(owner.module, n, f"{owner.symbol}.{n.name}", "method")
+            for n in cls._members(owner)
+            if n.name not in {"__init__", "__new__", "__post_init__"}
+            and not ModuleCouplingMetrics._is_static_or_class(n)
+        ]
+
     @staticmethod
-    def _methods(owner: Declaration) -> list[Declaration]:
+    def _members(owner: Declaration) -> list[Method]:
         node = owner.node
         if not isinstance(node, ast.ClassDef):
             return []
         return [
-            Declaration(owner.module, n, f"{owner.symbol}.{n.name}", "method")
+            n
             for n in node.body
             if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
-            and n.name not in {"__init__", "__new__", "__post_init__"}
-            and not ModuleCouplingMetrics._is_static_or_class(n)
             and not ClassShape._is_property(n)
             and not ClassShape._is_setter(n)
         ]

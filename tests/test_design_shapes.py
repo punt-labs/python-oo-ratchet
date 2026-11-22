@@ -31,6 +31,37 @@ def symbols(rows: list[dict[str, object]], rule: str) -> set[str]:
 
 
 @pytest.mark.parametrize(
+    "decorator", ["property", "cached_property", "functools.cached_property"]
+)
+@pytest.mark.parametrize("mixed", [False, True])
+def test_lcom4_callable_property_is_a_field(
+    tmp_path: Path, decorator: str, mixed: bool
+) -> None:
+    source = (
+        f"class C:\n @{decorator}\n def handler(self): return self._cb\n"
+        " def a(self): return self.handler()\n"
+        + (
+            " def b(self): return self.handler\n"
+            if mixed
+            else " def b(self): self.handler(1)\n"
+        )
+        + " def c(self): return self.handler(2)"
+    )
+    assert not symbols(scan(tmp_path, source), "split-cohesion")
+
+
+def test_lcom4_callable_property_with_setter_and_deleter(tmp_path: Path) -> None:
+    source = (
+        "class C:\n @property\n def handler(self): return self._cb\n"
+        " @handler.setter\n def handler(self, value): self._cb=value\n"
+        " @handler.deleter\n def handler(self): del self._cb\n"
+        " def a(self): self.handler()\n def b(self): self.handler(1)\n"
+        " def c(self): self.handler(2)"
+    )
+    assert not symbols(scan(tmp_path, source), "split-cohesion")
+
+
+@pytest.mark.parametrize(
     "values,expected",
     [
         (["'a'", "'b'", "'c'", "fallback"], {"fee"}),

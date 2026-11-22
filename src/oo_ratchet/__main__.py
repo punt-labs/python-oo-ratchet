@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import sys
 from collections.abc import Callable
 from typing import ClassVar, Self
@@ -9,8 +10,12 @@ from typing import ClassVar, Self
 from oo_ratchet import __version__
 from oo_ratchet.coupling.cli import main as coupling_main
 from oo_ratchet.design.cli import main as design_main
+from oo_ratchet.logging_config import DiagnosticLog, LoggingSetupError
 from oo_ratchet.oo.cli import main as oo_main
 from oo_ratchet.suppression.cli import main as suppression_main
+from oo_ratchet.usage import Usage
+
+logger = logging.getLogger(__name__)
 
 
 class Dispatcher:
@@ -52,7 +57,18 @@ class Dispatcher:
         if gate is None:
             sys.stderr.write(f"oo-ratchet: unknown gate {name!r}\n{self.USAGE}\n")
             return 2
-        return gate(self._args[1:])
+        try:
+            DiagnosticLog().configure()
+        except LoggingSetupError as exc:
+            sys.stderr.write(f"oo-ratchet: cannot open the diagnostic log: {exc}\n")
+            return 2
+        logger.info("Running %s gate (oo-ratchet %s)", name, __version__)
+        usage = Usage(self.GATES)
+        usage.start()
+        try:
+            return usage.run(name, lambda: gate(self._args[1:]))
+        finally:
+            usage.stop()
 
 
 def main(argv: list[str] | None = None) -> int:

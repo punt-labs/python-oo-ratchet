@@ -11,11 +11,14 @@ from __future__ import annotations
 
 import datetime
 import json
+import logging
 from pathlib import Path
 from typing import ClassVar, Self
 
 from .outcome import Outcome
 from .report import SuppressionReport
+
+logger = logging.getLogger(__name__)
 
 
 class SuppressionBaselineError(Exception):
@@ -83,6 +86,9 @@ class BaselineFile:
             "updated_at": self._now(),
         }
         self._baseline_path.write_text(json.dumps(data, indent=2) + "\n")
+        logger.info(
+            "Wrote suppression baseline %s: %d total", self._baseline_path, report.total
+        )
 
     def append_update_audit(self, report: SuppressionReport) -> None:
         """Append one ``update()`` entry to the audit trail."""
@@ -143,6 +149,7 @@ class BaselineFile:
     def _append(self, entry: dict[str, object]) -> None:
         with self._audit_path.open("a") as f:
             f.write(json.dumps(entry, separators=(",", ":")) + "\n")
+        logger.info("Appended %s entry to suppression audit", entry.get("verdict"))
 
     @staticmethod
     def _as_int(raw: object) -> int:

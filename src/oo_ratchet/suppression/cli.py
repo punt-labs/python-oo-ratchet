@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Self
@@ -173,7 +174,7 @@ class Cli:
     @staticmethod
     def _emit(outcome: Outcome) -> int:
         for line in outcome.lines:
-            print(line)
+            sys.stdout.write(line + "\n")
         return outcome.exit_code
 
 

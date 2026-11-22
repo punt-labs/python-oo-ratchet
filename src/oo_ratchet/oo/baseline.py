@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import Self
 
 from .thresholds import Thresholds
+
+logger = logging.getLogger(__name__)
 
 
 class BaselineError(Exception):
@@ -85,6 +88,7 @@ class Baseline:
         ordered = dict(sorted(data.items()))
         self._path.write_text(json.dumps(ordered, indent=2) + "\n")
         self._entries = ordered
+        logger.info("Wrote OO baseline %s: %d files", self._path, len(ordered))
 
     @staticmethod
     def metrics_by_file(

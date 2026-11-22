@@ -1,19 +1,20 @@
 {
-  "total": 20,
+  "total": 19,
   "by_category": {
     "noqa": 0,
     "type_ignore": 0,
     "pylint_disable": 0,
     "pyright_ignore": 0,
-    "per_file_ignores": 20
+    "file_level": 0,
+    "per_file_ignores": 19
   },
   "by_file": {
     "tests/*": {
       "per_file_ignores": 12
     },
     "src/oo_ratchet/**": {
-      "per_file_ignores": 8
+      "per_file_ignores": 7
     }
   },
-  "updated_at": "2026-11-19T00:21:54Z"
+  "updated_at": "2026-11-22T18:32:05Z"
 }

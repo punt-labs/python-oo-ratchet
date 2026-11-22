@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import json
+import logging
 import subprocess
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Self
 
 from .diffmodel import Diff, LineChange
+
+logger = logging.getLogger(__name__)
 
 _TIMEOUT = 10
 
@@ -60,7 +63,8 @@ class GitRepo:
                 timeout=timeout,
                 cwd=cwd,
             )
-        except (FileNotFoundError, subprocess.TimeoutExpired):
+        except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
+            logger.warning("git did not run (%s); treating it as unavailable", exc)
             return None
         except UnicodeDecodeError as exc:
             # Never "absent": a None root would bootstrap-pass the gate.

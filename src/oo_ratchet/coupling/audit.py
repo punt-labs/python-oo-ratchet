@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import datetime
 import json
+import logging
 from pathlib import Path
 from typing import Self
+
+logger = logging.getLogger(__name__)
 
 
 class CouplingAuditError(Exception):
@@ -79,6 +82,7 @@ class CouplingAudit:
         entry.update(metadata)
         with self._path.open("a") as f:
             f.write(json.dumps(entry, separators=(",", ":")) + "\n")
+        logger.info("Appended %s entry to coupling audit %s", verdict, self._path)
 
     def relaxations_since(self, base_text: str | None) -> frozenset[tuple[str, str]]:
         """Return (file, metric) pairs relaxed by the *current* change only.

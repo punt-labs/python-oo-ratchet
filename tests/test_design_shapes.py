@@ -30,6 +30,28 @@ def symbols(rows: list[dict[str, object]], rule: str) -> set[str]:
     return {str(row["symbol"]) for row in rows if row["rule"] == rule}
 
 
+@pytest.mark.parametrize("mixed", [False, True])
+def test_lcom4_shared_callable_field(tmp_path: Path, mixed: bool) -> None:
+    body = (
+        "class C:\n def a(self): return self._cb()\n"
+        + (
+            " def b(self): return self._cb\n"
+            if mixed
+            else " def b(self): self._cb(1)\n"
+        )
+        + " def c(self): return self._cb(2)"
+    )
+    assert not symbols(scan(tmp_path, body), "split-cohesion")
+
+
+def test_lcom4_different_callable_fields_stay_disconnected(tmp_path: Path) -> None:
+    body = "class C:\n" + "\n".join(
+        f" def {name}(self): return self._{name}()" for name in ("a", "b", "c")
+    )
+    rows = scan(tmp_path, body)
+    assert next(r["detail"] for r in rows if r["rule"] == "split-cohesion") == "LCOM4=3"
+
+
 def context_source(kind: str, parameters: str) -> str:
     definition = f"def f({parameters}): pass"
     if kind == "function":

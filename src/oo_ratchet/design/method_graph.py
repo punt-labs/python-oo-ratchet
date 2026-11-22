@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import ast
 from itertools import combinations
-from typing import Self
+from typing import Self, cast
 
 from oo_ratchet.coupling.metrics import ModuleCouplingMetrics
 
@@ -30,7 +30,8 @@ class MethodGraph:
         methods = self._methods(self._owner)
         if len(methods) < 3:
             return 1
-        return self._count([self._footprint(m) for m in methods])
+        names = set(ClassShape(cast("ast.ClassDef", self._owner.node)).method_names())
+        return self._count([self._footprint(m, names) for m in methods])
 
     @staticmethod
     def _methods(owner: Declaration) -> list[Declaration]:
@@ -48,14 +49,14 @@ class MethodGraph:
         ]
 
     @classmethod
-    def _footprint(cls, owner: Declaration) -> _Footprint:
+    def _footprint(cls, owner: Declaration, methods: set[str]) -> _Footprint:
         nodes = FunctionShape(owner).nodes()
         targets = {n.func for n in nodes if isinstance(n, ast.Call)}
         attrs = cls._attributes(nodes)
         return (
             owner.node.name,
-            {n.attr for n in attrs if n not in targets},
-            {n.attr for n in attrs if n in targets},
+            {n.attr for n in attrs if n not in targets or n.attr not in methods},
+            {n.attr for n in attrs if n in targets and n.attr in methods},
         )
 
     @staticmethod

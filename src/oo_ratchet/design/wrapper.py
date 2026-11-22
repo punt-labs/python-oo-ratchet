@@ -83,10 +83,18 @@ class ValueWrapper:
         value = cls._slots_value(node)
         if value is None:
             return None
-        elts = value.elts if isinstance(value, (ast.Tuple, ast.List)) else [value]
+        elts = cls._slot_elements(value)
         names = [e.value for e in elts if isinstance(e, ast.Constant)]
         strings = {n for n in names if isinstance(n, str)}
         return strings if len(strings) == len(elts) else None
+
+    @staticmethod
+    def _slot_elements(value: ast.expr) -> list[ast.expr | None]:
+        if isinstance(value, (ast.Tuple, ast.List, ast.Set)):
+            return list(value.elts)
+        if isinstance(value, ast.Dict):
+            return list(value.keys)
+        return [value]
 
     @classmethod
     def _names(cls, node: ast.expr) -> set[str]:

@@ -224,6 +224,22 @@ class Wrapper:
         return self._data[key]
 
 
+class DictSlots:
+    __slots__ = {"_a": "doc"}
+    _a: int
+
+    def __init__(self) -> None:
+        self._a = 1
+
+
+class SetSlots:
+    __slots__ = {"_b"}
+    _b: str
+
+    def __init__(self) -> None:
+        self._b = ""
+
+
 class QuotedPeer:
     __slots__ = ("_peers",)
     _peers: list["Engine"]
@@ -285,6 +301,7 @@ from typing import TYPE_CHECKING
 
 from pkg.engine.core import Engine, EngineValue, Mutable, Wrapper, Handle
 from pkg.engine.core import Helper, Child, QuotedPeer, Unannotated
+from pkg.engine.core import DictSlots, SetSlots
 from ..engine import Engine as Reexported
 from pkg.engine import PublicEngine
 

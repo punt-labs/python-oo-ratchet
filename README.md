@@ -50,6 +50,22 @@ flags. Baseline and audit files (`.oo-baseline.json`, `.oo-audit.jsonl`,
 `.oo-coupling-baseline.json`, ...) keep the same names as the embedded copies,
 so a repo switches over without rebaselining.
 
+### Layers gate
+
+`oo-ratchet layers src/pkg/ [--check|--update|--json]` turns the design check's layer rules into a shrinking baseline. It reads the same `[tool.oo-ratchet.layers]` table, either the fixed four-layer form or declared layers:
+
+```toml
+[tool.oo-ratchet.layers.kernel]
+prefixes = ["paths", "log_*"]   # relative to the package; trailing * = string prefix
+imports = []                     # layers kernel may import
+
+[tool.oo-ratchet.layers.service]
+prefixes = ["service", "hooks"]
+imports = ["kernel"]
+```
+
+The longest prefix wins; an exact prefix beats a `*` prefix of equal length; the package root is exempt. `--check` fails on a violating import edge not in `.oo-layers-baseline.json` and on a baseline entry that no longer violates; against the merge base it also fails if the baseline gained an edge. `--update` adopts a first baseline, then only shrinks it, and appends `.oo-layers-audit.jsonl`. Imports under `TYPE_CHECKING` count, as in the design check. `--base-ref`, `--require-base`, `--tripwire`, `--allow-ci-write` and `--source` behave as for coupling.
+
 ### Advisory design check
 
 `oo-ratchet design src/pkg/ [--json] [--layers FILE]` reports OO design smells the metric

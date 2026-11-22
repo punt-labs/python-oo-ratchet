@@ -4,6 +4,7 @@
 
 ### Added
 
+- `oo-ratchet layers <src> --check|--update`: layer gate with a shrinking baseline (`.oo-layers-baseline.json`, `.oo-layers-audit.jsonl`) built on the design check's layer code. `[tool.oo-ratchet.layers]` also accepts declared layers (`prefixes`, `imports`) beside the fixed four-layer form.
 - `oo-ratchet` writes diagnostics to a private, rotated log at
   `~/.punt-labs/oo-ratchet/logs/oo-ratchet.log` through the shared
   `punt-observe` package, per the punt-kit logging standard. stdout stays

@@ -1,4 +1,30 @@
-"""Strict, optional layer declarations for the advisory design scan."""
+"""Strict, optional layer declarations for the design scan and the layers gate.
+
+Two spellings share the ``[tool.oo-ratchet.layers]`` table and may not be mixed.
+
+The ordered form names the four fixed layers, each a list of module globs; a
+layer may import itself and the layers after it in ``entry, adapters,
+application, domain``::
+
+    [tool.oo-ratchet.layers]
+    entry = ["pkg.cli"]
+    domain = ["pkg.model.*"]
+
+The declared form names any layers, each a table with name ``prefixes``
+(relative to the scanned package) and the layers it may ``imports``::
+
+    [tool.oo-ratchet.layers.kernel]
+    prefixes = ["paths", "log_*"]
+    imports = []
+
+    [tool.oo-ratchet.layers.service]
+    prefixes = ["service", "hooks"]
+    imports = ["kernel"]
+
+A prefix ``"hooks"`` matches ``pkg.hooks`` and everything under it; a trailing
+``*`` makes it a plain string prefix. The longest prefix wins and an exact
+prefix beats a ``*`` prefix of equal length. The package root is exempt.
+"""
 
 from __future__ import annotations
 
@@ -13,21 +39,33 @@ class LayerConfigError(ValueError):
 
 
 class LayerConfig:
-    """Match dotted modules, with outer layers taking precedence on overlap."""
+    """Classify dotted modules into layers and say which layers may import."""
 
     ORDER: ClassVar[tuple[str, ...]] = ("entry", "adapters", "application", "domain")
     _patterns: dict[str, list[str]]
+    _imports: dict[str, frozenset[str]] | None
 
     def __new__(cls, table: dict[str, object]) -> Self:
         self = super().__new__(cls)
+        if any(isinstance(value, dict) for value in table.values()):
+            self._patterns, self._imports = cls._declared(table)
+            return self
         unknown = set(table) - set(cls.ORDER)
         if unknown:
             raise LayerConfigError(f"unknown layer keys: {sorted(unknown)}")
         self._patterns = {key: cls._globs(table.get(key, [])) for key in cls.ORDER}
+        self._imports = None
         return self
 
+    @property
+    def is_ordered(self) -> bool:
+        """Return whether this is the fixed four-layer form."""
+        return self._imports is None
+
     def layer(self, module: str) -> str | None:
-        """Return the first matching layer in outer-to-inner order."""
+        """Return the layer of a dotted module, or ``None`` when it has none."""
+        if self._imports is not None:
+            return self._by_prefix(module)
         return next(
             (
                 key
@@ -36,6 +74,18 @@ class LayerConfig:
             ),
             None,
         )
+
+    def exempts(self, module: str) -> bool:
+        """Return whether a layerless module is exempt (declared form root)."""
+        return self._imports is not None and "." not in module
+
+    def permits(self, source: str, target: str) -> bool:
+        """Return whether layer ``source`` may import layer ``target``."""
+        if source == target:
+            return True
+        if self._imports is None:
+            return self.ORDER.index(target) >= self.ORDER.index(source)
+        return target in self._imports[source]
 
     @classmethod
     def load(cls, root: Path, override: Path | None = None) -> Self | None:
@@ -55,6 +105,53 @@ class LayerConfig:
         if not isinstance(table, dict):
             raise LayerConfigError(f"{path}: layers must be a table")
         return cls(table)
+
+    def _by_prefix(self, module: str) -> str | None:
+        if "." not in module:
+            return None
+        relative = module.split(".", 1)[1]
+        ranked = [
+            (*rank, layer)
+            for layer, prefixes in self._patterns.items()
+            for prefix in prefixes
+            if (rank := self._match(prefix, relative)) is not None
+        ]
+        return max(ranked)[2] if ranked else None
+
+    @staticmethod
+    def _match(prefix: str, relative: str) -> tuple[int, bool] | None:
+        """Return ``(length, is_exact)`` when ``prefix`` matches, else ``None``."""
+        if prefix.endswith("*"):
+            stem = prefix[:-1]
+            return (len(stem), False) if relative.startswith(stem) else None
+        if relative == prefix or relative.startswith(prefix + "."):
+            return (len(prefix), True)
+        return None
+
+    @classmethod
+    def _declared(
+        cls, table: dict[str, object]
+    ) -> tuple[dict[str, list[str]], dict[str, frozenset[str]]]:
+        patterns: dict[str, list[str]] = {}
+        imports: dict[str, frozenset[str]] = {}
+        owner: dict[str, str] = {}
+        for name, spec in table.items():
+            if not isinstance(spec, dict) or set(spec) - {"prefixes", "imports"}:
+                raise LayerConfigError(
+                    f"layer {name!r} must be a table of prefixes and imports"
+                )
+            patterns[name] = cls._globs(spec.get("prefixes", []))
+            for prefix in patterns[name]:
+                other = owner.setdefault(prefix, name)
+                if other != name:
+                    raise LayerConfigError(
+                        f"prefix {prefix!r} is in both {other!r} and {name!r}"
+                    )
+            imports[name] = frozenset(cls._globs(spec.get("imports", [])))
+        for name, targets in imports.items():
+            if not targets <= set(table):
+                raise LayerConfigError(f"layer {name!r} imports an undeclared layer")
+        return patterns, imports
 
     @staticmethod
     def _nearest(root: Path) -> Path | None:

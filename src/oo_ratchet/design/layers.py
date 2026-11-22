@@ -10,6 +10,7 @@ from oo_ratchet.oo.metrics import ModuleMetrics
 from .domain_io import DomainIO
 from .findings import Finding, Rules
 from .layer_config import LayerConfig
+from .layer_edges import Edge, Violation
 from .layer_imports import LayerImports
 from .modules import Module, ModuleIndex
 
@@ -32,42 +33,70 @@ class LayerCheck:
         """Return all configured layer findings in the scanned tree."""
         out: list[Finding] = []
         for module in self._index.modules():
-            layer = self._config.layer(self._imports.canonical_name(module))
+            name = self._imports.canonical_name(module)
+            layer = self._config.layer(name)
             if layer is None:
-                out.append(
-                    self._finding(
-                        module,
-                        Rules.UNLAYERED_MODULE,
-                        1,
-                        "<module>",
-                        "module matches no layer glob",
+                if not self._config.exempts(name):
+                    out.append(
+                        self._finding(
+                            module,
+                            Rules.UNLAYERED_MODULE,
+                            1,
+                            "<module>",
+                            "module matches no layer glob",
+                        )
                     )
-                )
                 continue
             out.extend(self._dependencies(module, layer))
-            if layer == "domain":
+            if self._config.is_ordered and layer == "domain":
                 out.extend(DomainIO(module).findings())
-            if layer == "entry":
+            if self._config.is_ordered and layer == "entry":
                 out.extend(self._entry(module, module.tree, ""))
         return out
 
-    def _dependencies(self, module: Module, layer: str) -> list[Finding]:
-        out: list[Finding] = []
+    def violations(self) -> list[Violation]:
+        """Return every refused import edge, one per source and target module."""
+        found: set[Violation] = set()
+        for module in self._index.modules():
+            source = self._config.layer(self._imports.canonical_name(module))
+            if source is None:
+                continue
+            for _, _, target, imported in self._refused(module, source):
+                edge = Edge(self._imports.canonical_name(module), target)
+                found.add(Violation(edge, source, imported))
+        return sorted(found)
+
+    def unassigned(self) -> list[str]:
+        """Return the layerless modules that the config does not exempt."""
+        names = (self._imports.canonical_name(m) for m in self._index.modules())
+        return sorted(
+            n
+            for n in names
+            if self._config.layer(n) is None and not self._config.exempts(n)
+        )
+
+    def _refused(
+        self, module: Module, layer: str
+    ) -> list[tuple[ast.stmt, str, str, str]]:
+        rows: list[tuple[ast.stmt, str, str, str]] = []
         for node, symbol, target in self._imports.imports(module):
             imported = self._config.layer(target)
-            if imported is not None and LayerConfig.ORDER.index(
-                imported
-            ) < LayerConfig.ORDER.index(layer):
-                out.append(
-                    self._finding(
-                        module,
-                        Rules.LAYER_IMPORT,
-                        node.lineno,
-                        symbol,
-                        f"{layer} imports outer {imported} module {target}",
-                    )
-                )
-        return out
+            if imported is not None and not self._config.permits(layer, imported):
+                rows.append((node, symbol, target, imported))
+        return rows
+
+    def _dependencies(self, module: Module, layer: str) -> list[Finding]:
+        way = "outer " if self._config.is_ordered else ""
+        return [
+            self._finding(
+                module,
+                Rules.LAYER_IMPORT,
+                node.lineno,
+                symbol,
+                f"{layer} imports {way}{imported} module {target}",
+            )
+            for node, symbol, target, imported in self._refused(module, layer)
+        ]
 
     def _entry(self, module: Module, scope: ast.AST, prefix: str) -> list[Finding]:
         out: list[Finding] = []

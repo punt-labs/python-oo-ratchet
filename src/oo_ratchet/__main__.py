@@ -10,6 +10,7 @@ from typing import ClassVar, Self
 from oo_ratchet import __version__
 from oo_ratchet.coupling.cli import main as coupling_main
 from oo_ratchet.design.cli import main as design_main
+from oo_ratchet.layers.cli import main as layers_main
 from oo_ratchet.logging_config import DiagnosticLog, LoggingSetupError
 from oo_ratchet.oo.cli import main as oo_main
 from oo_ratchet.suppression.cli import main as suppression_main
@@ -26,9 +27,10 @@ class Dispatcher:
         "coupling": coupling_main,
         "suppressions": suppression_main,
         "design": design_main,
+        "layers": layers_main,
     }
     USAGE: ClassVar[str] = (
-        "usage: oo-ratchet {oo,coupling,suppressions,design} <src> [flags]\n"
+        "usage: oo-ratchet {oo,coupling,suppressions,design,layers} <src> [flags]\n"
         "       oo-ratchet <gate> --help for that gate's flags"
     )
 

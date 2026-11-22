@@ -375,3 +375,22 @@ def test_module_call_results_are_not_import_aliases(
     tmp_path: Path, expression: str
 ) -> None:
     assert keys(package(tmp_path, f"import os\nx = {expression}")) == set()
+
+
+@pytest.mark.parametrize(
+    "source,symbol",
+    [
+        ("import os\ndef read(os=os.getenv('HOME')): pass", "os"),
+        ("import os\ndef read(os: os.getenv('HOME')): pass", "os"),
+        ("import os\ndef read(os) -> os.getenv('HOME'): pass", "os"),
+        ("import os\n@os.getenv('HOME')\ndef read(os): pass", "os"),
+        ("import os\nf = lambda os=os.getenv('HOME'): os", "os"),
+        ("import os\nx = [os for os in os.getenv('HOME')]", "os"),
+        ("def read(open=open('x')): pass", "open"),
+        ("x = [open for open in open('x')]", "open"),
+    ],
+)
+def test_evaluated_headers_use_enclosing_scope(
+    tmp_path: Path, source: str, symbol: str
+) -> None:
+    assert keys(package(tmp_path, source)) == {(Rules.DOMAIN_IO, "domain.py", symbol)}

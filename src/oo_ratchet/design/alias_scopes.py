@@ -6,6 +6,7 @@ import ast
 from typing import ClassVar, Self
 
 from .builtin_open import BuiltinOpen
+from .scope_parts import ScopeParts
 
 
 class AliasScopes:
@@ -46,6 +47,7 @@ class AliasScopes:
     ) -> None:
         environment, enclosing = scopes
         outside = environment
+        header, body = ScopeParts.split(node)
         if isinstance(node, self.SCOPES):
             environment = self._environment(node, enclosing)
             if not isinstance(node, ast.ClassDef):
@@ -58,8 +60,10 @@ class AliasScopes:
         ):
             self._branches(node, (environment, enclosing))
         else:
-            for child in ast.iter_child_nodes(node):
-                self._visit(child, (environment, enclosing))
+            for child in header + body:
+                self._visit(
+                    child, scopes if child in header else (environment, enclosing)
+                )
         self._assignment(node, environment)
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
             outside[node.name] = ""

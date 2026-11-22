@@ -5,6 +5,8 @@ from __future__ import annotations
 import ast
 from typing import Self
 
+from .scope_parts import ScopeParts
+
 
 class BuiltinOpen:
     """Walk lexical scopes without treating a sibling's local open as global."""
@@ -23,6 +25,7 @@ class BuiltinOpen:
     @classmethod
     def _scan(cls, node: ast.AST, scope: tuple[set[str], set[str]]) -> list[ast.Call]:
         bound, enclosing = scope
+        header, body = ScopeParts.split(node)
         if isinstance(
             node,
             (
@@ -44,8 +47,10 @@ class BuiltinOpen:
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
             if node.func.id == "open" and "open" not in bound:
                 out.append(node)
-        for child in ast.iter_child_nodes(node):
-            out.extend(cls._scan(child, (bound, enclosing)))
+        for child in header + body:
+            out.extend(
+                cls._scan(child, scope if child in header else (bound, enclosing))
+            )
         return out
 
     @staticmethod

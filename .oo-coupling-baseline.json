@@ -328,12 +328,19 @@
     "max_lcom": 0.2,
     "avg_lcom": 0.2
   },
-  "src/oo_ratchet/design/receiver_types.py": {
-    "efferent_coupling": 3.0,
+  "src/oo_ratchet/design/receiver_bindings.py": {
+    "efferent_coupling": 2.0,
     "public_names": 1.0,
     "circular_imports": 0.0,
-    "max_lcom": 0.5,
-    "avg_lcom": 0.5
+    "max_lcom": 0.0,
+    "avg_lcom": 0.0
+  },
+  "src/oo_ratchet/design/receiver_types.py": {
+    "efferent_coupling": 4.0,
+    "public_names": 1.0,
+    "circular_imports": 0.0,
+    "max_lcom": 0.0,
+    "avg_lcom": 0.0
   },
   "src/oo_ratchet/design/report.py": {
     "efferent_coupling": 1.0,

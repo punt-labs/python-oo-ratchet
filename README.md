@@ -113,9 +113,11 @@ domain and unlayered modules remain eligible:
 These are syntactic checks, not type or flow analysis. Receivers are typed only
 by parameter annotations, local annotations, or a direct `name = ProjectClass(...)`
 assignment to an imported or locally declared project class name. Repeated
-writes (including a parameter's initial binding) discard a receiver's type;
+bindings (including a parameter's initial binding) discard a receiver's type;
 statement order is irrelevant. Import aliases and re-exports are followed as
-declarations only; value aliases, factory results, call chains and container
+module-level declarations only. Other bindings include captures, loop/with
+targets, imports, nested def/class names, walrus targets, global/nonlocal
+declarations and deletions. Value aliases, factory results, call chains and container
 annotations do not propagate receiver types. Nested function bodies are checked
 separately, not attributed to their enclosing function.
 

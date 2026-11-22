@@ -444,3 +444,80 @@ def test_module_imports_include_top_level_blocks(tmp_path: Path, imports: str) -
     )
     assert symbols(rows, "envied-data") == {"Item"}
     assert symbols(rows, "feature-envy") == {"read"}
+
+
+@pytest.mark.parametrize(
+    "binding",
+    [
+        "try:\n pass\nexcept Exception as x:\n pass",
+        "try:\n pass\nexcept* Exception as x:\n pass",
+        "for x in values:\n pass",
+        "with resource() as x:\n pass",
+        "[x for x in values]",
+        "{x for x in values}",
+        "{x: 0 for x in values}",
+        "(x for x in values)",
+        "(x := unknown())",
+        "import external as x",
+        "import x.submodule",
+        "from external import value as x",
+        "from external import x",
+        "def x(): pass",
+        "async def x(): pass",
+        "class x: pass",
+        "match value:\n case x:\n  pass",
+        "match value:\n case [*x]:\n  pass",
+        "match value:\n case {'key': _, **x}:\n  pass",
+        "match value:\n case {'key': x}:\n  pass",
+        "del x",
+        "def nested(arg=(x := None)): pass",
+        "class Nested((x := Base)): pass",
+        "@decorate(x := None)\ndef nested(): pass",
+        "fn = lambda arg=(x := None): arg",
+    ],
+)
+def test_other_receiver_bindings_remove_type(tmp_path: Path, binding: str) -> None:
+    body = "\n".join(" " + line for line in binding.splitlines())
+    source = (
+        "from .model import Item\ndef read(x: Item):\n"
+        + body
+        + "\n return x.a + x.b + x.c"
+    )
+    rows = scan(tmp_path, {"model.py": MODEL, "consumer.py": source})
+    assert symbols(rows, "envied-data") == set()
+    assert symbols(rows, "feature-envy") == set()
+
+
+@pytest.mark.parametrize(
+    "function",
+    [
+        "def read():\n global x\n x = Item()\n return x.a + x.b + x.c",
+        (
+            "def outer():\n x = None\n def read():\n  nonlocal x\n"
+            "  x = Item()\n  return x.a + x.b + x.c"
+        ),
+    ],
+)
+def test_other_receiver_bindings_global_and_nonlocal(
+    tmp_path: Path, function: str
+) -> None:
+    rows = scan(
+        tmp_path,
+        {
+            "model.py": MODEL,
+            "consumer.py": "from .model import Item\n" + function,
+        },
+    )
+    assert symbols(rows, "envied-data") == set()
+
+
+def test_other_receiver_bindings_do_not_leak_nested_bodies(tmp_path: Path) -> None:
+    source = (
+        "from .model import Item\ndef read(x: Item):\n"
+        " def nested(x):\n  x = None\n"
+        " class Nested:\n  x = None\n"
+        " fn = lambda x: x\n return x.a + x.b + x.c"
+    )
+    rows = scan(tmp_path, {"model.py": MODEL, "consumer.py": source})
+    assert symbols(rows, "envied-data") == {"Item"}
+    assert symbols(rows, "feature-envy") == {"read"}

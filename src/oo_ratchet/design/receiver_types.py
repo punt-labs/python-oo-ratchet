@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import ast
-from collections import Counter
 from typing import Self
 
 from .declaration import Declaration
 from .function_shape import FunctionShape
 from .project_types import ProjectTypes
+from .receiver_bindings import ReceiverBindings
 
 
 class ReceiverTypes:
@@ -27,23 +27,13 @@ class ReceiverTypes:
 
     def known(self) -> dict[str, Declaration]:
         """Return explicit receiver types only, with no ordering or propagation."""
-        writes = self._writes()
+        writes = ReceiverBindings(self._owner).counts()
         candidates = self._candidates()
         return {
             name: owner
             for name, owner in candidates.items()
             if owner is not None and writes[name] == 1
         }
-
-    def _writes(self) -> Counter[str]:
-        parameters = self._shape.parameters()
-        writes = Counter(a.arg for a in parameters)
-        writes.update(
-            n.id
-            for n in self._shape.nodes()
-            if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Store)
-        )
-        return writes
 
     def _candidates(self) -> dict[str, Declaration | None]:
         parameters = self._shape.parameters()

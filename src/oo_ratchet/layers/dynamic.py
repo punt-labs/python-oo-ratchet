@@ -43,8 +43,8 @@ class DynamicImports:
         self = super().__new__(cls)
         self._known = known
         self._found = []
-        self._flow = BindingFlow(self._bind)
-        self._visit(list(tree.body), self._flow.run(tree.body))
+        self._flow = BindingFlow(self._bind, self._alias)
+        self._visit(list(tree.body), self._flow.ever(tree.body))
         return self
 
     def targets(self) -> list[tuple[ast.Call, str, str]]:
@@ -62,6 +62,17 @@ class DynamicImports:
         return {
             (a.asname or a.name.split(".")[0]): cls._module_kind(a) for a in stmt.names
         }
+
+    @classmethod
+    def _alias(cls, stmt: ast.stmt, state: Bindings) -> Bindings | None:
+        """Bind ``name = <stdlib helper>`` to the helper; None for anything else."""
+        if not isinstance(stmt, ast.Assign):
+            return None
+        if not isinstance(stmt.value, ast.Name | ast.Attribute):
+            return None
+        kinds = cls._callee(stmt.value, state)
+        names = [t.id for t in stmt.targets if isinstance(t, ast.Name)]
+        return {name: kinds for name in names} if kinds else None
 
     @staticmethod
     def _from_stdlib(module: str, name: str) -> frozenset[Origin]:
@@ -91,7 +102,7 @@ class DynamicImports:
         self, node: ast.FunctionDef | ast.AsyncFunctionDef, env: Bindings
     ) -> None:
         params = {a.arg: _NONE for a in ast.walk(node.args) if isinstance(a, ast.arg)}
-        local = self._flow.run(node.body)
+        local = self._flow.ever(node.body)
         self._visit(list(node.body), {**env, **params, **local})
 
     def _record(self, call: ast.Call, env: Bindings) -> None:

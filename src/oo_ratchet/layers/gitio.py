@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from oo_ratchet.coupling.gitio import GitRepo
+from oo_ratchet.coupling.gitio import GitError, GitRepo
 
 from .baseline import LayersBaseline
 
@@ -18,9 +18,14 @@ class LayersGit(GitRepo):
         """Return the repo-relative file ``path`` at ``ref``, or ``None`` if absent."""
         return self._show_file(ref, path)
 
-    def exists_at(self, ref: str, path: str) -> bool:
-        """Return whether the repo-relative file ``path`` exists at ``ref``."""
-        return self._show_file(ref, path) is not None
+    def package_at(self, ref: str, name: str) -> bool:
+        """Return whether ``ref`` has a package directory ``name`` anywhere."""
+        listing = self._git(["ls-tree", "-r", "--name-only", ref])
+        if listing is None:
+            msg = f"git ls-tree {ref} failed"
+            raise GitError(msg)
+        marker = f"/{name}/__init__.py"
+        return any(("/" + line).endswith(marker) for line in listing.splitlines())
 
     def has_package(self, name: str) -> bool:
         """Return whether a package directory ``name`` exists anywhere in the tree."""

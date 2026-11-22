@@ -10,6 +10,7 @@ from typing import Self
 type Origin = tuple[str, str]
 type Bindings = dict[str, frozenset[Origin]]
 type Effect = Callable[[ast.Import | ast.ImportFrom], Bindings]
+type Alias = Callable[[ast.stmt, Bindings], Bindings | None]
 
 _LOOPS = (ast.For, ast.AsyncFor, ast.While)
 _DEFS = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
@@ -29,19 +30,30 @@ class BindingFlow:
     """
 
     _imports: Effect
+    _alias: Alias | None
+    _ever: Bindings
 
-    def __new__(cls, imports: Effect) -> Self:
+    def __new__(cls, imports: Effect, alias: Alias | None = None) -> Self:
         self = super().__new__(cls)
         self._imports = imports
+        self._alias = alias
+        self._ever = {}
         return self
 
     def run(self, body: list[ast.stmt]) -> Bindings:
         """Return the possible origins of each name after ``body`` has run."""
         return self._block(body, {})
 
+    def ever(self, body: list[ast.stmt]) -> Bindings:
+        """Return, per name, the origins it had in any state while ``body`` ran."""
+        self._ever = {}
+        self._block(body, {})
+        return self._ever
+
     def _block(self, body: list[ast.stmt], state: Bindings) -> Bindings:
         for stmt in body:
             state = self._stmt(stmt, state)
+            self._ever = self._join(self._ever, state)
         return state
 
     def _stmt(self, stmt: ast.stmt, state: Bindings) -> Bindings:
@@ -53,7 +65,7 @@ class BindingFlow:
             return self._block(stmt.orelse, looped)
         if isinstance(stmt, ast.With | ast.AsyncWith):
             return self._block(stmt.body, state)
-        return {**state, **self._effect(stmt)}
+        return {**state, **self._effect(stmt, state)}
 
     def _branch(self, stmt: ast.stmt, state: Bindings) -> Bindings | None:
         if isinstance(stmt, ast.If):
@@ -78,9 +90,12 @@ class BindingFlow:
             arms.append(state)
         return reduce(self._join, arms)
 
-    def _effect(self, stmt: ast.stmt) -> Bindings:
+    def _effect(self, stmt: ast.stmt, state: Bindings) -> Bindings:
         if isinstance(stmt, ast.Import | ast.ImportFrom):
             return self._imports(stmt)
+        aliased = self._alias(stmt, state) if self._alias else None
+        if aliased is not None:
+            return aliased
         return {name: frozenset() for name in self.rebound(stmt)}
 
     @staticmethod

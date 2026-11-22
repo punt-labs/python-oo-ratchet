@@ -14,10 +14,9 @@ from pathlib import Path
 from typing import Self
 
 from oo_ratchet.coupling.outcome import Outcome
-from oo_ratchet.design.layer_config import LayerConfig, LayerConfigError
 from oo_ratchet.design.layer_edges import Edge
-from oo_ratchet.design.layer_table import LayerTable
 
+from .base_config import BaseConfig
 from .baseline import LayersBaseline
 from .gitio import LayersGit
 from .scan import LayerScan
@@ -28,13 +27,13 @@ from .widening import PolicyWidening
 class LayersRatchet:
     """Enforce the layers gate against the baseline and the merge base."""
 
-    _root: Path
+    _config: BaseConfig
     _baseline: LayersBaseline
     _git: LayersGit
 
     def __new__(cls, root: Path, git: LayersGit) -> Self:
         self = super().__new__(cls)
-        self._root = root
+        self._config = BaseConfig(root, git)
         self._baseline = LayersBaseline(root)
         self._git = git
         return self
@@ -71,19 +70,17 @@ class LayersRatchet:
                 "FAIL: the base has a layers baseline but the tree has none; "
                 "restore it or run --update"
             )
-        if not self._git.exists_at(base, self._package_marker(scan)):
-            return self._verdict(scan, None, base, allow_config_change=True)
         label = f"{base}:{LayersBaseline.FILENAME}"
         parsed = LayersBaseline.parse(text, label)
         scoped = frozenset(e for e in parsed if e.within(scan.package))
+        adopting = not scoped and not self._git.package_at(base, scan.package)
         return self._verdict(
-            scan, scoped, base, allow_config_change=allow_config_change
+            scan,
+            None if adopting else scoped,
+            base,
+            compare=True,
+            allow_config_change=allow_config_change,
         )
-
-    def _package_marker(self, scan: LayerScan) -> str:
-        """Return the repo-relative path of the package's ``__init__.py``."""
-        rel = scan.src.resolve().relative_to(self._root.resolve())
-        return (rel / "__init__.py").as_posix()
 
     def _verdict(
         self,
@@ -91,13 +88,16 @@ class LayersRatchet:
         base_edges: frozenset[Edge] | None,
         base: str,
         *,
+        compare: bool = False,
         allow_config_change: bool,
     ) -> Outcome:
-        config = self._base_config(scan, base, base_edges)
-        under_base = []
+        strict = base_edges is not None
+        config = self._config.read(scan, base, strict=strict) if compare else None
+        under_base: list[Edge] = []
         widened: list[str] = []
-        if config is not None and base_edges is not None:
-            under_base = sorted(scan.under(config).edges - base_edges)
+        if config is not None:
+            if base_edges is not None:
+                under_base = sorted(scan.under(config).edges - base_edges)
             if not allow_config_change:
                 widened = PolicyWidening.found(scan.config, config)
         return LayersVerdict(
@@ -108,30 +108,6 @@ class LayersRatchet:
             widened=widened,
             base=base,
         ).outcome()
-
-    def _base_config(
-        self, scan: LayerScan, base: str, base_edges: frozenset[Edge] | None
-    ) -> LayerConfig | None:
-        """Return the layer config at the base, read from the pyproject the scan used.
-
-        A base that has a baseline but no layer config there cannot be compared,
-        so the check fails; so does a config outside the repository.
-        """
-        if base_edges is None or scan.config_path is None:
-            return None
-        try:
-            rel = scan.config_path.resolve().relative_to(self._root.resolve())
-        except ValueError as exc:
-            msg = f"layer config {scan.config_path} is outside {self._root}"
-            raise LayerConfigError(msg) from exc
-        path = rel.as_posix()
-        text = self._git.show_text(base, path)
-        config = LayerTable.from_text(text, f"{base}:{path}") if text else None
-        if config is None:
-            where = f"{base[:10]}:{path}"
-            msg = f"no layer config at the base ({where}) but a baseline exists"
-            raise LayerConfigError(msg)
-        return config
 
     def _no_base(self, *, require_base: bool) -> Outcome | None:
         """Fail closed when no base resolves; ``None`` allows a first adoption."""

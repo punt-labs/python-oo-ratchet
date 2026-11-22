@@ -47,10 +47,6 @@ MATCH_ARMS = (
     "match 1:\n    case 1:\n        from .service import thing\n"
     "    case _:\n        from .other import thing\n"
 )
-REBOUND_HELPER = (
-    "from importlib import import_module\ndef import_module(n): ...\n"
-    'import_module("app.service")\n'
-)
 
 
 class TestExportFlow:
@@ -106,9 +102,7 @@ SERVICE = 'importlib.import_module("app.service")'
 UNBOUND = [
     'thing.__import__("app.service")\n',
     'from .importlib import import_module as load\nload("app.service")\n',
-    f"import importlib\nimportlib = fake\n{SERVICE}\n",
     f"def f():\n    import importlib\ndef g():\n    {SERVICE}\n",
-    REBOUND_HELPER,
     f"def f(importlib):\n    {SERVICE}\n",
 ]
 

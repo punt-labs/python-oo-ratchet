@@ -251,6 +251,32 @@ def test_symlink_uses_package_spelling(tmp_path: Path) -> None:
     }
 
 
+@pytest.mark.parametrize("spelling", [".", "..", "pkg/", "symlink"])
+def test_lexically_normalized_package_names(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, spelling: str
+) -> None:
+    root = package(tmp_path, "import json\nfrom pkg.adapters import Store")
+    (root / "adapters.py").write_text("class Store: pass")
+    if spelling == "symlink":
+        target = tmp_path / "other_dir"
+        root.rename(target)
+        root.symlink_to(target, target_is_directory=True)
+        monkeypatch.chdir(tmp_path)
+        source = Path("pkg/")
+    elif spelling == "..":
+        (root / "child").mkdir()
+        monkeypatch.chdir(root / "child")
+        source = Path("..")
+    else:
+        monkeypatch.chdir(root if spelling == "." else tmp_path)
+        source = Path(spelling)
+    rows = json.loads(DesignScanner(source).report.to_json())["findings"]
+    assert {(r["rule"], r["symbol"]) for r in rows if r["rule"] in LAYERS} == {
+        (Rules.DOMAIN_IO, "json"),
+        (Rules.LAYER_IMPORT, "Store"),
+    }
+
+
 @pytest.mark.parametrize(
     "source,symbol",
     [

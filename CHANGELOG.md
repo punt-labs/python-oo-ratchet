@@ -12,6 +12,13 @@
 
 ### Added
 
+- Shadow-mode `design <src> --shadow-check <git-ref> [--layers FILE] [--json]`
+  compares a merge-base scan to the working tree using stable, line-independent
+  design keys and the existing OO per-file comparisons. Ordered Tier 0/Tier 1
+  debt checks bound repository-wide trades; no weighted sum, rename matching or
+  baseline file is used. Deterministic text/JSON reports remain advisory (exit 0
+  for every verdict, exit 2 for input errors); adopter gates and releases are
+  unchanged.
 - Advisory `primitive-params`, `tag-switch`, `middle-man`, `split-cohesion` and
   Tier 0 `size-cap` checks, using syntactic signatures, explicit project classes
   and LCOM4 components. Initializers are excluded from cohesion; layer-specific

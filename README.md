@@ -157,6 +157,47 @@ Additional advisory shape checks run with the same syntactic project-class index
 All design findings remain advisory and exit 0. These ceilings are design signals,
 not new adopter ratchet gates or changes to existing OO/coupling thresholds.
 
+### Shadow design ratchet
+
+```bash
+oo-ratchet design src/pkg/ --shadow-check origin/main
+oo-ratchet design src/pkg/ --shadow-check origin/main --layers layers.toml --json
+```
+
+Shadow mode scans the source at the Git merge-base of the reference and `HEAD`,
+then scans the working tree, including uncommitted Python files. It uses the OO
+gate's Git adapter and per-file metric comparison; no baseline file or audit
+waiver is read. The base scan uses an isolated detached worktree that is removed
+afterward. Without `--layers`, each tree discovers its own layer configuration;
+an explicit override is applied to both scans.
+
+Design debt is a set of `(rule, module, symbol)` keys: line numbers and diagnostic
+detail do not participate. Modules are dotted names rooted at the scanned
+package (`pkg.sub`, including its `__init__.py`), not checkout paths. Renames are
+reported as added and removed keys, never matched or netted against each other.
+
+The ordered, unweighted verdict is:
+
+1. Any added Tier 0 key (`size-cap`, `layer-import`, `domain-io`):
+   **`would-fail: tier0`**.
+2. Any added Tier 1 key (every other design rule): **`would-fail: tier1`**.
+3. Otherwise, any removed Tier 1 key: **`good-deed: trade`**. This is a
+   repository-wide trade; any Tier 2 regressions are explicitly accepted.
+4. Otherwise, any Tier 2 per-file OO metric regression: **`would-fail: tier2`**.
+5. A Tier 2 improvement and no regression: **`good-deed`**; else **`neutral`**.
+
+Removing only Tier 0 debt does not buy a trade. Tier 2 reuses the existing OO
+comparison and new-file absolute checks, with no rename matching or weighted
+sum. Text prints the verdict, added/removed keys for each design tier, then
+per-file OO metric deltas; JSON includes the same content, improved/regressed
+lists and accepted regressions. Both formats have deterministic ordering and
+are byte-identical on repeat runs against unchanged inputs.
+
+**Shadow mode never gates a build.** All findings and verdicts exit **0**, even
+`would-fail`. Invalid paths, refs, layer configuration, unreadable Python or parse
+errors exit **2** rather than presenting an incomplete scan as an improvement.
+Existing adopter gates, thresholds and release behavior are unchanged.
+
 **Design evals.** `evals/design/` seeds eleven library-loan bad/good pairs with
 shared behavior checks and stable `(rule, path, symbol)` keys in `expected.toml`.
 `tests/test_design_evals.py` checks recall, precision and ordering for every seeded

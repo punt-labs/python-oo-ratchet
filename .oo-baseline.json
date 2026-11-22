@@ -327,10 +327,10 @@
   "src/oo_ratchet/design/alias_scopes.py": {
     "method_ratio": 1.0,
     "encapsulation_ratio": 1.0,
-    "avg_params": 1.5,
+    "avg_params": 1.56,
     "max_complexity": 9.0,
-    "avg_complexity": 4.25,
-    "module_size": 92.0,
+    "avg_complexity": 4.89,
+    "module_size": 113.0,
     "classes_per_module": 1.0,
     "class_to_func_ratio": 1.0,
     "init_violations": 0.0,

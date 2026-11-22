@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import ast
-from collections.abc import Iterator
 from typing import ClassVar, Self
 
 from .builtin_open import BuiltinOpen
@@ -39,31 +38,54 @@ class AliasScopes:
         self, node: ast.AST, scopes: tuple[dict[str, str], dict[str, str]]
     ) -> None:
         environment, enclosing = scopes
+        outside = environment
         if isinstance(node, self.SCOPES):
             environment = self._environment(node, enclosing)
             if not isinstance(node, ast.ClassDef):
                 enclosing = environment
-        self._environments[id(node)] = environment
-        for child in ast.iter_child_nodes(node):
-            self._visit(child, (environment, enclosing))
+        environment.update(self._imports(node))
+        self._environments[id(node)] = environment.copy()
+        if isinstance(
+            node,
+            (ast.If, ast.For, ast.AsyncFor, ast.While, ast.Try, ast.TryStar, ast.Match),
+        ):
+            self._branches(node, (environment, enclosing))
+        else:
+            for child in ast.iter_child_nodes(node):
+                self._visit(child, (environment, enclosing))
+        self._assignment(node, environment)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            outside[node.name] = ""
+
+    def _branches(
+        self, node: ast.AST, scopes: tuple[dict[str, str], dict[str, str]]
+    ) -> None:
+        environment, enclosing = scopes
+        possible = environment.copy()
+        for _, value in ast.iter_fields(node):
+            branch = environment.copy()
+            closure = branch if enclosing is environment else enclosing.copy()
+            children = value if isinstance(value, list) else [value]
+            for child in children:
+                if isinstance(child, ast.AST):
+                    self._visit(child, (branch, closure))
+            possible.update({name: alias for name, alias in branch.items() if alias})
+        environment.update(possible)
 
     @classmethod
     def _environment(cls, scope: ast.AST, enclosing: dict[str, str]) -> dict[str, str]:
-        environment = enclosing | dict.fromkeys(BuiltinOpen._bindings(scope), "")
-        for node in cls._own(scope):
-            environment.update(cls._imports(node))
-        for node in cls._own(scope):
-            cls._assignment(node, environment)
-        return environment
+        bound = cls._parameters(scope)
+        if isinstance(
+            scope, (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)
+        ):
+            bound = BuiltinOpen._bindings(scope)
+        return enclosing | dict.fromkeys(bound, "")
 
-    @classmethod
-    def _own(cls, scope: ast.AST) -> Iterator[ast.AST]:
-        pending = list(reversed(list(ast.iter_child_nodes(scope))))
-        while pending:
-            node = pending.pop()
-            yield node
-            if not isinstance(node, cls.SCOPES):
-                pending.extend(reversed(list(ast.iter_child_nodes(node))))
+    @staticmethod
+    def _parameters(scope: ast.AST) -> set[str]:
+        if not isinstance(scope, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+            return set()
+        return {node.arg for node in ast.walk(scope.args) if isinstance(node, ast.arg)}
 
     @staticmethod
     def _imports(node: ast.AST) -> dict[str, str]:

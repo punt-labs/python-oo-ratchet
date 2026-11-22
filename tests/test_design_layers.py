@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import ast
 import json
 from pathlib import Path
 
 import pytest
 
+from oo_ratchet.design.alias_scopes import AliasScopes
 from oo_ratchet.design.cli import main
 from oo_ratchet.design.findings import Rules
 from oo_ratchet.design.layer_config import LayerConfig, LayerConfigError
@@ -339,7 +341,24 @@ def test_dot_root_uses_resolved_package_name(
     root = package(tmp_path, "import json\nfrom pkg.adapters import Store")
     (root / "adapters.py").write_text("class Store: pass")
     monkeypatch.chdir(root)
-    assert keys(Path(".")) == {
+    assert keys(Path()) == {
         (Rules.DOMAIN_IO, "domain.py", "json"),
         (Rules.LAYER_IMPORT, "domain.py", "Store"),
     }
+
+
+@pytest.mark.parametrize("indent", ["", " "])
+def test_alias_rebinding_preserves_earlier_uses(tmp_path: Path, indent: str) -> None:
+    body = "before = os.getenv('HOME')\nos = None\nafter = os.getenv('HOME')"
+    source = "import os\n" + ("def read():\n" if indent else "")
+    source += "\n".join(indent + line for line in body.splitlines())
+    tree = ast.parse(source)
+    aliases = AliasScopes(tree)
+    calls = [node for node in ast.walk(tree) if isinstance(node, ast.Call)]
+    assert [aliases.name(node.func) for node in calls] == ["os.getenv", ".getenv"]
+    assert keys(package(tmp_path, source)) == {(Rules.DOMAIN_IO, "domain.py", "os")}
+
+
+def test_uncertain_rebinding_keeps_possible_io(tmp_path: Path) -> None:
+    source = "import os\nif condition:\n os = None\nos.getenv('HOME')"
+    assert keys(package(tmp_path, source)) == {(Rules.DOMAIN_IO, "domain.py", "os")}

@@ -149,7 +149,10 @@ def test_unopenable_store_never_changes_the_gate_result(
 
     assert result.returncode == 0, result.stderr
     assert result.stdout.lstrip().startswith("Total suppressions:")
-    assert "Finished suppressions gate: pass" in _log(private_home).read_text("utf-8")
+    log = _log(private_home).read_text("utf-8")
+    assert "Telemetry dropped: initialization_failed" in log
+    assert "Finished suppressions gate: pass" in log
+    assert _db(private_home).is_dir()
 
 
 def test_unknown_gate_configures_nothing(private_home: Path) -> None:

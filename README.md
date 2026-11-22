@@ -92,6 +92,44 @@ No table means no layer findings; an empty table marks every module unlayered.
 - `thick-entry`: an entry function/method exceeds cyclomatic complexity 4,
   using the same scope-aware computation as the OO metrics.
 
+Data-placement checks run **without** layer configuration too. With a table,
+declarations and consumers in `entry` or `adapters` are excluded; application,
+domain and unlayered modules remain eligible:
+
+- `envied-data` (D1): a dataclass, NamedTuple, attrs-like or slotted data class
+  with no public behavior beyond properties has at least two distinct fields
+  read together in a function in another module. Keyed on the data class.
+- `feature-envy` (D2): a function reads at least three distinct attributes of
+  one explicitly typed project-class parameter; in methods that must exceed
+  the number read on `self`. `from_*` classmethods are exempt.
+- `data-clump` (D3): at least four field/parameter names are shared by at least
+  three class/signature owners. Names occurring in fewer than three owners are
+  pruned before pairwise intersections, retaining maximal sets for each identical
+  owner group. Higher-order subsets can still be missed when every pair has extra
+  names that survive this global frequency filter. Each occurrence
+  is keyed on its owner, with comma-separated sorted names in `detail`.
+  Overload stubs and Protocol methods are not owners. A class and its methods
+  count as one independent owner, reported once on the first matching declaration
+  (the class when its fields match). Separate signature name sets are never
+  unioned to fabricate support.
+- `misplaced-function` (D4): a public module function's first positional
+  parameter is annotated with a project class, or its return annotation names
+  a project class whose fields it reads. `create_*` functions are exempt.
+
+These are syntactic checks, not type or flow analysis. Receivers are typed only
+by parameter annotations, local annotations, or a direct `name = ProjectClass(...)`
+assignment to an imported or locally declared project class name. Repeated
+bindings (including a parameter's initial binding) discard a receiver's type;
+statement order is irrelevant. Import aliases and re-exports are followed as
+module-level declarations only; any repeated module-level binding makes the
+name ambiguous, regardless of statement order or branch. Other bindings include captures, loop/with
+targets, imports, nested def/class names, walrus targets, global/nonlocal
+declarations and deletions. Value aliases, factory results, call chains and container
+annotations do not propagate receiver types. Nested function bodies are checked
+separately, not attributed to their enclosing function.
+Direct constructor assignment is ignored when the constructor name is bound
+anywhere in that function; explicit annotations remain separate syntactic sources.
+
 **Design evals.** `evals/design/` seeds eleven library-loan bad/good pairs with
 shared behavior checks and stable `(rule, path, symbol)` keys in `expected.toml`.
 `tests/test_design_evals.py` checks implemented-rule recall, precision and ordering;

@@ -12,6 +12,11 @@
 
 ### Added
 
+- Advisory `envied-data`, `feature-envy`, `data-clump` and `misplaced-function`
+  checks using explicit syntactic receiver types and deterministic maximal
+  shared-name intersections. They run without layer configuration, excluding
+  entry/adapters when configured. Their eval expectations are now active;
+  fixtures are unchanged. Findings still exit 0; adopter gates are unchanged.
 - Optional strict `[tool.oo-ratchet.layers]` configuration and `design --layers`
   override, with advisory layer-import, domain-io, unlayered-module and thick-entry
   checks. Layer eval expectations now run without future-rule xfails. Findings

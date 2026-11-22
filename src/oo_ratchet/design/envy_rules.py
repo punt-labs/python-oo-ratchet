@@ -1,0 +1,78 @@
+"""External data consumers and parameter-centric behavior placement."""
+
+from __future__ import annotations
+
+from typing import Self
+
+from .data_fields import DataFields
+from .data_inventory import DataInventory
+from .declaration import Declaration
+from .findings import Finding, Rules
+from .function_shape import FunctionShape
+from .project_types import ProjectTypes
+from .receiver_types import ReceiverTypes
+
+
+class EnvyRules:
+    """Apply D1 and D2 to explicitly typed receivers, never inferred aliases."""
+
+    _inventory: DataInventory
+    _types: ProjectTypes
+
+    def __new__(cls, inventory: DataInventory, types: ProjectTypes) -> Self:
+        self = super().__new__(cls)
+        self._inventory = inventory
+        self._types = types
+        return self
+
+    def findings(self) -> list[Finding]:
+        """Report envied classes once and feature envy once per function."""
+        envied: dict[tuple[str, str], Finding] = {}
+        out: list[Finding] = []
+        for owner in self._inventory.declarations():
+            if owner.kind == "class" or not self._inventory.eligible(owner):
+                continue
+            known = ReceiverTypes(owner, self._types).known()
+            for target in self._envied(owner, known):
+                envied[target.module.key, target.symbol] = target.finding(
+                    Rules.ENVIED_DATA, "two or more fields read in another module"
+                )
+            out.extend(self._feature(owner, known))
+        return list(envied.values()) + out
+
+    def _envied(
+        self, owner: Declaration, known: dict[str, Declaration]
+    ) -> list[Declaration]:
+        reads = FunctionShape(owner).reads()
+        return [
+            target
+            for name, target in known.items()
+            if target.module.key != owner.module.key
+            and self._inventory.eligible(target)
+            and DataFields(target).data_only()
+            and len(reads.get(name, set()) & DataFields(target).names()) >= 2
+        ]
+
+    @staticmethod
+    def _feature(owner: Declaration, known: dict[str, Declaration]) -> list[Finding]:
+        shape = FunctionShape(owner)
+        if shape.decoder():
+            return []
+        reads = shape.reads()
+        own = len(reads.get("self", set())) if owner.kind == "method" else 0
+        parameters = {a.arg for a in shape.parameters()} - {"self", "cls"}
+        candidates = sorted(
+            name
+            for name in parameters & known.keys()
+            if len(reads.get(name, set())) >= 3 and len(reads[name]) > own
+        )
+        return (
+            [
+                owner.finding(
+                    Rules.FEATURE_ENVY,
+                    "parameter attributes dominate: " + ", ".join(candidates),
+                )
+            ]
+            if candidates
+            else []
+        )

@@ -1,0 +1,57 @@
+"""Inventory syntactic declarations, independently of receiver typing."""
+
+from __future__ import annotations
+
+import ast
+from typing import Self
+
+from .declaration import Declaration
+from .layer_config import LayerConfig
+from .layer_imports import LayerImports
+from .modules import Module, ModuleIndex
+
+
+class DataInventory:
+    """Keep all project declarations and the modules eligible for data rules."""
+
+    _declarations: list[Declaration]
+    _eligible: set[str]
+
+    def __new__(cls, index: ModuleIndex, config: LayerConfig | None) -> Self:
+        self = super().__new__(cls)
+        self._declarations = []
+        names = LayerImports(index)
+        self._eligible = {
+            m.key
+            for m in index.modules()
+            if config is None
+            or config.layer(names.name(m)) not in {"entry", "adapters"}
+        }
+        for module in index.modules():
+            self._walk(module, module.tree, ("", "module"))
+        return self
+
+    def declarations(self) -> list[Declaration]:
+        """Return classes and functions in source order, including nested defs."""
+        return list(self._declarations)
+
+    def eligible(self, owner: Declaration) -> bool:
+        """Return whether this declaration is outside explicitly mapped edges."""
+        return owner.module.key in self._eligible
+
+    def _walk(self, module: Module, node: ast.AST, context: tuple[str, str]) -> None:
+        prefix, parent = context
+        if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+            kind = (
+                "class"
+                if isinstance(node, ast.ClassDef)
+                else {
+                    "module": "function",
+                    "class": "method",
+                }.get(parent, "nested")
+            )
+            symbol = prefix + node.name
+            self._declarations.append(Declaration(module, node, symbol, kind))
+            context = (symbol + ".", "class" if kind == "class" else "function-body")
+        for child in ast.iter_child_nodes(node):
+            self._walk(module, child, context)

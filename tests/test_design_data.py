@@ -102,6 +102,39 @@ def test_data_class_shapes(tmp_path: Path, declaration: str) -> None:
 
 
 @pytest.mark.parametrize(
+    "accessors",
+    [
+        "",
+        " @total.setter\n def total(self, value): self.a = value\n",
+        " @total.deleter\n def total(self): del self.a\n",
+        (
+            " @total.setter\n def total(self, value): self.a = value\n"
+            " @total.deleter\n def total(self): del self.a\n"
+        ),
+    ],
+)
+@pytest.mark.parametrize("behavior", [False, True])
+def test_envied_data_property_accessors(
+    tmp_path: Path, accessors: str, behavior: bool
+) -> None:
+    declaration = (
+        MODEL + " @property\n def total(self): return self.a + self.b\n" + accessors
+    )
+    if behavior:
+        declaration += " def adjust(self, value): self.a += value\n"
+    rows = scan(
+        tmp_path,
+        {
+            "model.py": declaration,
+            "consumer.py": (
+                "from .model import Item\ndef read(x: Item): return x.a + x.b"
+            ),
+        },
+    )
+    assert symbols(rows, "envied-data") == (set() if behavior else {"Item"})
+
+
+@pytest.mark.parametrize(
     "declaration",
     [
         MODEL + " def total(self): return self.a + self.b",

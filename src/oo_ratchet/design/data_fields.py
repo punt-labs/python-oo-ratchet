@@ -66,7 +66,18 @@ class DataFields:
 
     def data_only(self) -> bool:
         """Return whether a data declaration exposes no public behavior."""
-        return self._data_declaration() and not ClassShape(self._node).public_methods()
+        return self._data_declaration() and not any(
+            self._public_behavior(n) for n in self._node.body
+        )
+
+    @staticmethod
+    def _public_behavior(node: ast.stmt) -> bool:
+        return (
+            isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and (not node.name.startswith("_") or node.name == "__call__")
+            and not ClassShape._is_property(node)
+            and not ClassShape._is_setter(node)
+        )
 
     def _data_declaration(self) -> bool:
         marked = any(

@@ -94,6 +94,16 @@ class DictBacked:
         self.__dict__[key] = 1
 """
 
+_NESTED = """
+class Factory:
+    def make(self) -> object:
+        class Box:
+            def __init__(self) -> None:
+                self.value = 1
+
+        return Box()
+"""
+
 _EMPTY_SLOTS = """
 class Strings:
     __slots__ = ""
@@ -309,6 +319,11 @@ def test_every_kind_of_state_suppresses_stateless_rules(tmp_path: Path) -> None:
 def test_new_local_and_dict_writes_are_state(tmp_path: Path) -> None:
     found = _findings(_tree(tmp_path, {"q.py": _QODO_STATE}))
     assert _symbols(found, Rules.STATELESS_SINGLE) == set()
+
+
+def test_nested_class_state_is_not_the_outer_class_state(tmp_path: Path) -> None:
+    found = _findings(_tree(tmp_path, {"n.py": _NESTED}))
+    assert _symbols(found, Rules.STATELESS_SINGLE) == {"Factory"}
 
 
 def test_empty_string_slots_are_not_state(tmp_path: Path) -> None:

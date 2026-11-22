@@ -83,7 +83,7 @@ class StateProbe:
         receiver = cls._receiver(method)
         if receiver is None:
             return False
-        return any(cls._is_write(n, receiver) for n in ast.walk(method))
+        return any(cls._is_write(n, receiver) for n in cls._own_nodes(method))
 
     @classmethod
     def _receiver(cls, method: Method) -> str | None:
@@ -96,6 +96,20 @@ class StateProbe:
             return None
         args = method.args.posonlyargs + method.args.args
         return args[0].arg if args else None
+
+    @staticmethod
+    def _own_nodes(method: Method) -> list[ast.AST]:
+        """Return the method's nodes, skipping nested defs with their own scope."""
+        nested = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda)
+        out: list[ast.AST] = []
+        stack: list[ast.AST] = list(method.body)
+        while stack:
+            node = stack.pop()
+            out.append(node)
+            stack.extend(
+                c for c in ast.iter_child_nodes(node) if not isinstance(c, nested)
+            )
+        return out
 
     @staticmethod
     def _allocated(method: Method) -> str:

@@ -3,6 +3,7 @@
 findings = [
   {rule = "envied-data", path = "loan.py", symbol = "Loan"},
   {rule = "feature-envy", path = "service.py", symbol = "LoanService.fee"},
+  {rule = "getter-heavy", path = "loan.py", symbol = "LoanView"},
 ]
 
 [good]

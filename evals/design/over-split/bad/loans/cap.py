@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from .rules import FeeRules
+
 
 class Cap:
     def cap(self, value: int) -> int:
-        return min(10_000, value)
+        return min(FeeRules.maximum_fee(), value)

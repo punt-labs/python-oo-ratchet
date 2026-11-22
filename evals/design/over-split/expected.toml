@@ -7,6 +7,7 @@ findings = [
   {rule = "stateless-single-method", path = "cap.py", symbol = "Cap"},
   {rule = "stateless-single-method", path = "round.py", symbol = "Round"},
   {rule = "stateless-single-method", path = "receipt.py", symbol = "Receipt"},
+  {rule = "stateless-function-bag", path = "rules.py", symbol = "FeeRules"},
 ]
 
 [good]

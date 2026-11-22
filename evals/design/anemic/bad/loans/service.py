@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from .loan import Loan
+from .loan import Loan, LoanView
 
 
 class LoanService:
@@ -10,4 +10,5 @@ class LoanService:
         self._minimum = 0
 
     def fee(self, loan: Loan) -> int:
-        return min(loan.limit, max(self._minimum, loan.days - loan.grace) * loan.rate)
+        view = LoanView(loan.days, loan.rate, loan.grace)
+        return min(loan.limit, max(self._minimum, view.days - view.grace) * view.rate)

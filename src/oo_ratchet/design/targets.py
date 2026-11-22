@@ -23,7 +23,7 @@ class ImportTargets:
     def __new__(cls, index: ModuleIndex) -> Self:
         self = super().__new__(cls)
         self._index = index
-        self._pkg_name = index.layout.name
+        self._pkg_name = index.package_name
         return self
 
     def key_for(self, module: Module, node: ast.ImportFrom) -> str | None:

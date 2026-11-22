@@ -19,10 +19,17 @@ class ShadowScan:
     _keys: tuple[DesignKey, ...]
     _metrics: dict[str, dict[str, float]]
 
-    def __new__(cls, source: Path, repo: Path, layers: Path | None) -> Self:
+    def __new__(
+        cls,
+        source: Path,
+        repo: Path,
+        layers: Path | None,
+        *,
+        package_name: str | None = None,
+    ) -> Self:
         self = super().__new__(cls)
         try:
-            scanner = DesignScanner(source, layers)
+            scanner = DesignScanner(source, layers, package_name=package_name)
             report = scanner.report
         except LayerConfigError as exc:
             raise LayerConfigError(str(exc).replace(str(repo), "<repo>")) from exc
@@ -35,7 +42,11 @@ class ShadowScan:
             raise ValueError(f"unreadable or unparseable Python: {', '.join(broken)}")
         self._keys = tuple(
             DesignKey(
-                f.rule, cls._module(scanner.module_key(Path(f.path)), source), f.symbol
+                f.rule,
+                cls._module(
+                    scanner.module_key(Path(f.path)), package_name or source.name
+                ),
+                f.symbol,
             )
             for f in report._findings
         )
@@ -53,7 +64,7 @@ class ShadowScan:
         return self._metrics
 
     @staticmethod
-    def _module(key: str, source: Path) -> str:
+    def _module(key: str, package_name: str) -> str:
         if key.startswith("/"):
-            return source.name + ":" + key[1:]
-        return source.name + ("" if key == "__init__" else "." + key)
+            return package_name + ":" + key[1:]
+        return package_name + ("" if key == "__init__" else "." + key)

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import os.path
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Self
@@ -45,10 +46,14 @@ class ModuleIndex:
     _layout: PackageLayout
     _modules: dict[str, Module]
     _skipped: list[Path]
+    _package_name: str
 
-    def __new__(cls, root: Path) -> Self:
+    def __new__(cls, root: Path, *, package_name: str | None = None) -> Self:
         self = super().__new__(cls)
         self._layout = PackageLayout(root)
+        self._package_name = (
+            package_name or Path(os.path.normpath(root.absolute())).name
+        )
         self._modules = {}
         self._skipped = []
         paths = self._layout.root_files()
@@ -60,6 +65,11 @@ class ModuleIndex:
     def layout(self) -> PackageLayout:
         """Return the package layout the keys come from."""
         return self._layout
+
+    @property
+    def package_name(self) -> str:
+        """Return the logical scan name, independent of symlink transport."""
+        return self._package_name
 
     @property
     def skipped(self) -> list[Path]:

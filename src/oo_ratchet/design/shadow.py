@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os.path
 from pathlib import Path
 from typing import Self
 
@@ -21,20 +22,22 @@ class ShadowCheck:
 
     def __new__(cls, source: Path, layers: Path | None, ref: str) -> Self:
         self = super().__new__(cls)
-        source = source.resolve()
+        source = Path(os.path.normpath(source.absolute()))
         git = GitRepo(source)
         root = git.root
         if root is None:
             raise GitError("--shadow-check requires a git repository")
-        relative = source.relative_to(root)
+        relative = source.resolve().relative_to(root)
         resolved = git.resolve_ref(ref)
         base = git.merge_base(resolved, "HEAD") if resolved is not None else None
         if base is None:
             raise GitError("--shadow-check ref has no resolvable merge base with HEAD")
         override = layers.resolve() if layers is not None else None
         with ShadowSnapshot(git, base).checkout() as tree:
-            before = ShadowScan(tree / relative, tree, override)
-        after = ShadowScan(source, root, override)
+            before = ShadowScan(
+                tree / relative, tree, override, package_name=source.name
+            )
+        after = ShadowScan(source, root, override, package_name=source.name)
         self._report = ShadowReport(
             KeyChanges(before.keys, after.keys),
             ShadowMetrics(before.metrics, after.metrics),

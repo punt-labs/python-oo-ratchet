@@ -53,6 +53,43 @@ def scan(repo: Path, capsys: pytest.CaptureFixture[str], *args: str) -> str:
     return output.out
 
 
+@pytest.mark.parametrize("external", [False, True])
+@pytest.mark.parametrize("dotted", [False, True])
+def test_symlink_package_spelling_matches_layers_in_both_snapshots(
+    repo: Path, capsys: pytest.CaptureFixture[str], external: bool, dotted: bool
+) -> None:
+    seed(repo, {"model.py": 'open("existing")\n'})
+    parent = repo.parent / (repo.name + "-links") if external else repo
+    parent.mkdir(exist_ok=True)
+    link = parent / "public"
+    link.symlink_to(repo / "pkg", target_is_directory=True)
+    config = repo / "layers.toml"
+    config.write_text('[tool.oo-ratchet.layers]\ndomain=["public*"]\n')
+    write(repo, {"model.py": 'open("existing")\nopen("added")\n'})
+    source = str(link) + "/." if dotted else str(link)
+    args = [
+        "design",
+        source,
+        "--shadow-check",
+        "base",
+        "--layers",
+        str(config),
+        "--json",
+    ]
+    assert main(args) == 0
+    first = capsys.readouterr()
+    assert not first.err
+    payload = json.loads(first.out)
+    assert payload["verdict"] == "would-fail: tier0"
+    assert payload["tier0"] == {
+        "added": [{"rule": "domain-io", "module": "public.model", "symbol": "open"}],
+        "removed": [],
+    }
+    assert payload["tier1"] == {"added": [], "removed": []}
+    assert main(args) == 0
+    assert capsys.readouterr().out == first.out
+
+
 @pytest.mark.parametrize("name", ["foo", "nested/foo"])
 def test_module_and_package_collisions_keep_both_files(
     repo: Path, capsys: pytest.CaptureFixture[str], name: str

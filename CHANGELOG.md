@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Shadow scans preserve symlink package spelling for layer matching and stable
+  keys in both the merge-base and working-tree scans.
 - Shadow merge-base checkout allows 300 seconds without changing the default
   timeout of other Git calls. Owned temporary files and worktree registrations
   are cleaned up after checkout timeouts, errors, or interrupted scans.

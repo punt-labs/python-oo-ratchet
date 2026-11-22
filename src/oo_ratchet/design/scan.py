@@ -20,9 +20,11 @@ class DesignScanner:
     _report: DesignReport
     _index: ModuleIndex
 
-    def __new__(cls, root: Path, layers: Path | None = None) -> Self:
+    def __new__(
+        cls, root: Path, layers: Path | None = None, *, package_name: str | None = None
+    ) -> Self:
         self = super().__new__(cls)
-        index = ModuleIndex(root)
+        index = ModuleIndex(root, package_name=package_name)
         self._index = index
         class_rules = ClassRules(index.interface_methods())
         findings = [f for m in index.modules() for f in class_rules.findings(m)]

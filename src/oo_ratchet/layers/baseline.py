@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import stat
 import tempfile
 from collections import defaultdict
 from pathlib import Path
@@ -97,10 +98,12 @@ class LayersBaseline:
 
     def _write(self, text: str) -> None:
         """Replace the file atomically: write a sibling temp file, then rename it."""
+        mode = stat.S_IMODE(self._path.stat().st_mode) if self._path.exists() else 0o644
         fd, name = tempfile.mkstemp(dir=self._path.parent, prefix=self.FILENAME + ".")
         try:
             with os.fdopen(fd, "w") as handle:
                 handle.write(text)
+            Path(name).chmod(mode)
             Path(name).replace(self._path)
         except OSError:
             Path(name).unlink(missing_ok=True)

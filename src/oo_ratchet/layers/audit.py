@@ -5,6 +5,7 @@ from __future__ import annotations
 import datetime
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Self
 
@@ -58,6 +59,22 @@ class LayersAudit:
             entry["config_change"] = True
         if retired:
             entry["retired"] = sorted(str(e) for e in retired)
-        with self._path.open("a") as f:
-            f.write(json.dumps(entry, separators=(",", ":")) + "\n")
+        self._append((json.dumps(entry, separators=(",", ":")) + "\n").encode())
         logger.info("Appended %s entry to layers audit %s", verdict, self._path)
+
+    def _append(self, record: bytes) -> None:
+        """Append one complete record; on failure cut the file back to its old size."""
+        before = self._path.stat().st_size if self._path.exists() else None
+        fd = os.open(self._path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)
+        try:
+            pending = memoryview(record)
+            while pending:
+                pending = pending[os.write(fd, pending) :]
+        except OSError:
+            if before is None:
+                self._path.unlink(missing_ok=True)
+            else:
+                os.truncate(self._path, before)
+            raise
+        finally:
+            os.close(fd)

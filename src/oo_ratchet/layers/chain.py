@@ -9,8 +9,7 @@ from typing import Self
 from oo_ratchet.design.layer_violations import Site
 from oo_ratchet.design.modules import Module
 
-from .exports import Reexports
-from .flow import Origin
+from .exports import Origin, Reexports
 
 _DEPTH = 8
 

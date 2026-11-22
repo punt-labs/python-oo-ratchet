@@ -1,4 +1,4 @@
-"""The names a package ``__init__`` re-exports, from its module-scope flow."""
+"""The names a package ``__init__`` can bind from other modules, over-approximated."""
 
 from __future__ import annotations
 
@@ -9,23 +9,23 @@ from typing import Self
 
 from oo_ratchet.design.layer_violations import Site
 
-from .flow import BindingFlow, Bindings, Origin
-from .public import PublicNames
+type Origin = tuple[str, str]
 
 
 class Reexports:
-    """Map each name an ``__init__`` can leave bound to an import to its origins.
+    """Collect every import in an ``__init__``, wherever it sits and whatever follows.
 
-    The module-scope flow decides which bindings survive (see ``BindingFlow``).
-    ``from .a import X`` binds ``X`` to ``(module a, "X")``; ``import pkg.a as X``
-    binds it to ``(module pkg.a, "")``; ``from .a import *`` binds every public
-    name of ``a`` (its literal ``__all__``, else its names without a leading
-    underscore) to ``(module a, name)``.
+    A name imported from a package counts as an import of each module the
+    package's ``__init__`` binds that name from on any path: imports anywhere in
+    the file count (module scope, any nested block, function bodies), and no
+    rebinding, ``del``, annotation or ``__all__`` ever removes one. A wildcard
+    ``from X import *`` makes every name imported from the package an import of
+    ``X`` too. The result may name a dependency the code never makes; the
+    author restructures, the gate never passes a forbidden import.
     """
 
-    _rows: defaultdict[int, dict[str, str]]
-    _trees: Mapping[str, ast.Module]
-    _names: Bindings
+    _named: defaultdict[str, set[Origin]]
+    _wildcards: set[str]
 
     def __new__(
         cls,
@@ -34,44 +34,32 @@ class Reexports:
         trees: Mapping[str, ast.Module],
     ) -> Self:
         self = super().__new__(cls)
-        self._rows = defaultdict(dict)
+        resolved: defaultdict[int, dict[str, str]] = defaultdict(dict)
         for node, symbol, target in rows:
-            self._rows[id(node)][symbol] = target
-        self._trees = trees
-        self._names = BindingFlow(self._imports).run(tree.body)
+            resolved[id(node)][symbol] = target
+        self._named = defaultdict(set)
+        self._wildcards = set()
+        for item in ast.walk(tree):
+            if isinstance(item, ast.ImportFrom):
+                self._from(item, resolved[id(item)])
+            elif isinstance(item, ast.Import):
+                self._import(item, trees)
         return self
 
     def get(self, name: str) -> frozenset[Origin]:
-        """Return the ``(module, original name)`` origins of a re-exported name."""
-        return self._names.get(name, frozenset())
+        """Return every ``(module, original name)`` ``name`` can come from."""
+        wild = {(module, name) for module in self._wildcards}
+        return frozenset(self._named.get(name, set()) | wild)
 
-    def _imports(self, stmt: ast.Import | ast.ImportFrom) -> Bindings:
-        if isinstance(stmt, ast.Import):
-            return self._import(stmt)
-        found = self._rows[id(stmt)]
-        bound: Bindings = {}
-        for alias in stmt.names:
-            if alias.name == "*":
-                bound.update(self._wildcard(found.get("*")))
-            else:
-                origin = (
-                    {(found[alias.name], alias.name)} if alias.name in found else set()
-                )
-                bound[alias.asname or alias.name] = frozenset(origin)
-        return bound
+    def _from(self, node: ast.ImportFrom, found: dict[str, str]) -> None:
+        if "*" in found:
+            self._wildcards.add(found["*"])
+        for alias in node.names:
+            if alias.name in found and alias.name != "*":
+                bound = alias.asname or alias.name
+                self._named[bound].add((found[alias.name], alias.name))
 
-    def _import(self, stmt: ast.Import) -> Bindings:
-        bound: Bindings = {}
-        for alias in stmt.names:
-            module = alias.name if alias.asname and alias.name in self._trees else None
-            origin = frozenset({(module, "")}) if module else frozenset()
-            bound[alias.asname or alias.name.split(".")[0]] = origin
-        return bound
-
-    def _wildcard(self, target: str | None) -> Bindings:
-        if target is None or target not in self._trees:
-            return {}
-        return {
-            name: frozenset({(target, name)})
-            for name in PublicNames.of(self._trees[target])
-        }
+    def _import(self, node: ast.Import, trees: Mapping[str, ast.Module]) -> None:
+        for alias in node.names:
+            if alias.asname and alias.name in trees:
+                self._named[alias.asname].add((alias.name, ""))

@@ -79,20 +79,16 @@ class TestExportFlow:
             "from .service import thing\nfrom .other import thing\n",
         ],
     )
-    def test_unconditional_rebinding_ends_the_export(
-        self, tmp_path: Path, init: str
-    ) -> None:
-        assert not _edge_through(tmp_path, init)
+    def test_rebinding_never_ends_the_export(self, tmp_path: Path, init: str) -> None:
+        assert _edge_through(tmp_path, init)
 
-    def test_wildcard_honours_a_literal_all(self, tmp_path: Path) -> None:
+    def test_wildcard_ignores_a_literal_all(self, tmp_path: Path) -> None:
         service = 'thing = 1\nother = 2\n__all__ = ["other"]\n'
-        assert not _edge_through(tmp_path, "from .service import *\n", service)
+        assert _edge_through(tmp_path, "from .service import *\n", service)
 
-    def test_wildcard_skips_private_names(self, tmp_path: Path) -> None:
+    def test_wildcard_exports_private_names_too(self, tmp_path: Path) -> None:
         init = "from .service import *\n"
-        assert not _edge_through(
-            tmp_path, init, "_thing = 1\n", "from app import _thing\n"
-        )
+        assert _edge_through(tmp_path, init, "_thing = 1\n", "from app import _thing\n")
 
     def test_wildcard_exports_public_names_without_all(self, tmp_path: Path) -> None:
         assert _edge_through(tmp_path, "from .service import *\n", "thing = 1\n")
@@ -127,10 +123,10 @@ class TestDynamicBindings:
         assert self._edge(tmp_path, kernel)
 
     @pytest.mark.parametrize("kernel", UNBOUND)
-    def test_unbound_or_rebound_calls_are_not_edges(
+    def test_unbound_or_rebound_calls_are_deliberate_edges(
         self, tmp_path: Path, kernel: str
     ) -> None:
-        assert not self._edge(tmp_path, kernel)
+        assert self._edge(tmp_path, kernel)
 
 
 class TestSecondPackageAdoption:

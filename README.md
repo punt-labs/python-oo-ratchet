@@ -242,7 +242,7 @@ resets the suppression baseline to the current counts. It's the one write that m
 raise the total (for example after a package upgrade changes the counter), and it
 is audited.
 
-## Reference (0.3.x)
+## Reference (0.4.x)
 
 ### Targets and counting rules
 
@@ -291,7 +291,7 @@ destructuring or reflective assignments. The `__init__` exemption recognizes
 `@dataclass`, `@dataclass(...)` and bare `@module.dataclass`, but not the called
 qualified form `@module.dataclass(...)`.
 
-In 0.3.x, [`CodeLines`](src/oo_ratchet/oo/code_lines.py) excludes blank lines,
+Since 0.3.0, [`CodeLines`](src/oo_ratchet/oo/code_lines.py) excludes blank lines,
 comment-only lines, and module/class/function/async-function docstrings.
 Trailing comments do not remove the code line. Non-docstring strings count,
 including nonblank lines spanned by multiline strings; a docstring sharing a
@@ -397,7 +397,7 @@ in-tree baseline; an exercised waiver also satisfies must-improve. Historical
 entries already at the base do not waive later regressions. A full reset is
 therefore not a substitute for relax when a change needs a waiver.
 
-In 0.3.x, both OO and coupling scoped `--update` also **backfill missing rows**
+Since 0.3.1, both OO and coupling scoped `--update` also **backfill missing rows**
 for parse-clean scored files outside the diff, including untracked files in
 the scored tree. Existing untouched rows are not refreshed. Rename targets
 use the normal carry path, not backfill. Backfills appear as `backfilled` audit

@@ -1,41 +1,63 @@
-"""``oo-ratchet <gate> <src> [flags]`` — dispatch to one of the three ratchets."""
+"""``oo-ratchet <gate> <src> [flags]`` — dispatch to one of the ratchets."""
 
 from __future__ import annotations
 
 import sys
 from collections.abc import Callable
+from typing import ClassVar, Self
 
 from oo_ratchet import __version__
 from oo_ratchet.coupling.cli import main as coupling_main
+from oo_ratchet.design.cli import main as design_main
 from oo_ratchet.oo.cli import main as oo_main
 from oo_ratchet.suppression.cli import main as suppression_main
 
-GATES: dict[str, Callable[[list[str] | None], int]] = {
-    "oo": oo_main,
-    "coupling": coupling_main,
-    "suppressions": suppression_main,
-}
 
-USAGE = (
-    "usage: oo-ratchet {oo,coupling,suppressions} <src> [flags]\n"
-    "       oo-ratchet <gate> --help for that gate's flags"
-)
+class Dispatcher:
+    """Route one command line to the gate its first argument names."""
+
+    GATES: ClassVar[dict[str, Callable[[list[str] | None], int]]] = {
+        "oo": oo_main,
+        "coupling": coupling_main,
+        "suppressions": suppression_main,
+        "design": design_main,
+    }
+    USAGE: ClassVar[str] = (
+        "usage: oo-ratchet {oo,coupling,suppressions,design} <src> [flags]\n"
+        "       oo-ratchet <gate> --help for that gate's flags"
+    )
+
+    _args: list[str]
+
+    def __new__(cls, argv: list[str] | None) -> Self:
+        self = super().__new__(cls)
+        self._args = sys.argv[1:] if argv is None else argv
+        return self
+
+    def run(self) -> int:
+        """Run the named gate, or answer ``--help``/``--version`` itself."""
+        if not self._args or self._args[0] in {"-h", "--help"}:
+            return self._usage()
+        if self._args[0] == "--version":
+            sys.stdout.write(f"oo-ratchet {__version__}\n")
+            return 0
+        return self._dispatch(self._args[0])
+
+    def _usage(self) -> int:
+        sys.stdout.write(self.USAGE + "\n")
+        return 0 if self._args else 2
+
+    def _dispatch(self, name: str) -> int:
+        gate = self.GATES.get(name)
+        if gate is None:
+            sys.stderr.write(f"oo-ratchet: unknown gate {name!r}\n{self.USAGE}\n")
+            return 2
+        return gate(self._args[1:])
 
 
 def main(argv: list[str] | None = None) -> int:
     """Run the gate named by the first argument with the remaining arguments."""
-    args = sys.argv[1:] if argv is None else argv
-    if not args or args[0] in {"-h", "--help"}:
-        sys.stdout.write(USAGE + "\n")
-        return 0 if args else 2
-    if args[0] == "--version":
-        sys.stdout.write(f"oo-ratchet {__version__}\n")
-        return 0
-    gate = GATES.get(args[0])
-    if gate is None:
-        sys.stderr.write(f"oo-ratchet: unknown gate {args[0]!r}\n{USAGE}\n")
-        return 2
-    return gate(args[1:])
+    return Dispatcher(argv).run()
 
 
 if __name__ == "__main__":

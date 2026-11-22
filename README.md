@@ -50,6 +50,15 @@ flags. Baseline and audit files (`.oo-baseline.json`, `.oo-audit.jsonl`,
 `.oo-coupling-baseline.json`, ...) keep the same names as the embedded copies,
 so a repo switches over without rebaselining.
 
+### Advisory design check
+
+`oo-ratchet design src/pkg/ [--json]` reports OO design smells the metric
+gates cannot see: stateless classes with one public method (a function wearing
+a class) or several (a namespace of free functions), getter-heavy classes, and
+stateful concrete classes imported across top-level subpackages instead of a
+Protocol/ABC. It has no baseline and always exits 0; it is not part of
+`make check`.
+
 ## Configure
 
 Optional per-repository settings live in `pyproject.toml`; with none the strict

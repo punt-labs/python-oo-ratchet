@@ -1,0 +1,15 @@
+# Keys are relative to the variant's loans/ package, never line numbers.
+[bad]
+findings = [
+  {rule = "data-clump", path = "records.py", symbol = "Loan"},
+  {rule = "data-clump", path = "records.py", symbol = "Renewal"},
+  {rule = "data-clump", path = "records.py", symbol = "Reservation"},
+  {rule = "envied-data", path = "records.py", symbol = "Loan"},
+  {rule = "envied-data", path = "records.py", symbol = "Renewal"},
+  {rule = "envied-data", path = "records.py", symbol = "Reservation"},
+]
+
+[good]
+findings = [
+
+]

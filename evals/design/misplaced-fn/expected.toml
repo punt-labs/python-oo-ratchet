@@ -1,0 +1,10 @@
+# Keys are relative to the variant's loans/ package, never line numbers.
+[bad]
+findings = [
+  {rule = "misplaced-function", path = "loan.py", symbol = "fee"},
+]
+
+[good]
+findings = [
+
+]

@@ -4,17 +4,24 @@ SRC := src/oo_ratchet/
 OO_BASE ?=
 COUPLING_BASE ?=
 SUPPRESSION_BASE ?=
+EVAL_VARIANTS := $(wildcard evals/design/*/bad evals/design/*/good)
+EVAL_TYPE_TARGETS := $(addprefix type-,$(EVAL_VARIANTS))
+
+.PHONY: $(EVAL_TYPE_TARGETS)
 
 help: ## Show targets
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-10s %s\n", $$1, $$2}'
 
 lint: ## ruff check + format check
-	uv run ruff check src tests
-	uv run ruff format --check src tests
+	uv run ruff check src tests evals
+	uv run ruff format --check src tests evals
 
-type: ## mypy (strict) + pyright on tests
+type: $(EVAL_TYPE_TARGETS) ## mypy (strict) + pyright, including isolated eval packages
 	uv run mypy src tests
-	uv run pyright tests
+	uv run pyright tests evals
+
+$(EVAL_TYPE_TARGETS): type-%:
+	uv run mypy $*/loans $(dir $*)behavior.py
 
 test: ## full suite, including the real-git slow tier
 	uv run pytest -m ""

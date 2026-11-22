@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Added
+
+- Seeded library-loan design eval pairs with behavior equivalence, finding-key
+  recall/precision and ordering checks, strict future-rule xfails, and fixture
+  lint/type coverage. No design rule or gate behavior changes.
+
 ## [0.3.1] - 2026-11-19
 
 ### Fixed

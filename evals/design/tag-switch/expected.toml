@@ -2,6 +2,7 @@
 [bad]
 findings = [
   {rule = "tag-switch", path = "policy.py", symbol = "fee"},
+  {rule = "primitive-params", path = "policy.py", symbol = "fee"},
 ]
 
 [good]

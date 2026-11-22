@@ -42,6 +42,11 @@ class Rules:
     FEATURE_ENVY = "feature-envy"
     DATA_CLUMP = "data-clump"
     MISPLACED_FUNCTION = "misplaced-function"
+    PRIMITIVE_PARAMS = "primitive-params"
+    TAG_SWITCH = "tag-switch"
+    MIDDLE_MAN = "middle-man"
+    SPLIT_COHESION = "split-cohesion"
+    SIZE_CAP = "size-cap"
 
     DESCRIPTIONS: ClassVar[dict[str, str]] = {
         STATELESS_SINGLE: "stateless class with one public method: a function-object",
@@ -58,6 +63,11 @@ class Rules:
         FEATURE_ENVY: "a typed parameter's attributes dominate a function",
         DATA_CLUMP: "four or more names shared by at least three owners",
         MISPLACED_FUNCTION: "public function belongs on a project class",
+        PRIMITIVE_PARAMS: "public signature has at least two primitive parameters",
+        TAG_SWITCH: "three or more arms dispatch on the same tag",
+        MIDDLE_MAN: "public methods only forward to one collaborator",
+        SPLIT_COHESION: "instance methods form disconnected LCOM4 components",
+        SIZE_CAP: "symbol exceeds a Tier 0 size or complexity ceiling",
     }
 
     @classmethod

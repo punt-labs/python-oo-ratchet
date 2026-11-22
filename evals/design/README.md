@@ -9,13 +9,11 @@ objects in separate files into one stateful loan with related operations.
 
 `expected.toml` keys use paths relative to `loans/` and qualified symbols, not
 line numbers. The layer-leak pair additionally declares the proposed
-`[tool.oo-ratchet.layers]` contract in `layers.toml`; today's scanner does not
-load it. No new rules or production gate changes are implemented here.
+`[tool.oo-ratchet.layers]` contract in `layers.toml`, consumed by the scanner.
+The evals do not change production ratchet gates.
 
-Run `uv run pytest tests/test_design_evals.py`. Future-rule recall cases are
-strict xfails, intentionally retained even if the rule joins `Rules.ordered()`:
-an XPASS forces removing that rule from the harness's `FUTURE_RULES`. Recall,
-precision and ordering then automatically include the implemented rule.
+Run `uv run pytest tests/test_design_evals.py`. All seeded rules are implemented;
+recall, precision and ordering include D1-D8, layer rules and Tier 0 size caps.
 Precision checks remain active around the exact known-misfire keys; separate
 strict xfails track their removal. The known cases are:
 
@@ -29,6 +27,22 @@ strict xfails track their removal. The known cases are:
 
 The layer-leak pair passes its `layers.toml` to the scanner; its four layer
 expectations are implemented checks, not future-rule xfails.
+
+## Approved PR3b expectation updates
+
+- Bad tag-switch `policy.py:fee` additionally expects `primitive-params`:
+  `kind: str` and `days: int` are two primitive parameters. The good variant
+  still expects no findings.
+- Bad god-class `library.py` additionally expects `size-cap` on `<module>`:
+  its 608 code lines exceed 400, independently of the existing `Library`
+  method-count overflow. These are separate stable keys.
+
+No behavior fixtures changed. LCOM4 excludes `__init__`, `__new__` and
+`__post_init__` from both the method count and graph: initialization does not
+connect otherwise independent groups of behavior.
+Properties, cached properties, setters and deleters are accessors, not methods,
+so they also stay out of the LCOM4 count and graph. The tag-switch fixture's
+contiguous early-return `if` statements are a structural dispatch chain.
 
 `make type` runs strict mypy separately for every variant plus its shared
 behavior file, since every variant intentionally uses the same package name.

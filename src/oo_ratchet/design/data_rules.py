@@ -1,4 +1,4 @@
-"""Compose advisory D1-D4 over one declaration and project-type inventory."""
+"""Compose advisory data and shape checks over one declaration/type inventory."""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ from .layer_config import LayerConfig
 from .misplaced_rule import MisplacedRule
 from .modules import ModuleIndex
 from .project_types import ProjectTypes
+from .shape_rules import ShapeRules
 
 
 class DataRules:
@@ -19,17 +20,20 @@ class DataRules:
 
     _inventory: DataInventory
     _types: ProjectTypes
+    _shapes: ShapeRules
 
     def __new__(cls, index: ModuleIndex, config: LayerConfig | None) -> Self:
         self = super().__new__(cls)
         self._inventory = DataInventory(index, config)
         self._types = ProjectTypes(index, self._inventory.declarations())
+        self._shapes = ShapeRules(self._inventory, self._types, index, config)
         return self
 
     def findings(self) -> list[Finding]:
-        """Return the deterministic findings of all four data-design rules."""
+        """Return deterministic data-placement, shape and size findings."""
         return (
             EnvyRules(self._inventory, self._types).findings()
             + ClumpRules(self._inventory).findings()
             + MisplacedRule(self._inventory, self._types).findings()
+            + self._shapes.findings()
         )

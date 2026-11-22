@@ -43,6 +43,19 @@ class FunctionShape:
             pending.extend(reversed(list(ast.iter_child_nodes(node))))
         return out
 
+    def blocks(self) -> list[list[ast.stmt]]:
+        """Return statement blocks without entering nested declaration bodies."""
+        blocks = [self._node.body]
+        for node in self.nodes():
+            blocks.extend(
+                cast("list[ast.stmt]", value)
+                for _, value in ast.iter_fields(node)
+                if isinstance(value, list)
+                and value
+                and all(isinstance(item, ast.stmt) for item in value)
+            )
+        return blocks
+
     def reads(self) -> dict[str, set[str]]:
         """Group direct attribute reads, including augmented assignment targets."""
         reads: dict[str, set[str]] = {}

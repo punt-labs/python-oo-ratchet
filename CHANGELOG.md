@@ -12,6 +12,12 @@
 
 ### Added
 
+- Advisory `primitive-params`, `tag-switch`, `middle-man`, `split-cohesion` and
+  Tier 0 `size-cap` checks, using syntactic signatures, explicit project classes
+  and LCOM4 components. Initializers are excluded from cohesion; layer-specific
+  exemptions are documented. All seeded rule expectations are active, including
+  the approved extra primitive finding for bad tag-switch and module cap for
+  bad god-class. Findings still exit 0; adopter gates and thresholds are unchanged.
 - Advisory `envied-data`, `feature-envy`, `data-clump` and `misplaced-function`
   checks using explicit syntactic receiver types and deterministic maximal
   shared-name intersections. They run without layer configuration, excluding

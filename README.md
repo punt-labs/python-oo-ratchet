@@ -130,11 +130,37 @@ separately, not attributed to their enclosing function.
 Direct constructor assignment is ignored when the constructor name is bound
 anywhere in that function; explicit annotations remain separate syntactic sources.
 
+Additional advisory shape checks run with the same syntactic project-class index:
+
+- `primitive-params` (D5): public signatures with at least two `str`, `int`,
+  `float`, `bool`, `dict` or unannotated parameters, excluding the receiver.
+  With layers configured, only domain modules qualify; without layers it applies
+  everywhere. Nested functions and private APIs are not public signatures.
+- `tag-switch` (D6): an if/elif chain or match with at least three literal or
+  enum-member-form arms on the same name/attribute. Adapter modules are exempt.
+  Contiguous same-block `if` arms ending directly in `return` or `raise` also
+  form a chain; intervening statements and nested bodies break that sequence.
+  Qualified member spellings are syntactic; external enum values are not inferred.
+- `middle-man` (D7): at least two public methods, all single-call forwarding to
+  the same `self.<field>` collaborator. Explicit Protocol subclasses are exempt.
+- `split-cohesion` (D8): LCOM4 exceeds one for at least three instance methods,
+  connected through shared `self` fields or direct calls to each other.
+  Static/class methods, property/cached-property accessors (including setters
+  and deleters), and `__init__`, `__new__`, `__post_init__` do not enter
+  the count or graph. Nested declaration bodies do not contribute edges.
+- `size-cap`: modules over 400 code lines, classes over 25 methods, signatures
+  over five parameters, or complexity over ten. Code lines and complexity use
+  existing ratchet measures; parameter counting excludes receivers and variadics.
+  A symbol has one finding with all exceeded measures in `detail`; module overflow
+  is keyed on `<module>`. These caps apply regardless of layer.
+
+All design findings remain advisory and exit 0. These ceilings are design signals,
+not new adopter ratchet gates or changes to existing OO/coupling thresholds.
+
 **Design evals.** `evals/design/` seeds eleven library-loan bad/good pairs with
 shared behavior checks and stable `(rule, path, symbol)` keys in `expected.toml`.
-`tests/test_design_evals.py` checks implemented-rule recall, precision and ordering;
-future-rule expectations are strict xfails, so implementing a rule forces their
-promotion. Known false positives are strict xfails too, never fixture workarounds.
+`tests/test_design_evals.py` checks recall, precision and ordering for every seeded
+rule. Known false positives remain strict xfails, never fixture workarounds.
 `make check` lints and type-checks the fixtures and runs the harness, but the
 self-ratchets still scan only `src/oo_ratchet/`. The layer-leak pair's `layers.toml`
 is consumed by the scanner with `--layers` (and by the eval harness).

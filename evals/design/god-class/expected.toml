@@ -2,6 +2,7 @@
 [bad]
 findings = [
   {rule = "size-cap", path = "library.py", symbol = "Library"},
+  {rule = "size-cap", path = "library.py", symbol = "<module>"},
 ]
 
 [good]

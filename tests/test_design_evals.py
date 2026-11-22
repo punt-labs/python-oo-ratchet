@@ -36,15 +36,6 @@ class Expectations(TypedDict):
 ROOT = Path(__file__).resolve().parents[1] / "evals" / "design"
 PAIRS = sorted(path.parent for path in ROOT.glob("*/expected.toml"))
 VARIANTS = ("bad", "good")
-FUTURE_RULES = frozenset(
-    {
-        "primitive-params",
-        "tag-switch",
-        "middle-man",
-        "split-cohesion",
-        "size-cap",
-    }
-)
 KNOWN_MISFIRES: dict[tuple[str, str], Key] = {
     ("decoys", "bad"): (Rules.STATELESS_SINGLE, "adapters/wire.py", "Codec"),
     ("decoys", "good"): (Rules.STATELESS_SINGLE, "adapters/wire.py", "Codec"),
@@ -96,9 +87,7 @@ def test_eval_catalogue() -> None:
     for pair in PAIRS:
         for variant in VARIANTS:
             expected = _expected(pair, variant)
-            assert all(
-                key[0] in set(Rules.ordered()) | FUTURE_RULES for key in expected
-            )
+            assert all(key[0] in Rules.ordered() for key in expected)
             assert all(
                 (pair / variant / "loans" / key[1]).is_file() for key in expected
             )
@@ -171,31 +160,6 @@ def test_implemented_ordering(
         if known is not None:
             keys.discard(known)
     assert len(bad) > len(good)
-
-
-@pytest.mark.parametrize(
-    ("pair", "variant", "key"),
-    [
-        pytest.param(
-            pair,
-            variant,
-            key,
-            id=f"{pair.name}-{variant}-{key[0]}-{key[2]}",
-            marks=pytest.mark.xfail(
-                strict=True,
-                reason=f"Seeded future rule: {key[0]}; remove mark on implementation",
-            ),
-        )
-        for pair in PAIRS
-        for variant in VARIANTS
-        for key in sorted(_expected(pair, variant))
-        if key[0] in FUTURE_RULES
-    ],
-)
-def test_future_recall(
-    pair: Path, variant: str, key: Key, findings: dict[tuple[Path, str], set[Key]]
-) -> None:
-    assert key in findings[pair, variant]
 
 
 @pytest.mark.parametrize("pair", PAIRS, ids=lambda p: p.name)

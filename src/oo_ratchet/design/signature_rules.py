@@ -1,0 +1,82 @@
+"""Primitive public signatures and tag dispatch with distinct layer policies."""
+
+from __future__ import annotations
+
+import ast
+from typing import Self
+
+from .data_inventory import DataInventory
+from .declaration import Declaration
+from .findings import Finding, Rules
+from .function_shape import FunctionShape
+from .tag_switch import TagSwitch
+from .type_reference import TypeReference
+
+
+class SignatureRules:
+    """Keep domain-only primitive checks separate from adapter-exempt switches."""
+
+    _inventory: DataInventory
+    _layers: dict[str, str | None]
+
+    def __new__(cls, inventory: DataInventory, layers: dict[str, str | None]) -> Self:
+        self = super().__new__(cls)
+        self._inventory = inventory
+        self._layers = layers
+        return self
+
+    def findings(self) -> list[Finding]:
+        """Return at most one finding per rule and function."""
+        return [
+            finding
+            for owner in self._inventory.declarations()
+            if owner.kind != "class"
+            for finding in self._function(owner, self._layers)
+        ]
+
+    @classmethod
+    def _function(
+        cls, owner: Declaration, layers: dict[str, str | None]
+    ) -> list[Finding]:
+        findings = []
+        layer = layers.get(owner.module.key)
+        if cls._public(owner) and (not layers or layer == "domain"):
+            count = sum(cls._primitive(a.annotation) for a in cls._parameters(owner))
+            if count >= 2:
+                findings.append(
+                    owner.finding(
+                        Rules.PRIMITIVE_PARAMS, f"primitive parameters={count}"
+                    )
+                )
+        if layer != "adapters" and TagSwitch(FunctionShape(owner)).found():
+            findings.append(
+                owner.finding(
+                    Rules.TAG_SWITCH, "three or more arms dispatch on one tag"
+                )
+            )
+        return findings
+
+    @staticmethod
+    def _public(owner: Declaration) -> bool:
+        return owner.kind in {"function", "method"} and not any(
+            part.startswith("_") for part in owner.symbol.split(".")
+        )
+
+    @staticmethod
+    def _parameters(owner: Declaration) -> list[ast.arg]:
+        parameters = FunctionShape(owner).parameters()
+        if (
+            owner.kind == "method"
+            and parameters
+            and parameters[0].arg in {"self", "cls"}
+        ):
+            return parameters[1:]
+        return parameters
+
+    @staticmethod
+    def _primitive(annotation: ast.expr | None) -> bool:
+        if annotation is None:
+            return True
+        if isinstance(annotation, ast.Subscript):
+            annotation = annotation.value
+        return TypeReference.name(annotation) in {"str", "int", "float", "bool", "dict"}

@@ -40,6 +40,7 @@ class LayerScan:
     _unassigned: tuple[str, ...]
     _unresolvable: tuple[str, ...]
     _config_path: Path | None
+    _package: str
 
     def __new__(cls, src: Path, config: LayerConfig | None = None) -> Self:
         self = super().__new__(cls)
@@ -62,6 +63,7 @@ class LayerScan:
         self._unassigned = tuple(found.unassigned())
         self._unresolvable = tuple(found.unresolvable())
         self._config_path = LayerTable.nearest(src)
+        self._package = index.package_name
         return self
 
     def under(self, config: LayerConfig) -> Self:
@@ -87,6 +89,16 @@ class LayerScan:
     def unassigned(self) -> tuple[str, ...]:
         """Return the non-root modules that match no layer."""
         return self._unassigned
+
+    @property
+    def package(self) -> str:
+        """Return the scanned package's name, the prefix of its module names."""
+        return self._package
+
+    @property
+    def config(self) -> LayerConfig:
+        """Return the layer config the scan ran under."""
+        return self._config
 
     @property
     def config_path(self) -> Path | None:

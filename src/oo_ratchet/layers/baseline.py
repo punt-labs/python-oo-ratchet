@@ -67,6 +67,23 @@ class LayersBaseline:
             raise LayersBaselineError(msg)
         return frozenset(Edge(s, t) for s, targets in loaded.items() for t in targets)
 
+    def scoped(self, package: str) -> frozenset[Edge]:
+        """Return the baselined edges whose importing module is in ``package``."""
+        return frozenset(e for e in self._edges if e.within(package))
+
+    def raw(self) -> str | None:
+        """Return the file text, or ``None`` when there is no file."""
+        return self._path.read_text() if self._path.exists() else None
+
+    def restore(self, text: str | None) -> None:
+        """Put back what ``raw`` returned, deleting the file if there was none."""
+        if text is None:
+            self._path.unlink(missing_ok=True)
+            self._edges = frozenset()
+            return
+        self._path.write_text(text)
+        self._edges = self.parse(text, str(self._path))
+
     def save(self, edges: frozenset[Edge]) -> None:
         """Write ``edges`` sorted by source and refresh the in-memory view."""
         grouped: defaultdict[str, list[str]] = defaultdict(list)

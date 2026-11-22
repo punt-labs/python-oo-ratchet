@@ -33,6 +33,7 @@ class Options:
     allow_ci_write: bool
     source: str | None
     tripwire: bool
+    allow_config_change: bool
 
     @classmethod
     def parse(cls, argv: list[str] | None = None) -> Self:
@@ -41,6 +42,8 @@ class Options:
         ns = parser.parse_args(argv)
         if not ns.check and (ns.base_ref is not None or ns.require_base or ns.tripwire):
             parser.error("--base-ref, --require-base and --tripwire need --check")
+        if ns.allow_config_change and not (ns.check or ns.update):
+            parser.error("--allow-config-change needs --check or --update")
         return cls(
             src=Path(ns.src),
             check=bool(ns.check),
@@ -51,6 +54,7 @@ class Options:
             allow_ci_write=bool(ns.allow_ci_write),
             source=ns.source,
             tripwire=bool(ns.tripwire),
+            allow_config_change=bool(ns.allow_config_change),
         )
 
     @staticmethod
@@ -79,6 +83,11 @@ class Options:
         )
         parser.add_argument("--source", metavar="REF", help="audit source (PR/bead)")
         parser.add_argument(
+            "--allow-config-change",
+            action="store_true",
+            help="accept a layer policy that widens imports (recorded by --update)",
+        )
+        parser.add_argument(
             "--tripwire",
             action="store_true",
             help="post-merge push:[main] mode: an absent base baseline is the "
@@ -92,22 +101,27 @@ class Cli:
 
     _opts: Options
     _git: LayersGit
-    _root: Path
+    _root: Path | None
 
     def __new__(cls, options: Options) -> Self:
         self = super().__new__(cls)
         self._opts = options
-        self._git = LayersGit()
-        self._root = self._git.root or Path.cwd()
+        src = options.src
+        self._git = LayersGit(src if src.is_dir() else None)
+        self._root = self._git.root
         return self
 
     def run(self) -> int:
         """Execute the requested operation and return its exit code."""
         if not self._opts.src.exists():
             return self._emit(Outcome.failed(f"Not found: {self._opts.src}"))
+        root = self._root
+        if root is None or not self._opts.src.resolve().is_relative_to(root.resolve()):
+            msg = f"FAIL: {self._opts.src} is not inside a git repository"
+            return self._emit(Outcome.failed(msg))
         try:
             scan = LayerScan(self._opts.src)
-            outcome = self._dispatch(scan)
+            outcome = self._dispatch(scan, root)
         except (
             GitError,
             LayersBaselineError,
@@ -119,18 +133,22 @@ class Cli:
             outcome = Outcome.failed(f"FAIL: {exc}")
         return self._emit(outcome)
 
-    def _dispatch(self, scan: LayerScan) -> Outcome:
+    def _dispatch(self, scan: LayerScan, root: Path) -> Outcome:
         opts = self._opts
         if opts.check:
-            return LayersRatchet(self._root, self._git).check(
+            return LayersRatchet(root, self._git).check(
                 scan,
                 base_ref=opts.base_ref,
                 require_base=opts.require_base,
                 tripwire=opts.tripwire,
+                allow_config_change=opts.allow_config_change,
             )
         if opts.update:
-            return LayersWriter(self._root, self._git).update(
-                scan, allow_ci_write=opts.allow_ci_write, source=opts.source
+            return LayersWriter(root, self._git).update(
+                scan,
+                allow_ci_write=opts.allow_ci_write,
+                source=opts.source,
+                config_change=opts.allow_config_change,
             )
         report = LayersReport(scan)
         if opts.json:

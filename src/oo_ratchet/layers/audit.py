@@ -40,6 +40,7 @@ class LayersAudit:
         removed: frozenset[Edge],
         commit: str | None,
         source: str | None,
+        config_change: bool = False,
     ) -> None:
         """Append one entry: ``adopt`` writes a first baseline, ``pass`` shrinks it."""
         entry: dict[str, object] = {
@@ -52,6 +53,8 @@ class LayersAudit:
             "added": sorted(str(e) for e in added),
             "removed": sorted(str(e) for e in removed),
         }
+        if config_change:
+            entry["config_change"] = True
         with self._path.open("a") as f:
             f.write(json.dumps(entry, separators=(",", ":")) + "\n")
         logger.info("Appended %s entry to layers audit %s", verdict, self._path)

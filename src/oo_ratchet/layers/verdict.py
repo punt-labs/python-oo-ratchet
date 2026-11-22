@@ -18,6 +18,7 @@ class LayersVerdict:
     _recorded: frozenset[Edge]
     _base_edges: frozenset[Edge] | None
     _base_config: list[Edge]
+    _widened: list[str]
     _base: str
 
     def __new__(
@@ -27,6 +28,7 @@ class LayersVerdict:
         *,
         base_edges: frozenset[Edge] | None,
         base_config: list[Edge],
+        widened: list[str],
         base: str,
     ) -> Self:
         self = super().__new__(cls)
@@ -34,6 +36,7 @@ class LayersVerdict:
         self._recorded = recorded
         self._base_edges = base_edges
         self._base_config = base_config
+        self._widened = widened
         self._base = base
         return self
 
@@ -54,6 +57,10 @@ class LayersVerdict:
             (
                 "edges that violate under the base config, not in the base baseline:",
                 self._edges(e for e in self._base_config if e not in new),
+            ),
+            (
+                "layer policy widened (land it alone, --allow-config-change):",
+                self._widened,
             ),
             ("the layer contract does not cover the package:", self._scan.problems),
         )

@@ -1,6 +1,8 @@
 """Layers baseline update: adopt a first baseline, then only ever shrink it.
 
 Refuses to run under ``GITHUB_ACTIONS`` unless ``--allow-ci-write`` is passed.
+The baseline file is shared by the repository's packages: an update replaces
+only the scanned package's rows and keeps every other package's.
 """
 
 from __future__ import annotations
@@ -32,31 +34,43 @@ class LayersWriter:
         return self
 
     def update(
-        self, scan: LayerScan, *, allow_ci_write: bool, source: str | None
+        self,
+        scan: LayerScan,
+        *,
+        allow_ci_write: bool,
+        source: str | None,
+        config_change: bool = False,
     ) -> Outcome:
         """Write the current violations as the baseline and record the change.
 
         With no baseline file yet, every current violation is adopted. With one,
         a violation it does not list is refused and nothing is written: the only
         way to loosen the baseline is to fix the code or edit the file by hand,
-        and ``check`` rejects a hand edit that grows it past the merge base.
+        and ``check`` rejects a hand edit that grows it past the merge base. If
+        the audit entry cannot be written, the previous baseline is put back.
         """
         blocked = self._blocked(scan, allow_ci_write=allow_ci_write)
         if blocked is not None:
             return blocked
         current = frozenset(v.edge for v in scan.violations)
-        recorded = self._baseline.edges
+        recorded = self._baseline.scoped(scan.package)
         adopting = not self._baseline.exists
-        self._baseline.save(current)
-        self._audit.append(
-            verdict="adopt" if adopting else "pass",
-            modules=len(scan.modules),
-            violations=len(current),
-            added=current if adopting else frozenset(),
-            removed=recorded - current,
-            commit=self._git.short_head(),
-            source=source,
-        )
+        before = self._baseline.raw()
+        self._baseline.save((self._baseline.edges - recorded) | current)
+        try:
+            self._audit.append(
+                verdict="adopt" if adopting else "pass",
+                modules=len(scan.modules),
+                violations=len(current),
+                added=current if adopting else frozenset(),
+                removed=recorded - current,
+                commit=self._git.short_head(),
+                source=source,
+                config_change=config_change,
+            )
+        except OSError:
+            self._baseline.restore(before)
+            raise
         return Outcome.passed(
             f"Wrote {self._baseline.path}",
             f"  violations: {len(current)} ({len(recorded - current)} removed)",
@@ -84,4 +98,5 @@ class LayersWriter:
     def _added(self, scan: LayerScan) -> list[str]:
         if not self._baseline.exists:
             return []
-        return [str(e) for e in sorted(scan.edges - self._baseline.edges)]
+        known = self._baseline.scoped(scan.package)
+        return [str(e) for e in sorted(scan.edges - known)]

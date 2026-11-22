@@ -10,7 +10,9 @@ from oo_ratchet.design.layer_edges import Edge, Violation
 from oo_ratchet.design.layer_violations import LayerViolations, Site
 from oo_ratchet.design.modules import Module, ModuleIndex
 
-_DYNAMIC = frozenset({"import_module", "__import__"})
+from .dynamic import DynamicImports
+from .exports import Reexports
+
 _HOPS = 8
 
 
@@ -38,7 +40,7 @@ class StrictViolations(LayerViolations):
         rows = super().targets(module)
         for node, symbol, target in list(rows):
             rows.extend((node, symbol, hop) for hop in self._hops(target, symbol))
-        rows.extend(self._dynamic(module))
+        rows.extend(DynamicImports(module.tree, self._by_name).targets())
         return rows
 
     def violations(self) -> list[Violation]:
@@ -79,36 +81,10 @@ class StrictViolations(LayerViolations):
             module = self._by_name.get(target)
             if module is None or not module.is_package:
                 break
-            source = self._exports(module).get(symbol)
+            exports = Reexports(module.tree, super().targets(module), self._by_name)
+            source = exports.get(symbol)
             if source is None or source[0] == target:
                 break
             target, symbol = source
             hops.append(target)
         return hops
-
-    def _exports(self, module: Module) -> dict[str, tuple[str, str]]:
-        """Map each name a package ``__init__`` imports to its module and original."""
-        out: dict[str, tuple[str, str]] = {}
-        for node, symbol, target in super().targets(module):
-            if isinstance(node, ast.ImportFrom):
-                for alias in node.names:
-                    if alias.name == symbol:
-                        out[alias.asname or alias.name] = (target, alias.name)
-        return out
-
-    def _dynamic(self, module: Module) -> list[tuple[Site, str, str]]:
-        rows: list[tuple[Site, str, str]] = []
-        for node in ast.walk(module.tree):
-            if not (isinstance(node, ast.Call) and node.args):
-                continue
-            arg = node.args[0]
-            if self._is_dynamic(node.func) and isinstance(arg, ast.Constant):
-                if isinstance(arg.value, str) and arg.value in self._by_name:
-                    rows.append((node, arg.value, arg.value))
-        return rows
-
-    @staticmethod
-    def _is_dynamic(func: ast.expr) -> bool:
-        if isinstance(func, ast.Name):
-            return func.id in _DYNAMIC
-        return isinstance(func, ast.Attribute) and func.attr in _DYNAMIC

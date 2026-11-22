@@ -35,7 +35,7 @@ class LayersReport:
             lines.append(f"{source} -> {target}: {len(rows)}")
             lines.extend(f"  {v.edge}" for v in rows)
         unassigned = self._scan.unassigned
-        lines.append(f"Unassigned modules: {len(unassigned)} (exempt)")
+        lines.append(f"Unassigned modules: {len(unassigned)} (each fails --check)")
         lines.extend(f"  {module}" for module in unassigned)
         return lines
 

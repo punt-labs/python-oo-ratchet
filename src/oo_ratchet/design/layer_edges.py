@@ -15,6 +15,10 @@ class Edge:
     def __str__(self) -> str:
         return f"{self.source} -> {self.target}"
 
+    def within(self, package: str) -> bool:
+        """Return whether the importing module is ``package`` or inside it."""
+        return self.source == package or self.source.startswith(package + ".")
+
 
 @dataclass(frozen=True, slots=True, order=True)
 class Violation:

@@ -226,7 +226,7 @@ def test_behavior(pair: Path, variant: str) -> None:
 
 @pytest.mark.parametrize("pair", PAIRS, ids=lambda p: p.name)
 @pytest.mark.parametrize("variant", VARIANTS)
-def test_stable_keys(
+def test_repeat_scan_yields_same_keys(
     pair: Path, variant: str, findings: dict[tuple[Path, str], set[Key]]
 ) -> None:
     assert _scan(pair / variant / "loans") == findings[pair, variant]

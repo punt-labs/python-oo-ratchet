@@ -31,6 +31,10 @@ class BuiltinOpen:
                 ast.AsyncFunctionDef,
                 ast.ClassDef,
                 ast.Lambda,
+                ast.ListComp,
+                ast.SetComp,
+                ast.DictComp,
+                ast.GeneratorExp,
             ),
         ):
             bound = enclosing | cls._bindings(node)
@@ -53,7 +57,10 @@ class BuiltinOpen:
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                 bound.add(node.name)
                 continue
-            if isinstance(node, ast.Lambda):
+            if isinstance(
+                node,
+                (ast.Lambda, ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp),
+            ):
                 continue
             if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
                 bound.add(node.id)

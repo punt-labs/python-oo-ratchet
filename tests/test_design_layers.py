@@ -163,6 +163,24 @@ def test_class_open_does_not_hide_method_builtin(tmp_path: Path) -> None:
     assert keys(root) == {(Rules.DOMAIN_IO, "domain.py", "open")}
 
 
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "[open for open in xs]",
+        "{open for open in xs}",
+        "{open: open for open in xs}",
+        "(open for open in xs)",
+    ],
+)
+def test_comprehension_open_does_not_bind_outer(
+    tmp_path: Path, expression: str
+) -> None:
+    root = package(
+        tmp_path, f"def read(xs):\n values = {expression}\n return open('x')"
+    )
+    assert keys(root) == {(Rules.DOMAIN_IO, "domain.py", "open")}
+
+
 def test_entry_complexity_and_qualified_names(tmp_path: Path) -> None:
     root = package(
         tmp_path,

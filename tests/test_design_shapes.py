@@ -276,13 +276,64 @@ def test_middle_man_protocol_import_aliases(
 
 
 @pytest.mark.parametrize(
+    "prelude,base,expected",
+    [
+        ("from typing import Protocol\n", "Protocol", set()),
+        ("from typing_extensions import Protocol\n", "Protocol", set()),
+        ("import typing\n", "typing.Protocol", set()),
+        ("import typing as t\n", "t.Protocol[T]", set()),
+        ("import typing_extensions as t\n", "t.Protocol", set()),
+        ("import typing as t\nclass Port(t.Protocol): pass\n", "Port", set()),
+        ("import typing as t\ndef helper(t): pass\n", "t.Protocol", set()),
+        ("import typing as t\ndef helper(): t = None\n", "t.Protocol", set()),
+        ("", "Protocol", {"Facade"}),
+        ("class Protocol: pass\n", "Protocol", {"Facade"}),
+        ("from other import Protocol\n", "Protocol", {"Facade"}),
+        ("import other\n", "other.Protocol", {"Facade"}),
+        ("import other as t\n", "t.Protocol", {"Facade"}),
+        ("from .typing import Protocol\n", "Protocol", {"Facade"}),
+        ("import typing as t\nt = object\n", "t.Protocol", {"Facade"}),
+        ("from typing import Protocol\nProtocol = object\n", "Protocol", {"Facade"}),
+        ("from typing import Protocol\nclass Protocol: pass\n", "Protocol", {"Facade"}),
+        ("import typing\ndef typing(): pass\n", "typing.Protocol", {"Facade"}),
+        ("import typing\nimport typing\n", "typing.Protocol", {"Facade"}),
+        (
+            "from typing import Protocol\nif True: Protocol = None\n",
+            "Protocol",
+            {"Facade"},
+        ),
+        (
+            "from typing import Protocol\ntry:\n Protocol = object\nexcept: pass\n",
+            "Protocol",
+            {"Facade"},
+        ),
+        (
+            "def helper():\n import typing as t\n",
+            "t.Protocol",
+            {"Facade"},
+        ),
+        (
+            "class Protocol: pass\nclass Port(Protocol): pass\n",
+            "Port",
+            {"Facade"},
+        ),
+    ],
+)
+def test_middle_man_requires_standard_protocol_binding(
+    tmp_path: Path, prelude: str, base: str, expected: set[str]
+) -> None:
+    source = prelude + FACADE.format(base=f"({base})")
+    assert symbols(scan(tmp_path, source), "middle-man") == expected
+
+
+@pytest.mark.parametrize(
     "base,prelude,expected",
     [
         ("", "", {"Facade"}),
-        ("(Protocol)", "", set()),
-        ("(typing.Protocol)", "", set()),
-        ("(Port)", "class Port(Protocol): pass\n", set()),
-        ("(Port)", "class Port(typing.Protocol[T]): pass\n", set()),
+        ("(Protocol)", "from typing import Protocol\n", set()),
+        ("(typing.Protocol)", "import typing\n", set()),
+        ("(Port)", "from typing import Protocol\nclass Port(Protocol): pass\n", set()),
+        ("(Port)", "import typing\nclass Port(typing.Protocol[T]): pass\n", set()),
         ("(Base)", "class Base: pass\n", {"Facade"}),
     ],
 )

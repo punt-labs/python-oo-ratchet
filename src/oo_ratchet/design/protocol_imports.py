@@ -22,17 +22,40 @@ class ProtocolImports:
         return self
 
     def names(self) -> set[str]:
-        """Return aliases bound once by a top-level Protocol import."""
+        """Return direct and module-qualified markers with a single root binding."""
         nodes = ProjectTypes._module_nodes(self._module.tree)
         counts = Counter(name for n in nodes for name in ReceiverBindings._names(n))
-        return {name for n in nodes for name in self._imports(n) if counts[name] == 1}
+        return {
+            reference
+            for n in nodes
+            for bound, reference in self._imports(n)
+            if counts[bound] == 1
+        }
+
+    @classmethod
+    def _imports(cls, node: ast.AST) -> list[tuple[str, str]]:
+        if isinstance(node, ast.Import):
+            return cls._modules(node)
+        return cls._members(node)
 
     @staticmethod
-    def _imports(node: ast.AST) -> list[str]:
+    def _modules(node: ast.Import) -> list[tuple[str, str]]:
+        return [
+            (a.asname or a.name, f"{a.asname or a.name}.Protocol")
+            for a in node.names
+            if a.name in {"typing", "typing_extensions"}
+        ]
+
+    @staticmethod
+    def _members(node: ast.AST) -> list[tuple[str, str]]:
         if (
             not isinstance(node, ast.ImportFrom)
             or node.level
             or node.module not in {"typing", "typing_extensions"}
         ):
             return []
-        return [a.asname or a.name for a in node.names if a.name == "Protocol"]
+        return [
+            (a.asname or a.name, a.asname or a.name)
+            for a in node.names
+            if a.name == "Protocol"
+        ]

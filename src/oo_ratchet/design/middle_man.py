@@ -9,6 +9,7 @@ from .declaration import Declaration
 from .project_types import ProjectTypes
 from .protocol_imports import ProtocolImports
 from .shape import ClassShape, Method
+from .type_reference import TypeReference
 
 
 class MiddleMan:
@@ -71,8 +72,8 @@ class MiddleMan:
     @staticmethod
     def _marker(base: ast.expr, aliases: set[str]) -> bool:
         reference = base.value if isinstance(base, ast.Subscript) else base
-        return ClassShape._name(base) == "Protocol" or (
-            isinstance(reference, ast.Name) and reference.id in aliases
+        return isinstance(reference, (ast.Name, ast.Attribute)) and (
+            TypeReference.name(reference) in aliases
         )
 
     @classmethod

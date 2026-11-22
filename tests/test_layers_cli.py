@@ -50,6 +50,7 @@ class _Repo:
         self._sandbox = sandbox
         self._out = capsys
         monkeypatch.chdir(sandbox.root)
+        monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
         sandbox.write("pyproject.toml", _PYPROJECT)
         sandbox.write("src/app/__init__.py", "")
         sandbox.write("src/app/kernel.py", _BAD_KERNEL)
@@ -97,6 +98,13 @@ def repo(
 ) -> _Repo:
     """Return a repo whose ``app.kernel`` imports ``app.service`` (a violation)."""
     return _Repo(git_sandbox, capsys, monkeypatch)
+
+
+@pytest.fixture(autouse=True, params=["", "true"], ids=["local", "ci"])
+def runner_env(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Run every test with and without the CI variable set in the process."""
+    if request.param:
+        monkeypatch.setenv("GITHUB_ACTIONS", request.param)
 
 
 class TestCheck:

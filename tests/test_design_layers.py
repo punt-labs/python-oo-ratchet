@@ -362,3 +362,16 @@ def test_alias_rebinding_preserves_earlier_uses(tmp_path: Path, indent: str) -> 
 def test_uncertain_rebinding_keeps_possible_io(tmp_path: Path) -> None:
     source = "import os\nif condition:\n os = None\nos.getenv('HOME')"
     assert keys(package(tmp_path, source)) == {(Rules.DOMAIN_IO, "domain.py", "os")}
+
+
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "os.path.join('a', 'b').replace('a', 'c')",
+        "os.path.join('a', 'b').open()",
+    ],
+)
+def test_module_call_results_are_not_import_aliases(
+    tmp_path: Path, expression: str
+) -> None:
+    assert keys(package(tmp_path, f"import os\nx = {expression}")) == set()

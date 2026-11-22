@@ -22,6 +22,13 @@ class AliasScopes:
         ast.DictComp,
         ast.GeneratorExp,
     )
+    PATH_TYPES: ClassVar[frozenset[str]] = frozenset(
+        {
+            "pathlib.Path",
+            "pathlib.PosixPath",
+            "pathlib.WindowsPath",
+        }
+    )
     _environments: dict[int, dict[str, str]]
 
     def __new__(cls, tree: ast.Module) -> Self:
@@ -107,12 +114,10 @@ class AliasScopes:
     def _assignment(cls, node: ast.AST, environment: dict[str, str]) -> None:
         if not isinstance(node, (ast.Assign, ast.AnnAssign)) or node.value is None:
             return
-        name = cls._resolve(node.value, environment)
-        path = (
-            name
-            if name in {"pathlib.Path", "pathlib.PosixPath", "pathlib.WindowsPath"}
-            else ""
+        name = cls._path_value(node.value, environment) or cls._resolve(
+            node.value, environment
         )
+        path = name if name in cls.PATH_TYPES else ""
         targets = node.targets if isinstance(node, ast.Assign) else [node.target]
         for target in targets:
             if isinstance(target, ast.Name):
@@ -123,9 +128,20 @@ class AliasScopes:
         if isinstance(node, ast.Name):
             return environment.get(node.id, "")
         if isinstance(node, ast.Attribute):
-            return f"{cls._resolve(node.value, environment)}.{node.attr}"
-        if isinstance(node, ast.Call):
-            return cls._resolve(node.func, environment)
-        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
-            return cls._resolve(node.left, environment)
+            base = cls._resolve(node.value, environment) or cls._path_value(
+                node.value, environment
+            )
+            return f"{base}.{node.attr}"
         return ""
+
+    @classmethod
+    def _path_value(cls, node: ast.AST, environment: dict[str, str]) -> str:
+        if isinstance(node, ast.Call):
+            name = cls._resolve(node.func, environment)
+        elif isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
+            name = cls._path_value(node.left, environment) or cls._resolve(
+                node.left, environment
+            )
+        else:
+            return ""
+        return name if name in cls.PATH_TYPES else ""

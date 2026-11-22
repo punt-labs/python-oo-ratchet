@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Self
 
 from oo_ratchet.coupling.outcome import Outcome
+from oo_ratchet.design.layer_config import LayerConfigError
 from oo_ratchet.design.layer_edges import Edge
 from oo_ratchet.design.layer_table import LayerTable
 
@@ -25,11 +26,13 @@ from .verdict import LayersVerdict
 class LayersRatchet:
     """Enforce the layers gate against the baseline and the merge base."""
 
+    _root: Path
     _baseline: LayersBaseline
     _git: LayersGit
 
     def __new__(cls, root: Path, git: LayersGit) -> Self:
         self = super().__new__(cls)
+        self._root = root
         self._baseline = LayersBaseline(root)
         self._git = git
         return self
@@ -72,11 +75,21 @@ class LayersRatchet:
     def _under_base(
         self, scan: LayerScan, base: str, base_edges: frozenset[Edge] | None
     ) -> list[Edge]:
-        """Return edges that break the base config's rules and the base baseline."""
-        text = self._git.show_pyproject_text(base) if base_edges is not None else None
-        config = LayerTable.from_text(text, f"{base}:pyproject.toml") if text else None
-        if config is None or base_edges is None:
+        """Return edges that break the base config's rules and the base baseline.
+
+        The base config is read from the pyproject the scan used. A base that has
+        a baseline but no layer config cannot be compared, so the check fails.
+        """
+        if base_edges is None or scan.config_path is None:
             return []
+        rel = scan.config_path.resolve().relative_to(self._root.resolve()).as_posix()
+        text = self._git.show_text(base, rel)
+        config = LayerTable.from_text(text, f"{base}:{rel}") if text else None
+        if config is None:
+            msg = (
+                f"no layer config at the base ({base[:10]}:{rel}) but a baseline exists"
+            )
+            raise LayerConfigError(msg)
         return sorted(scan.under(config).edges - base_edges)
 
     def _no_base(self, *, require_base: bool) -> Outcome | None:

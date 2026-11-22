@@ -59,6 +59,19 @@ class StrictViolations(LayerViolations):
         names = (self.name(m) for m in self._index.modules())
         return sorted(n for n in names if "." in n and self._config.layer(n) is None)
 
+    def unresolvable(self) -> list[str]:
+        """Return ``path:line`` for each relative import that climbs past the root."""
+        found: list[str] = []
+        for module in self._index.modules():
+            parts = self.name(module).split(".")
+            depth = len(parts) if module.is_package else len(parts) - 1
+            found.extend(
+                f"{module.path}:{node.lineno}"
+                for node in ast.walk(module.tree)
+                if isinstance(node, ast.ImportFrom) and node.level > depth
+            )
+        return sorted(found)
+
     def _hops(self, target: str, symbol: str) -> list[str]:
         """Follow ``symbol`` through the package ``__init__`` files re-exporting it."""
         hops: list[str] = []

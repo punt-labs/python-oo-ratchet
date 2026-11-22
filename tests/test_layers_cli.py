@@ -8,8 +8,10 @@ import pytest
 
 from oo_ratchet.__main__ import main as dispatch
 from tests.layers_repo import (
+    BAD_KERNEL,
     BAD_SERVICE,
     KERNEL_VIOLATION,
+    OK_SERVICE,
     PYPROJECT,
     SERVICE_VIOLATION,
     LayersRepo,
@@ -277,3 +279,63 @@ class TestBaseResolution:
         code, out = repo.run("--check")
         assert code == 1
         assert "unreadable layers baseline" in out
+
+
+class TestBaseConfigLocation:
+    """The base config is read from the same pyproject the scan used."""
+
+    def _nested(self, repo: LayersRepo) -> None:
+        repo.write("pyproject.toml", "[tool.other]\nx = 1\n")
+        repo.write("sub/pyproject.toml", PYPROJECT)
+        repo.write("sub/src/app/__init__.py", "")
+        repo.write("sub/src/app/kernel.py", BAD_KERNEL)
+        repo.write("sub/src/app/service.py", OK_SERVICE)
+        repo.write("sub/src/app/cli.py", "")
+
+    def test_nested_pyproject_is_ratcheted_against_its_base_config(
+        self, repo: LayersRepo
+    ) -> None:
+        self._nested(repo)
+        src = repo.root / "sub" / "src" / "app"
+        repo.commit_as_origin_main()
+        assert repo.run_on(src, "--update")[0] == 0
+        repo.commit_as_origin_main()
+        repo.write("sub/src/app/service.py", BAD_SERVICE)
+        repo.write(
+            "sub/pyproject.toml",
+            PYPROJECT.replace(
+                'prefixes = ["service"]\nimports = ["kernel"]',
+                'prefixes = ["service"]\nimports = ["kernel", "cli"]',
+            ),
+        )
+        code, out = repo.run_on(src, "--check")
+        assert code == 1
+        assert "base config" in out
+
+    def test_baseline_present_but_base_config_missing_fails(
+        self, repo: LayersRepo
+    ) -> None:
+        repo.write("pyproject.toml", "[tool.other]\nx = 1\n")
+        repo.write(".oo-layers-baseline.json", '{"app.kernel": ["app.service"]}')
+        repo.commit_as_origin_main()
+        repo.write("pyproject.toml", PYPROJECT)
+        code, out = repo.run("--check")
+        assert code == 1
+        assert "no layer config at the base" in out
+
+
+class TestUnresolvableImports:
+    """An import Python itself rejects is a failure, not a skipped edge."""
+
+    def test_relative_import_above_the_package_fails_check(
+        self, repo: LayersRepo
+    ) -> None:
+        extra = '\n[tool.oo-ratchet.layers.lib]\nprefixes = ["lib"]\nimports = []\n'
+        repo.write("pyproject.toml", PYPROJECT + extra)
+        repo.edit("kernel", "")
+        repo.write("src/app/lib/__init__.py", "")
+        repo.write("src/app/lib/paths.py", "from ...service import api\n")
+        code, out = repo.run("--check")
+        assert code == 1
+        assert "unresolvable relative import" in out
+        assert "paths.py:1" in out

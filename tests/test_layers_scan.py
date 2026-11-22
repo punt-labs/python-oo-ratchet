@@ -275,3 +275,28 @@ class TestDynamicImports:
         text = 'import importlib\nname = "service"\nimportlib.import_module(name)\n'
         pkg = _package(tmp_path, {"kernel.py": text, "service.py": ""})
         assert LayerScan(pkg).edges == set()
+
+
+class TestUnresolvableRelativeImports:
+    """A relative import that climbs past the package root is a problem."""
+
+    def test_import_above_the_package_is_reported_with_file_and_line(
+        self, tmp_path: Path
+    ) -> None:
+        pkg = _package(
+            tmp_path,
+            {
+                "kernel/__init__.py": "",
+                "kernel/paths.py": "x = 1\nfrom ...service import api\n",
+            },
+        )
+        (problem,) = (p for p in LayerScan(pkg).problems if "unresolvable" in p)
+        assert "unresolvable relative import" in problem
+        assert "paths.py:2" in problem
+
+    def test_import_to_the_package_root_is_resolvable(self, tmp_path: Path) -> None:
+        pkg = _package(
+            tmp_path,
+            {"kernel/__init__.py": "", "kernel/paths.py": "from .. import service\n"},
+        )
+        assert not any("unresolvable" in p for p in LayerScan(pkg).problems)

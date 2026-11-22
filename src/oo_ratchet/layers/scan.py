@@ -38,6 +38,8 @@ class LayerScan:
     _modules: tuple[str, ...]
     _violations: tuple[Violation, ...]
     _unassigned: tuple[str, ...]
+    _unresolvable: tuple[str, ...]
+    _config_path: Path | None
 
     def __new__(cls, src: Path, config: LayerConfig | None = None) -> Self:
         self = super().__new__(cls)
@@ -58,6 +60,8 @@ class LayerScan:
             raise LayersScanError(msg)
         self._violations = tuple(found.violations())
         self._unassigned = tuple(found.unassigned())
+        self._unresolvable = tuple(found.unresolvable())
+        self._config_path = LayerTable.nearest(src)
         return self
 
     def under(self, config: LayerConfig) -> Self:
@@ -85,11 +89,17 @@ class LayerScan:
         return self._unassigned
 
     @property
+    def config_path(self) -> Path | None:
+        """Return the pyproject the scan's config was read from, if one was found."""
+        return self._config_path
+
+    @property
     def problems(self) -> tuple[str, ...]:
         """Return why this scan cannot vouch for the package, if it cannot."""
         used = {self._config.layer(m) for m in self._modules}
         return (
             *(f"unassigned module: {m}" for m in self._unassigned),
+            *(f"unresolvable relative import: {at}" for at in self._unresolvable),
             *(
                 f"layer {name!r} matches no module"
                 for name in self._config.layer_names()

@@ -161,18 +161,7 @@ def test_known_precision_misfire(
 @pytest.mark.parametrize(
     "pair",
     [
-        pytest.param(
-            p,
-            id=p.name,
-            marks=(
-                pytest.mark.xfail(
-                    strict=True,
-                    reason="Composition-root concrete import misfire ties bad/good",
-                )
-                if p.name == "layer-leak"
-                else ()
-            ),
-        )
+        pytest.param(p, id=p.name)
         for p in PAIRS
         if any(k[0] in Rules.ordered() for k in _expected(p, "bad"))
     ],
@@ -182,6 +171,10 @@ def test_implemented_ordering(
 ) -> None:
     bad = {key for key in findings[pair, "bad"] if key[0] in Rules.ordered()}
     good = {key for key in findings[pair, "good"] if key[0] in Rules.ordered()}
+    for variant, keys in (("bad", bad), ("good", good)):
+        known = KNOWN_MISFIRES.get((pair.name, variant))
+        if known is not None:
+            keys.discard(known)
     assert len(bad) > len(good)
 
 

@@ -24,7 +24,8 @@ strict xfails track their removal. The known cases are:
   deserialization rather than a domain strategy.
 - `layer-leak`, good: wiring `FeeStore` in `entry.py` triggers
   `concrete-cross-package-import`, despite keeping the concrete dependency out
-  of the domain. The resulting 1–1 bad/good count also xfails ordering.
+  of the domain. Ordering excludes known-misfire keys, as precision does;
+  separate precision xfails still track their removal.
 
 `make type` runs strict mypy separately for every variant plus its shared
 behavior file, since every variant intentionally uses the same package name.

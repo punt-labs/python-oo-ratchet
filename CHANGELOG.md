@@ -4,6 +4,9 @@
 
 ### Changed
 
+- Shadow merge-base checkout allows 300 seconds without changing the default
+  timeout of other Git calls. Owned temporary files and worktree registrations
+  are cleaned up after checkout timeouts, errors, or interrupted scans.
 - Design scans retain files whose module names collide with packages instead of
   silently replacing them. Shadowed files receive stable source-relative keys;
   plain reports retain both paths and layer rules apply to both files.

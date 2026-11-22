@@ -31,13 +31,35 @@ class ShadowSnapshot:
         root = self._git.root
         if root is None:
             raise GitError("shadow checking requires a git repository")
-        with TemporaryDirectory(prefix="oo-shadow-") as temporary:
-            tree = Path(temporary) / root.name
-            args = ["worktree", "add", "--quiet", "--detach", str(tree), self._base]
-            if self._git._git(args) is None:
-                raise GitError("cannot check out the shadow merge base")
-            try:
+        temporary = TemporaryDirectory(prefix="oo-shadow-")
+        tree = Path(temporary.name) / root.name
+        try:
+            with temporary:
+                args = ["worktree", "add", "--quiet", "--detach", str(tree), self._base]
+                if self._git._git(args, timeout=300) is None:
+                    raise GitError("cannot check out the shadow merge base")
                 yield tree
-            finally:
-                if self._git._git(["worktree", "remove", str(tree)]) is None:
-                    raise GitError("cannot unregister the shadow merge-base worktree")
+        finally:
+            self._unregister(tree)
+
+    def _unregister(self, tree: Path) -> None:
+        listing = self._git._git(["worktree", "list", "--porcelain", "-z"])
+        if listing is None:
+            raise GitError("cannot inspect shadow merge-base worktrees")
+        record = next(
+            (
+                r
+                for r in listing.split("\0\0")
+                if r.split("\0")[0] == f"worktree {tree}"
+            ),
+            "",
+        )
+        if not record:
+            return
+        locked = any(
+            f == "locked" or f.startswith("locked ") for f in record.split("\0")
+        )
+        if locked and self._git._git(["worktree", "unlock", str(tree)]) is None:
+            raise GitError("cannot unlock the shadow merge-base worktree")
+        if self._git._git(["worktree", "remove", str(tree)]) is None:
+            raise GitError("cannot unregister the shadow merge-base worktree")

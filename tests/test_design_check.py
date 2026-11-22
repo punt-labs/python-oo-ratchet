@@ -273,6 +273,13 @@ class Child(Engine):
         return 2
 
 
+class SlottedChild(Engine):
+    __slots__ = {}
+
+    def go(self) -> int:
+        return 2
+
+
 class Helper:
     def help(self) -> int:
         return 1
@@ -301,7 +308,7 @@ from typing import TYPE_CHECKING
 
 from pkg.engine.core import Engine, EngineValue, Mutable, Wrapper, Handle
 from pkg.engine.core import Helper, Child, QuotedPeer, Unannotated
-from pkg.engine.core import DictSlots, SetSlots
+from pkg.engine.core import DictSlots, SetSlots, SlottedChild
 from ..engine import Engine as Reexported
 from pkg.engine import PublicEngine
 
@@ -412,6 +419,7 @@ def test_concrete_cross_package_imports(tmp_path: Path) -> None:
         "Mutable",
         "PublicEngine",
         "QuotedPeer",
+        "SlottedChild",
         "Unannotated",
     ]
     assert all(f.path.endswith("body.py") for f in rows)

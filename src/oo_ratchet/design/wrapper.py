@@ -51,7 +51,7 @@ class ValueWrapper:
     def _plain_fields(cls, node: ast.ClassDef) -> bool:
         fields = cls._annotations(node)
         slots = cls._slot_names(node)
-        if slots is None or not slots <= fields.keys():
+        if not slots or not slots <= fields.keys():
             return False
         return all(cls._names(a) <= cls._DATA_TYPES for a in fields.values())
 

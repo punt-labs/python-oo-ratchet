@@ -73,8 +73,10 @@ class StateProbe:
             isinstance(t, ast.Name) and t.id == "__slots__" for t in node.targets
         )
         value = node.value
-        empty = (isinstance(value, (ast.Tuple, ast.List)) and not value.elts) or (
-            isinstance(value, ast.Constant) and value.value == ""
+        empty = (
+            (isinstance(value, (ast.Tuple, ast.List)) and not value.elts)
+            or (isinstance(value, ast.Dict) and not value.keys)
+            or (isinstance(value, ast.Constant) and value.value == "")
         )
         return named and not empty
 

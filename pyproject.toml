@@ -6,7 +6,7 @@ readme = "README.md"
 license = "MIT"
 requires-python = ">=3.13"
 authors = [{ name = "Punt Labs" }]
-dependencies = []
+dependencies = ["punt-observe==0.1.1"]
 
 [project.urls]
 Homepage = "https://github.com/punt-labs/python-oo-ratchet"
@@ -78,6 +78,8 @@ select = [
     "BLE",  # flake8-blind-except
     "T10",  # flake8-debugger
     "T20",  # flake8-print
+    "LOG",  # flake8-logging (PY-LOG-2, PY-LOG-9)
+    "G",    # flake8-logging-format: lazy %-style arguments only
     "A",    # flake8-builtins
     "ERA",  # flake8-eradicate (commented code)
     "PIE",  # flake8-pie
@@ -100,7 +102,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S101", "S105", "S106", "S108", "S603", "S607", "T20", "SLF001", "ARG", "FBT", "PLC0415", "C901"]
-"src/oo_ratchet/**" = ["T20", "S603", "S607", "C901", "PERF403", "SIM102", "N806", "C420"]
+"src/oo_ratchet/**" = ["S603", "S607", "C901", "PERF403", "SIM102", "N806", "C420"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 10

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Self
@@ -168,7 +169,7 @@ class Cli:
     @staticmethod
     def _emit(outcome: Outcome) -> int:
         for line in outcome.lines:
-            print(line)
+            sys.stdout.write(line + "\n")
         return outcome.exit_code
 
     def _run_action(self, scorer: CouplingScorer) -> Outcome | None:
@@ -235,5 +236,5 @@ def main(argv: list[str] | None = None) -> int:
     try:
         return Cli(Options.parse(argv)).run()
     except GitError as exc:  # raised while locating the repository root
-        print(f"FAIL: {exc}")
+        sys.stdout.write(f"FAIL: {exc}\n")
         return 1

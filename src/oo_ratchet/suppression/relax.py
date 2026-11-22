@@ -19,8 +19,11 @@ from __future__ import annotations
 
 import datetime
 import json
+import logging
 from pathlib import Path
 from typing import ClassVar, NamedTuple, Self
+
+logger = logging.getLogger(__name__)
 
 
 class SuppressionRelaxError(Exception):
@@ -136,6 +139,7 @@ class SuppressionRelax:
             for e in sorted(self._entries.values(), key=lambda e: e.file)
         ]
         self._path.write_text(json.dumps(data, indent=2) + "\n")
+        logger.info("Wrote suppression relaxations %s: %d files", self._path, len(data))
 
     @staticmethod
     def _now() -> str:

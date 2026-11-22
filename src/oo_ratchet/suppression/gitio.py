@@ -10,11 +10,14 @@ drift out of sync with the code it is supposed to describe.
 from __future__ import annotations
 
 import io
+import logging
 import subprocess
 import tarfile
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Self
+
+logger = logging.getLogger(__name__)
 
 _TIMEOUT = 10
 
@@ -62,7 +65,12 @@ class GitRepo:
         # stdout/stderr (a binary path, an unusual locale) must degrade the
         # same as a failed spawn, not crash the caller with an uncaught
         # exception.
-        except (FileNotFoundError, subprocess.TimeoutExpired, UnicodeDecodeError):
+        except (
+            FileNotFoundError,
+            subprocess.TimeoutExpired,
+            UnicodeDecodeError,
+        ) as exc:
+            logger.warning("git did not run (%s); treating it as unavailable", exc)
             return None
         if result.returncode != 0:
             return None

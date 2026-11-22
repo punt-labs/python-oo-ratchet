@@ -242,6 +242,22 @@ resets the suppression baseline to the current counts. It's the one write that m
 raise the total (for example after a package upgrade changes the counter), and it
 is audited.
 
+## Diagnostics and usage telemetry
+
+Gate reports and `--json` output go to stdout only. Each `oo-ratchet` run also
+writes diagnostics (gate start and finish, baseline and audit writes, git
+degradation) through the shared
+[`punt-observe`](https://pypi.org/project/punt-observe/) package to a private,
+redacted, rotated log at `~/.punt-labs/oo-ratchet/logs/oo-ratchet.log`;
+warnings and errors are echoed to stderr.
+
+Each run also records one local usage event, `oo-ratchet.cli.<gate>` version
+1, carrying only its outcome (`pass`, `fail`, `invalid`, `error`) and duration,
+in `~/.punt-labs/oo-ratchet/telemetry.db` (90-day retention). No paths, source,
+baselines or report text are recorded and nothing leaves the machine.
+`PUNT_TELEMETRY=off` or `OO_RATCHET_TELEMETRY=off` turns capture off without
+affecting the log.
+
 ## Reference (0.4.x)
 
 ### Targets and counting rules

@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+### Added
+
+- `oo-ratchet` writes diagnostics to a private, rotated log at
+  `~/.punt-labs/oo-ratchet/logs/oo-ratchet.log` through the shared
+  `punt-observe` package, per the punt-kit logging standard. stdout stays
+  reserved for gate reports and `--json` output.
+- Every gate run records one local usage event, `oo-ratchet.cli.<gate>`
+  version 1, carrying only its outcome and duration, in
+  `~/.punt-labs/oo-ratchet/telemetry.db` (90-day retention).
+  `PUNT_TELEMETRY=off` or `OO_RATCHET_TELEMETRY=off` turns capture off;
+  nothing leaves the machine.
+
+### Changed
+
+- `punt-observe==0.1.1` is now a runtime dependency. Ruff selects `LOG` and
+  `G`, and `T20` (no `print`) now applies to `src/`.
+
 ## [0.4.0] - 2026-11-22
 
 ### Changed

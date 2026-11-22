@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import datetime
 import json
+import logging
 from collections.abc import Iterable
 from pathlib import Path
 from typing import ClassVar, Self
+
+logger = logging.getLogger(__name__)
 
 
 class AuditError(Exception):
@@ -95,6 +98,7 @@ class AuditLog:
         entry.update(metadata)
         with self._path.open("a") as f:
             f.write(json.dumps(entry, separators=(",", ":")) + "\n")
+        logger.info("Appended %s entry to OO audit %s", verdict, self._path)
 
     def relaxations_since(self, base_text: str | None) -> frozenset[tuple[str, str]]:
         """Return (file, metric) pairs relaxed by the *current* change only.

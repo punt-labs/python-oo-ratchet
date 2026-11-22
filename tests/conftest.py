@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import logging
 import subprocess
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Self
 
@@ -73,3 +75,31 @@ class GitSandbox:
 def git_sandbox(tmp_path: Path) -> GitSandbox:
     """Return a fresh :class:`GitSandbox` rooted at ``tmp_path``."""
     return GitSandbox(tmp_path)
+
+
+@pytest.fixture(autouse=True)
+def private_home(
+    tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch
+) -> Iterator[Path]:
+    """Point ``HOME`` at a scratch directory and undo any entry-point logging.
+
+    The ``oo-ratchet`` entry point configures diagnostics and opens usage
+    capture under ``~/.punt-labs/oo-ratchet``; without this, every in-process
+    dispatcher test would write the real log and telemetry store and leave the
+    root logger pointed at it for the rest of the run.
+
+    Yields:
+        The scratch home directory.
+    """
+    home = tmp_path_factory.mktemp("home")  # never inside a test's repository
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.delenv("PUNT_TELEMETRY", raising=False)
+    monkeypatch.delenv("OO_RATCHET_TELEMETRY", raising=False)
+    root = logging.getLogger()
+    handlers, level = root.handlers[:], root.level
+    yield home
+    for handler in root.handlers:
+        if handler not in handlers:
+            handler.close()
+    root.handlers[:] = handlers
+    root.setLevel(level)

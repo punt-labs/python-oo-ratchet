@@ -53,6 +53,7 @@ class AliasScopes:
             if not isinstance(node, ast.ClassDef):
                 enclosing = environment
         environment.update(self._imports(node))
+        environment.update(dict.fromkeys(BuiltinOpen._captures(node), ""))
         self._environments[id(node)] = environment.copy()
         if isinstance(
             node,

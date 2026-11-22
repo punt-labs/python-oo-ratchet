@@ -394,3 +394,18 @@ def test_evaluated_headers_use_enclosing_scope(
     tmp_path: Path, source: str, symbol: str
 ) -> None:
     assert keys(package(tmp_path, source)) == {(Rules.DOMAIN_IO, "domain.py", symbol)}
+
+
+@pytest.mark.parametrize("pattern", ["NAME", "[*NAME]", "{'x': _, **NAME}", "_"])
+@pytest.mark.parametrize("name", ["open", "os"])
+def test_match_capture_shadows_import_or_builtin(
+    tmp_path: Path, pattern: str, name: str
+) -> None:
+    expression = "open('x')" if name == "open" else "os.getenv('HOME')"
+    source = "" if name == "open" else "import os\n"
+    source += (
+        f"def read(value):\n match value:\n  case {pattern.replace('NAME', name)}:\n"
+        f"   return {expression}"
+    )
+    expected = {(Rules.DOMAIN_IO, "domain.py", name)} if pattern == "_" else set()
+    assert keys(package(tmp_path, source)) == expected

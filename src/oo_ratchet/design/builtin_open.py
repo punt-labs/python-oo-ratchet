@@ -53,8 +53,8 @@ class BuiltinOpen:
             )
         return out
 
-    @staticmethod
-    def _bindings(scope: ast.AST) -> set[str]:
+    @classmethod
+    def _bindings(cls, scope: ast.AST) -> set[str]:
         bound: set[str] = set()
         pending = list(ast.iter_child_nodes(scope))
         while pending:
@@ -67,13 +67,25 @@ class BuiltinOpen:
                 (ast.Lambda, ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp),
             ):
                 continue
-            if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
-                bound.add(node.id)
-            if isinstance(node, ast.arg):
-                bound.add(node.arg)
-            if isinstance(node, (ast.Import, ast.ImportFrom)):
-                bound.update(
-                    alias.asname or alias.name.split(".")[0] for alias in node.names
-                )
+            bound.update(cls._direct_binding(node))
+            bound.update(cls._captures(node))
             pending.extend(ast.iter_child_nodes(node))
         return bound
+
+    @staticmethod
+    def _direct_binding(node: ast.AST) -> set[str]:
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
+            return {node.id}
+        if isinstance(node, ast.arg):
+            return {node.arg}
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            return {alias.asname or alias.name.split(".")[0] for alias in node.names}
+        return set()
+
+    @staticmethod
+    def _captures(node: ast.AST) -> set[str]:
+        if isinstance(node, (ast.MatchAs, ast.MatchStar)):
+            return {node.name} if node.name else set()
+        if isinstance(node, ast.MatchMapping):
+            return {node.rest} if node.rest else set()
+        return set()

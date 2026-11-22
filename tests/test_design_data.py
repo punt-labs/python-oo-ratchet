@@ -531,9 +531,11 @@ def test_other_receiver_bindings_do_not_leak_nested_bodies(tmp_path: Path) -> No
         ("def read(x: Item):\n x.a += 1\n x.b += 1\n x.c += 1", {"Item"}, {"read"}),
         ("def read(x: Item):\n x.a = 1\n return x.b", set(), set()),
         (
-            "class Reader:\n def read(self, x: Item):\n"
-            "  self.a += 1\n  self.b += 1\n  self.c += 1\n"
-            "  return x.a + x.b + x.c",
+            (
+                "class Reader:\n def read(self, x: Item):\n"
+                "  self.a += 1\n  self.b += 1\n  self.c += 1\n"
+                "  return x.a + x.b + x.c"
+            ),
             {"Item"},
             set(),
         ),

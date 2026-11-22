@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import ast
 import json
 from pathlib import Path
 
 import pytest
 
-from oo_ratchet.design.alias_scopes import AliasScopes
 from oo_ratchet.design.cli import main
 from oo_ratchet.design.findings import Rules
 from oo_ratchet.design.layer_config import LayerConfig, LayerConfigError
@@ -94,6 +92,12 @@ def test_nested_relative_import_and_inward_allowed(tmp_path: Path) -> None:
         "mcp",
         "fastmcp",
         "logging.handlers",
+        "os",
+        "os.path",
+        "pathlib",
+        "io",
+        "tempfile",
+        "glob",
     ],
 )
 def test_domain_io_imports(tmp_path: Path, library: str) -> None:
@@ -101,37 +105,21 @@ def test_domain_io_imports(tmp_path: Path, library: str) -> None:
     assert keys(root) == {(Rules.DOMAIN_IO, "domain.py", library)}
 
 
-@pytest.mark.parametrize(
-    "source,symbol",
-    [
-        ("from json import loads as decode", "loads"),
-        ("from urllib import request", "request"),
-        ("import os as system\nx = system.getenv('HOME')", "os"),
-        ("import os\nx = os.environ['HOME']", "os"),
-        ("from os import listdir as ls\nx = ls('.')", "listdir"),
-        ("from pathlib import Path as P\nx = P('.').read_text()", "Path"),
-        ("from pathlib import Path\np = Path('.')\nx = p.exists()", "Path"),
-        ("def load():\n return open('x')", "open"),
-        ("import builtins\nx = builtins.open('x')", "open"),
-        ("from builtins import open as read\nx = read('x')", "open"),
-        (
-            "from pathlib import Path\np: Path = Path('.') / 'x'\nx = p.read_text()",
-            "Path",
-        ),
-    ],
-)
-def test_domain_io_uses(tmp_path: Path, source: str, symbol: str) -> None:
-    assert keys(package(tmp_path, source)) == {(Rules.DOMAIN_IO, "domain.py", symbol)}
+def test_unbound_bare_open_calls(tmp_path: Path) -> None:
+    root = package(tmp_path, "open('x')\ndef load():\n return open('y')")
+    rows = json.loads(DesignScanner(root).report.to_json())["findings"]
+    assert [(r["symbol"], r["line"]) for r in rows if r["rule"] == Rules.DOMAIN_IO] == [
+        ("open", 1),
+        ("open", 3),
+    ]
 
 
 @pytest.mark.parametrize(
     "source",
     [
         "",
-        "import os",
-        "from pathlib import Path\np = Path('x')",
-        "import os\nx = os.path.join('a', 'b')",
-        "from pathlib import PurePath\nx = PurePath('x').name",
+        "import math",
+        "from collections import Counter",
         "def load(open):\n return open('x')",
     ],
 )
@@ -143,105 +131,9 @@ def test_io_outside_domain_is_allowed(tmp_path: Path) -> None:
     assert keys(package(tmp_path, "import json\nopen('x')", "adapters.py")) == set()
 
 
-def test_local_open_does_not_hide_sibling_builtin(tmp_path: Path) -> None:
-    root = package(
-        tmp_path, "def custom(open):\n return open('x')\ndef load():\n return open('x')"
-    )
-    rows = json.loads(DesignScanner(root).report.to_json())["findings"]
-    assert [(r["symbol"], r["line"]) for r in rows if r["rule"] == Rules.DOMAIN_IO] == [
-        ("open", 4)
-    ]
-
-
 def test_unlayered_and_root_package(tmp_path: Path) -> None:
     root = package(tmp_path, "", "forgotten.py")
     assert keys(root) == {(Rules.UNLAYERED_MODULE, "forgotten.py", "<module>")}
-
-
-def test_class_open_does_not_hide_method_builtin(tmp_path: Path) -> None:
-    root = package(
-        tmp_path, "class Reader:\n open = custom\n def read(self):\n  return open('x')"
-    )
-    assert keys(root) == {(Rules.DOMAIN_IO, "domain.py", "open")}
-
-
-@pytest.mark.parametrize(
-    "expression",
-    [
-        "[open for open in xs]",
-        "{open for open in xs}",
-        "{open: open for open in xs}",
-        "(open for open in xs)",
-    ],
-)
-def test_comprehension_open_does_not_bind_outer(
-    tmp_path: Path, expression: str
-) -> None:
-    root = package(
-        tmp_path, f"def read(xs):\n values = {expression}\n return open('x')"
-    )
-    assert keys(root) == {(Rules.DOMAIN_IO, "domain.py", "open")}
-
-
-@pytest.mark.parametrize(
-    "body",
-    [
-        "os = Fake()\n return os.getenv('HOME')",
-        "return os.getenv('HOME')",
-    ],
-)
-def test_io_alias_local_shadowing(tmp_path: Path, body: str) -> None:
-    params = "" if body.startswith("os =") else "os"
-    root = package(tmp_path, f"import os\ndef read({params}):\n {body}")
-    assert keys(root) == set()
-
-
-@pytest.mark.parametrize(
-    "source",
-    [
-        "import os as system\ndef f(system):\n return system.getenv('HOME')",
-        "from os import getenv as env\ndef f(env):\n return env('HOME')",
-        "from pathlib import Path\ndef f(Path):\n return Path('x').exists()",
-        "import builtins\ndef f(builtins):\n return builtins.open('x')",
-        "import os\ndef outer(os):\n def inner():\n  return os.getenv('HOME')",
-        "def local():\n import os\ndef other(os):\n return os.getenv('HOME')",
-    ],
-)
-def test_shadowed_alias_variants(tmp_path: Path, source: str) -> None:
-    assert keys(package(tmp_path, source)) == set()
-
-
-def test_shadowed_alias_keeps_real_sibling_use(tmp_path: Path) -> None:
-    source = (
-        "import os\ndef fake(os):\n return os.getenv('HOME')\n"
-        "def real():\n return os.getenv('HOME')"
-    )
-    assert keys(package(tmp_path, source)) == {(Rules.DOMAIN_IO, "domain.py", "os")}
-
-
-@pytest.mark.parametrize(
-    "operation",
-    [
-        "path.isfile",
-        "path.isdir",
-        "path.islink",
-        "path.lexists",
-        "path.isjunction",
-        "path.isdevdrive",
-        "path.sameopenfile",
-        "path.exists",
-        "path.getsize",
-        "path.getmtime",
-        "path.getatime",
-        "path.getctime",
-        "path.ismount",
-        "path.samefile",
-        "listdir",
-    ],
-)
-def test_os_filesystem_spellings(tmp_path: Path, operation: str) -> None:
-    root = package(tmp_path, f"import os\nx = os.{operation}('x')")
-    assert keys(root) == {(Rules.DOMAIN_IO, "domain.py", "os")}
 
 
 def test_entry_complexity_and_qualified_names(tmp_path: Path) -> None:
@@ -347,65 +239,86 @@ def test_dot_root_uses_resolved_package_name(
     }
 
 
-@pytest.mark.parametrize("indent", ["", " "])
-def test_alias_rebinding_preserves_earlier_uses(tmp_path: Path, indent: str) -> None:
-    body = "before = os.getenv('HOME')\nos = None\nafter = os.getenv('HOME')"
-    source = "import os\n" + ("def read():\n" if indent else "")
-    source += "\n".join(indent + line for line in body.splitlines())
-    tree = ast.parse(source)
-    aliases = AliasScopes(tree)
-    calls = [node for node in ast.walk(tree) if isinstance(node, ast.Call)]
-    assert [aliases.name(node.func) for node in calls] == ["os.getenv", ".getenv"]
-    assert keys(package(tmp_path, source)) == {(Rules.DOMAIN_IO, "domain.py", "os")}
-
-
-def test_uncertain_rebinding_keeps_possible_io(tmp_path: Path) -> None:
-    source = "import os\nif condition:\n os = None\nos.getenv('HOME')"
-    assert keys(package(tmp_path, source)) == {(Rules.DOMAIN_IO, "domain.py", "os")}
-
-
-@pytest.mark.parametrize(
-    "expression",
-    [
-        "os.path.join('a', 'b').replace('a', 'c')",
-        "os.path.join('a', 'b').open()",
-    ],
-)
-def test_module_call_results_are_not_import_aliases(
-    tmp_path: Path, expression: str
-) -> None:
-    assert keys(package(tmp_path, f"import os\nx = {expression}")) == set()
-
-
 @pytest.mark.parametrize(
     "source,symbol",
     [
-        ("import os\ndef read(os=os.getenv('HOME')): pass", "os"),
-        ("import os\ndef read(os: os.getenv('HOME')): pass", "os"),
-        ("import os\ndef read(os) -> os.getenv('HOME'): pass", "os"),
-        ("import os\n@os.getenv('HOME')\ndef read(os): pass", "os"),
-        ("import os\nf = lambda os=os.getenv('HOME'): os", "os"),
-        ("import os\nx = [os for os in os.getenv('HOME')]", "os"),
-        ("def read(open=open('x')): pass", "open"),
-        ("x = [open for open in open('x')]", "open"),
+        ("import os", "os"),
+        ("import os\nx = os.path.join('a', 'b')", "os"),
+        ("from os import getenv as env", "os"),
+        ("from os.path import join", "os.path"),
+        ("from pathlib import PurePath", "pathlib"),
+        ("import io", "io"),
+        ("import tempfile", "tempfile"),
+        ("import glob", "glob"),
+        ("import os\ndef f(os): return os.getenv('HOME')", "os"),
     ],
 )
-def test_evaluated_headers_use_enclosing_scope(
-    tmp_path: Path, source: str, symbol: str
-) -> None:
+def test_domain_io_is_import_based(tmp_path: Path, source: str, symbol: str) -> None:
     assert keys(package(tmp_path, source)) == {(Rules.DOMAIN_IO, "domain.py", symbol)}
 
 
-@pytest.mark.parametrize("pattern", ["NAME", "[*NAME]", "{'x': _, **NAME}", "_"])
-@pytest.mark.parametrize("name", ["open", "os"])
-def test_match_capture_shadows_import_or_builtin(
-    tmp_path: Path, pattern: str, name: str
-) -> None:
-    expression = "open('x')" if name == "open" else "os.getenv('HOME')"
-    source = "" if name == "open" else "import os\n"
-    source += (
-        f"def read(value):\n match value:\n  case {pattern.replace('NAME', name)}:\n"
-        f"   return {expression}"
+@pytest.mark.parametrize("guard", ["TYPE_CHECKING", "typing.TYPE_CHECKING"])
+def test_type_checking_io_imports_are_exempt(tmp_path: Path, guard: str) -> None:
+    source = (
+        f"import typing\nfrom typing import TYPE_CHECKING\nif {guard}:\n import json"
     )
-    expected = {(Rules.DOMAIN_IO, "domain.py", name)} if pattern == "_" else set()
-    assert keys(package(tmp_path, source)) == expected
+    assert keys(package(tmp_path, source)) == set()
+
+
+def test_domain_io_once_per_imported_module(tmp_path: Path) -> None:
+    root = package(
+        tmp_path,
+        "from json import loads, dumps\nimport json\nfrom urllib import request, parse",
+    )
+    rows = json.loads(DesignScanner(root).report.to_json())["findings"]
+    assert [(r["symbol"], r["line"]) for r in rows if r["rule"] == Rules.DOMAIN_IO] == [
+        ("json", 1),
+        ("json", 2),
+        ("urllib.request", 3),
+    ]
+
+
+@pytest.mark.parametrize(
+    "binding",
+    [
+        "def other(open): pass",
+        "class Reader:\n open = custom",
+        "values = [open for open in xs]",
+        "def other():\n open = custom",
+        "def open(): pass",
+        "async def open(): pass",
+        "class open: pass",
+        "from custom import open",
+        "import custom as open",
+        "open: object",
+        "for open in xs: pass",
+        "with resource() as open: pass",
+        "if (open := custom): pass",
+        "def other(value=lambda open: open): pass",
+        "match value:\n case open: pass",
+        "match value:\n case [*open]: pass",
+        "match value:\n case {'x': _, **open}: pass",
+    ],
+)
+def test_any_module_binding_suppresses_builtin_open(
+    tmp_path: Path, binding: str
+) -> None:
+    assert keys(package(tmp_path, binding + "\nopen('x')")) == set()
+
+
+def test_qualified_open_is_not_builtin_open(tmp_path: Path) -> None:
+    assert keys(package(tmp_path, "import builtins\nbuiltins.open('x')")) == set()
+
+
+def test_type_checking_else_is_runtime_io(tmp_path: Path) -> None:
+    source = (
+        "from typing import TYPE_CHECKING\nif TYPE_CHECKING:\n import json\n"
+        "else:\n import os"
+    )
+    assert keys(package(tmp_path, source)) == {(Rules.DOMAIN_IO, "domain.py", "os")}
+
+
+def test_relative_import_is_not_external_io(tmp_path: Path) -> None:
+    assert (
+        keys(package(tmp_path, "from .json import loads\nimport jsonpickle")) == set()
+    )

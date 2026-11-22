@@ -79,10 +79,15 @@ No table means no layer findings; an empty table marks every module unlayered.
 - `layer-import`: imports an in-tree module in a layer further out, including
   relative, submodule and `TYPE_CHECKING` imports.
 - `domain-io`: imports subprocess, socket, shutil, json, sqlite3, httpx, requests,
-  urllib.request, typer, rich, mcp, fastmcp or logging.handlers; os/pathlib require
-  filesystem/environment use. Also flags unqualified builtin `open` calls.
-  This is syntactic analysis: import aliases and simple Path assignments are
-  recognized, not arbitrary interprocedural data flow or dynamic imports.
+  urllib.request, typer, rich, mcp, fastmcp, logging.handlers, os, os.path,
+  pathlib, io, tempfile or glob. Findings are purely import-based, once per
+  imported module per import statement, keyed by that module; `TYPE_CHECKING`
+  imports are exempt. Even `os.path.join` or `PurePath` usage triggers the rule.
+  Domain code reaches the filesystem and environment through an injected port.
+  Bare `open(...)` calls also fire, but any binding of `open` anywhere in the
+  module (including parameters, nested definitions and pattern captures)
+  suppresses all of them. Qualified calls and dynamic imports are not analyzed;
+  there is no alias, scope or control-flow inference.
 - `unlayered-module`: matches no declared glob.
 - `thick-entry`: an entry function/method exceeds cyclomatic complexity 4,
   using the same scope-aware computation as the OO metrics.

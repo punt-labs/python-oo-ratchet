@@ -1,15 +1,13 @@
-"""Distinguish unqualified builtin open calls from lexically bound names."""
+"""Bare open calls are builtin candidates only without any module-wide binding."""
 
 from __future__ import annotations
 
 import ast
 from typing import Self
 
-from .scope_parts import ScopeParts
-
 
 class BuiltinOpen:
-    """Walk lexical scopes without treating a sibling's local open as global."""
+    """Use whole-module syntax rather than approximate Python's lexical scopes."""
 
     _tree: ast.Module
 
@@ -19,73 +17,44 @@ class BuiltinOpen:
         return self
 
     def calls(self) -> list[ast.Call]:
-        """Return builtin open calls (not dynamic aliases or getattr)."""
-        return self._scan(self._tree, (set(), set()))
+        """Return bare open calls unless that name is bound anywhere in the tree."""
+        if any(self._binds_open(node) for node in ast.walk(self._tree)):
+            return []
+        return [
+            node
+            for node in ast.walk(self._tree)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "open"
+        ]
 
     @classmethod
-    def _scan(cls, node: ast.AST, scope: tuple[set[str], set[str]]) -> list[ast.Call]:
-        bound, enclosing = scope
-        header, body = ScopeParts.split(node)
+    def _binds_open(cls, node: ast.AST) -> bool:
+        if isinstance(node, ast.Name):
+            return node.id == "open" and isinstance(node.ctx, ast.Store)
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            return any(
+                (alias.asname or alias.name.split(".")[0]) == "open"
+                for alias in node.names
+            )
+        return cls._named_binding(node) == "open"
+
+    @staticmethod
+    def _named_binding(node: ast.AST) -> str | None:
+        if isinstance(node, ast.arg):
+            return node.arg
+        if isinstance(node, ast.MatchMapping):
+            return node.rest
         if isinstance(
             node,
             (
-                ast.Module,
                 ast.FunctionDef,
                 ast.AsyncFunctionDef,
                 ast.ClassDef,
-                ast.Lambda,
-                ast.ListComp,
-                ast.SetComp,
-                ast.DictComp,
-                ast.GeneratorExp,
+                ast.ExceptHandler,
+                ast.MatchAs,
+                ast.MatchStar,
             ),
         ):
-            bound = enclosing | cls._bindings(node)
-            if not isinstance(node, ast.ClassDef):
-                enclosing = bound
-        out = []
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
-            if node.func.id == "open" and "open" not in bound:
-                out.append(node)
-        for child in header + body:
-            out.extend(
-                cls._scan(child, scope if child in header else (bound, enclosing))
-            )
-        return out
-
-    @classmethod
-    def _bindings(cls, scope: ast.AST) -> set[str]:
-        bound: set[str] = set()
-        pending = list(ast.iter_child_nodes(scope))
-        while pending:
-            node = pending.pop()
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-                bound.add(node.name)
-                continue
-            if isinstance(
-                node,
-                (ast.Lambda, ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp),
-            ):
-                continue
-            bound.update(cls._direct_binding(node))
-            bound.update(cls._captures(node))
-            pending.extend(ast.iter_child_nodes(node))
-        return bound
-
-    @staticmethod
-    def _direct_binding(node: ast.AST) -> set[str]:
-        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
-            return {node.id}
-        if isinstance(node, ast.arg):
-            return {node.arg}
-        if isinstance(node, (ast.Import, ast.ImportFrom)):
-            return {alias.asname or alias.name.split(".")[0] for alias in node.names}
-        return set()
-
-    @staticmethod
-    def _captures(node: ast.AST) -> set[str]:
-        if isinstance(node, (ast.MatchAs, ast.MatchStar)):
-            return {node.name} if node.name else set()
-        if isinstance(node, ast.MatchMapping):
-            return {node.rest} if node.rest else set()
-        return set()
+            return node.name
+        return None

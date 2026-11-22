@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Changed
+
+- `domain-io` is purely import-based, including os, os.path, pathlib, io,
+  tempfile and glob, with TYPE_CHECKING imports exempt and findings keyed by
+  the imported module. Domain code reaches the filesystem and environment
+  through an injected port. Bare `open` calls fire only when no binding of that
+  name occurs anywhere in the module; flow-sensitive alias analysis is removed.
+
 ### Added
 
 - Optional strict `[tool.oo-ratchet.layers]` configuration and `design --layers`

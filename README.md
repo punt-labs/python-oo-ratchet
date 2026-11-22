@@ -64,7 +64,18 @@ prefixes = ["service", "hooks"]
 imports = ["kernel"]
 ```
 
-The longest prefix wins; an exact prefix beats a `*` prefix of equal length; the package root is exempt. `--check` fails on a violating import edge not in `.oo-layers-baseline.json` and on a baseline entry that no longer violates; against the merge base it also fails if the baseline gained an edge. `--update` adopts a first baseline, then only shrinks it, and appends `.oo-layers-audit.jsonl`. Imports under `TYPE_CHECKING` count, as in the design check. `--base-ref`, `--require-base`, `--tripwire`, `--allow-ci-write` and `--source` behave as for coupling.
+Each layer needs a non-empty `prefixes` list. A `*` may only end a prefix, and a prefix may not end in `.`. The longest prefix wins; an exact prefix beats a `*` prefix of equal length; the package root is exempt. A declared config affects only the layer rules: the design check's primitive-params, tag-switch and data-rule eligibility behave as with no config.
+
+`src/pkg/` must be the package directory (it needs an `__init__.py` and at least one other module).
+
+- `--check` fails on a violating import edge not in `.oo-layers-baseline.json` and on a baseline entry that no longer violates. It also fails when a non-root module matches no layer, or a layer matches no module, so a misspelled prefix cannot hide a package. The PASS line prints the modules scanned and unassigned counts.
+- Against the merge base it fails if the baseline gained an edge, and if an edge violates under the base commit's `[tool.oo-ratchet.layers]` (read from the repository-root `pyproject.toml`) and is not in the base baseline, so widening `imports` or narrowing `prefixes` in the same change as a new violation is caught.
+- `--update` adopts a first baseline, then only shrinks it, refuses a package the layers do not fully cover, and appends `.oo-layers-audit.jsonl`.
+- `--base-ref`, `--require-base` and `--tripwire` are accepted only with `--check`; `--allow-ci-write` and `--source` behave as for coupling.
+
+Edges counted: imports anywhere in a module (functions included), `TYPE_CHECKING` imports (as in the design check), `from pkg import X` where a package `__init__` re-exports `X` (followed to the module that defines `X`, so the edge names the true target layer rather than every layer the root imports), and `importlib.import_module("pkg.a")` / `__import__("pkg.a")` with a string literal. Computed module names and attribute access on an imported package (`import pkg; pkg.a.f()`) are out of scope.
+
+Wiring `layers` into this repository's own `Makefile` and CI needs a layer design for `oo_ratchet` itself and is a follow-up.
 
 ### Advisory design check
 

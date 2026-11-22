@@ -3,143 +3,52 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
-from typing import TYPE_CHECKING, Self
 
 import pytest
 
 from oo_ratchet.__main__ import main as dispatch
-from oo_ratchet.layers.cli import main
-
-if TYPE_CHECKING:
-    from tests.conftest import GitSandbox
-
-_PYPROJECT = """\
-[tool.oo-ratchet.layers.kernel]
-prefixes = ["kernel"]
-imports = []
-
-[tool.oo-ratchet.layers.service]
-prefixes = ["service"]
-imports = ["kernel"]
-
-[tool.oo-ratchet.layers.cli]
-prefixes = ["cli"]
-imports = ["kernel", "service"]
-"""
-_OK_SERVICE = "import app.kernel\n"
-_BAD_KERNEL = "import app.service\n"
-_BAD_SERVICE = "import app.kernel\nimport app.cli\n"
-_KERNEL_VIOLATION = "app.kernel -> app.service"
-_SERVICE_VIOLATION = "app.service -> app.cli"
-
-
-class _Repo:
-    """A sandbox repository holding a small ``app`` package and its pyproject."""
-
-    _sandbox: GitSandbox
-    _out: pytest.CaptureFixture[str]
-
-    def __new__(
-        cls,
-        sandbox: GitSandbox,
-        capsys: pytest.CaptureFixture[str],
-        monkeypatch: pytest.MonkeyPatch,
-    ) -> Self:
-        self = super().__new__(cls)
-        self._sandbox = sandbox
-        self._out = capsys
-        monkeypatch.chdir(sandbox.root)
-        monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
-        sandbox.write("pyproject.toml", _PYPROJECT)
-        sandbox.write("src/app/__init__.py", "")
-        sandbox.write("src/app/kernel.py", _BAD_KERNEL)
-        sandbox.write("src/app/service.py", _OK_SERVICE)
-        sandbox.write("src/app/cli.py", "")
-        return self
-
-    @property
-    def baseline(self) -> Path:
-        """Return the baseline file path."""
-        return self._sandbox.root / ".oo-layers-baseline.json"
-
-    @property
-    def audit(self) -> list[dict[str, object]]:
-        """Return the parsed audit entries, oldest first."""
-        path = self._sandbox.root / ".oo-layers-audit.jsonl"
-        return [json.loads(line) for line in path.read_text().splitlines()]
-
-    def edit(self, module: str, text: str) -> None:
-        """Rewrite one module of the package."""
-        self._sandbox.write(f"src/app/{module}.py", text)
-
-    def commit_as_origin_main(self) -> None:
-        """Commit everything and point ``origin/main`` at that commit."""
-        sha = self._sandbox.commit("snapshot")
-        self._sandbox.run_git("update-ref", "refs/remotes/origin/main", sha)
-
-    def run(self, *args: str) -> tuple[int, str]:
-        """Run the layers gate on the package; return its exit code and stdout."""
-        self._out.readouterr()
-        code = main([str(self._sandbox.root / "src" / "app"), *args])
-        return code, self._out.readouterr().out
-
-    def adopt(self) -> None:
-        """Commit the violating tree as main, then write the first baseline."""
-        self.commit_as_origin_main()
-        assert self.run("--update")[0] == 0
-
-
-@pytest.fixture
-def repo(
-    git_sandbox: GitSandbox,
-    capsys: pytest.CaptureFixture[str],
-    monkeypatch: pytest.MonkeyPatch,
-) -> _Repo:
-    """Return a repo whose ``app.kernel`` imports ``app.service`` (a violation)."""
-    return _Repo(git_sandbox, capsys, monkeypatch)
-
-
-@pytest.fixture(autouse=True, params=["", "true"], ids=["local", "ci"])
-def runner_env(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Run every test with and without the CI variable set in the process."""
-    if request.param:
-        monkeypatch.setenv("GITHUB_ACTIONS", request.param)
+from tests.layers_repo import (
+    BAD_SERVICE,
+    KERNEL_VIOLATION,
+    PYPROJECT,
+    SERVICE_VIOLATION,
+    LayersRepo,
+)
 
 
 class TestCheck:
     """``--check`` fails on a new violation or a stale entry, passes otherwise."""
 
-    def test_violation_without_a_baseline_fails(self, repo: _Repo) -> None:
+    def test_violation_without_a_baseline_fails(self, repo: LayersRepo) -> None:
         code, out = repo.run("--check")
         assert code == 1
-        assert _KERNEL_VIOLATION in out
+        assert KERNEL_VIOLATION in out
 
-    def test_baselined_violation_passes(self, repo: _Repo) -> None:
+    def test_baselined_violation_passes(self, repo: LayersRepo) -> None:
         repo.adopt()
         code, out = repo.run("--check")
         assert (code, "PASS" in out) == (0, True)
 
-    def test_new_violation_fails(self, repo: _Repo) -> None:
+    def test_new_violation_fails(self, repo: LayersRepo) -> None:
         repo.adopt()
-        repo.edit("service", _BAD_SERVICE)
+        repo.edit("service", BAD_SERVICE)
         code, out = repo.run("--check")
         assert code == 1
-        assert _SERVICE_VIOLATION in out
-        assert _KERNEL_VIOLATION not in out
+        assert SERVICE_VIOLATION in out
+        assert KERNEL_VIOLATION not in out
 
-    def test_stale_baseline_entry_fails(self, repo: _Repo) -> None:
+    def test_stale_baseline_entry_fails(self, repo: LayersRepo) -> None:
         repo.adopt()
         repo.edit("kernel", "")
         code, out = repo.run("--check")
         assert code == 1
         assert "no longer violate" in out
-        assert _KERNEL_VIOLATION in out
+        assert KERNEL_VIOLATION in out
 
-    def test_baseline_grown_past_the_base_fails(self, repo: _Repo) -> None:
+    def test_baseline_grown_past_the_base_fails(self, repo: LayersRepo) -> None:
         repo.adopt()
         repo.commit_as_origin_main()
-        repo.edit("service", _BAD_SERVICE)
+        repo.edit("service", BAD_SERVICE)
         repo.baseline.write_text(
             json.dumps(
                 {"app.kernel": ["app.service"], "app.service": ["app.cli"]}, indent=2
@@ -148,9 +57,9 @@ class TestCheck:
         code, out = repo.run("--check")
         assert code == 1
         assert "did not" in out
-        assert _SERVICE_VIOLATION in out
+        assert SERVICE_VIOLATION in out
 
-    def test_missing_config_fails(self, repo: _Repo) -> None:
+    def test_missing_config_fails(self, repo: LayersRepo) -> None:
         (repo.baseline.parent / "pyproject.toml").write_text("[tool.other]\n")
         code, out = repo.run("--check")
         assert code == 1
@@ -160,37 +69,37 @@ class TestCheck:
 class TestUpdate:
     """``--update`` adopts a first baseline, then only shrinks it."""
 
-    def test_first_update_adopts_and_audits(self, repo: _Repo) -> None:
+    def test_first_update_adopts_and_audits(self, repo: LayersRepo) -> None:
         repo.adopt()
         assert json.loads(repo.baseline.read_text()) == {"app.kernel": ["app.service"]}
         (entry,) = repo.audit
         assert (entry["verdict"], entry["added"], entry["removed"]) == (
             "adopt",
-            [_KERNEL_VIOLATION],
+            [KERNEL_VIOLATION],
             [],
         )
 
-    def test_update_after_a_fix_shrinks_the_baseline(self, repo: _Repo) -> None:
+    def test_update_after_a_fix_shrinks_the_baseline(self, repo: LayersRepo) -> None:
         repo.adopt()
         repo.edit("kernel", "")
         assert repo.run("--update")[0] == 0
         assert json.loads(repo.baseline.read_text()) == {}
         assert repo.audit[-1]["verdict"] == "pass"
-        assert repo.audit[-1]["removed"] == [_KERNEL_VIOLATION]
+        assert repo.audit[-1]["removed"] == [KERNEL_VIOLATION]
         assert repo.run("--check")[0] == 0
 
-    def test_update_refuses_a_new_violation(self, repo: _Repo) -> None:
+    def test_update_refuses_a_new_violation(self, repo: LayersRepo) -> None:
         repo.adopt()
         before = repo.baseline.read_text()
-        repo.edit("service", _BAD_SERVICE)
+        repo.edit("service", BAD_SERVICE)
         code, out = repo.run("--update")
         assert code == 1
-        assert _SERVICE_VIOLATION in out
+        assert SERVICE_VIOLATION in out
         assert repo.baseline.read_text() == before
         assert len(repo.audit) == 1
 
     def test_update_is_refused_under_ci_without_the_flag(
-        self, repo: _Repo, monkeypatch: pytest.MonkeyPatch
+        self, repo: LayersRepo, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         monkeypatch.setenv("GITHUB_ACTIONS", "true")
         assert repo.run("--update")[0] == 1
@@ -201,21 +110,170 @@ class TestUpdate:
 class TestViews:
     """Without an action the gate reports and never fails on violations."""
 
-    def test_default_view_lists_violations(self, repo: _Repo) -> None:
+    def test_default_view_lists_violations(self, repo: LayersRepo) -> None:
         code, out = repo.run()
         assert code == 0
         assert "kernel -> service: 1" in out
-        assert _KERNEL_VIOLATION in out
+        assert KERNEL_VIOLATION in out
 
-    def test_json_view(self, repo: _Repo) -> None:
+    def test_json_view(self, repo: LayersRepo) -> None:
         code, out = repo.run("--json")
         assert code == 0
         (violation,) = json.loads(out)["violations"]
         assert violation["source_layer"] == "kernel"
 
     def test_gate_is_registered_with_the_dispatcher(
-        self, repo: _Repo, capsys: pytest.CaptureFixture[str]
+        self, repo: LayersRepo, capsys: pytest.CaptureFixture[str]
     ) -> None:
         repo.run()
         assert dispatch(["layers", str(repo.baseline.parent / "src" / "app")]) == 0
-        assert _KERNEL_VIOLATION in capsys.readouterr().out
+        assert KERNEL_VIOLATION in capsys.readouterr().out
+
+
+class TestFailClosed:
+    """A gate that cannot see the whole package must fail, not pass."""
+
+    def test_unassigned_module_fails_check(self, repo: LayersRepo) -> None:
+        repo.adopt()
+        repo.edit("stray", "")
+        code, out = repo.run("--check")
+        assert code == 1
+        assert "app.stray" in out
+
+    def test_unassigned_module_refuses_update(self, repo: LayersRepo) -> None:
+        repo.edit("stray", "")
+        code, out = repo.run("--update")
+        assert code == 1
+        assert "app.stray" in out
+        assert not repo.baseline.exists()
+
+    def test_launderer_through_an_unassigned_module_fails(
+        self, repo: LayersRepo
+    ) -> None:
+        repo.adopt()
+        repo.edit("kernel", "import app.stray\n")
+        repo.edit("stray", "import app.service\n")
+        assert repo.run("--check")[0] == 1
+
+    def test_misspelled_prefix_fails(self, repo: LayersRepo) -> None:
+        repo.adopt()
+        repo.write("pyproject.toml", PYPROJECT.replace('["service"]', '["servcie"]'))
+        code, out = repo.run("--check")
+        assert code == 1
+        assert "app.service" in out
+
+    def test_wrong_source_root_fails(self, repo: LayersRepo) -> None:
+        repo.adopt()
+        code, out = repo.run_on(repo.root / "src", "--check")
+        assert code == 1
+        assert "__init__" in out
+
+    def test_pass_line_reports_scanned_and_unassigned_counts(
+        self, repo: LayersRepo
+    ) -> None:
+        repo.adopt()
+        out = repo.run("--check")[1]
+        assert "4 modules scanned, 0 unassigned" in out
+
+
+class TestConfigRatchet:
+    """The layer config is compared with the one at the merge base."""
+
+    def test_widening_imports_with_a_new_violation_fails(
+        self, repo: LayersRepo
+    ) -> None:
+        repo.adopt()
+        repo.commit_as_origin_main()
+        repo.edit("service", BAD_SERVICE)
+        repo.write(
+            "pyproject.toml",
+            PYPROJECT.replace(
+                'prefixes = ["service"]\nimports = ["kernel"]',
+                'prefixes = ["service"]\nimports = ["kernel", "cli"]',
+            ),
+        )
+        code, out = repo.run("--check")
+        assert code == 1
+        assert "base config" in out
+        assert SERVICE_VIOLATION in out
+
+    def test_unchanged_config_still_passes(self, repo: LayersRepo) -> None:
+        repo.adopt()
+        repo.commit_as_origin_main()
+        assert repo.run("--check")[0] == 0
+
+
+class TestOptionsNeedCheck:
+    """Base options mean nothing without ``--check`` and are refused."""
+
+    @pytest.mark.parametrize(
+        "flags",
+        [
+            ["--base-ref", "HEAD"],
+            ["--require-base"],
+            ["--tripwire"],
+            ["--update", "--tripwire"],
+            ["--json", "--base-ref", "HEAD"],
+        ],
+    )
+    def test_refused_without_check(self, repo: LayersRepo, flags: list[str]) -> None:
+        with pytest.raises(SystemExit) as exc:
+            repo.run(*flags)
+        assert exc.value.code == 2
+
+    def test_accepted_with_check(self, repo: LayersRepo) -> None:
+        repo.adopt()
+        assert repo.run("--check", "--base-ref", "HEAD", "--require-base")[0] == 0
+
+
+class TestBaseResolution:
+    """Every way of not knowing the base fails closed, as the coupling gate does."""
+
+    def test_require_base_with_no_base_fails(self, repo: LayersRepo) -> None:
+        repo.commit()
+        code, out = repo.run("--check", "--require-base")
+        assert code == 1
+        assert "--require-base" in out
+
+    def test_no_base_with_an_in_tree_baseline_fails(self, repo: LayersRepo) -> None:
+        repo.commit()
+        repo.write(".oo-layers-baseline.json", '{"app.kernel": ["app.service"]}')
+        code, out = repo.run("--check")
+        assert code == 1
+        assert "cannot resolve merge-base" in out
+
+    def test_tripwire_passes_on_the_adoption_commit(self, repo: LayersRepo) -> None:
+        before = repo.commit_as_origin_main()
+        assert repo.run("--update")[0] == 0
+        repo.commit_as_origin_main()
+        code, _ = repo.run("--check", "--base-ref", before, "--tripwire")
+        assert code == 0
+
+    def test_tripwire_without_a_baseline_fails(self, repo: LayersRepo) -> None:
+        before = repo.commit_as_origin_main()
+        code, out = repo.run("--check", "--base-ref", before, "--tripwire")
+        assert code == 1
+        assert "--tripwire with no baseline" in out
+
+    def test_origin_main_unresolvable_with_a_baseline_fails(
+        self, repo: LayersRepo
+    ) -> None:
+        before = repo.commit()
+        assert repo.run("--update")[0] == 0
+        code, out = repo.run("--check", "--base-ref", before)
+        assert code == 1
+        assert "origin/main is unresolvable" in out
+
+    def test_base_that_predates_adoption_fails(self, repo: LayersRepo) -> None:
+        before = repo.commit()
+        assert repo.run("--update")[0] == 0
+        repo.commit_as_origin_main()
+        code, out = repo.run("--check", "--base-ref", before)
+        assert code == 1
+        assert "predates baseline adoption" in out
+
+    def test_corrupt_in_tree_baseline_fails(self, repo: LayersRepo) -> None:
+        repo.write(".oo-layers-baseline.json", "not json")
+        code, out = repo.run("--check")
+        assert code == 1
+        assert "unreadable layers baseline" in out

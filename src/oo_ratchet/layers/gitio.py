@@ -13,3 +13,7 @@ class LayersGit(GitRepo):
     def show_baseline_text(self, ref: str) -> str | None:
         """Return the baseline JSON committed at ``ref``, or ``None`` if absent."""
         return self._show_file(ref, LayersBaseline.FILENAME)
+
+    def show_pyproject_text(self, ref: str) -> str | None:
+        """Return the repository-root ``pyproject.toml`` at ``ref``, or ``None``."""
+        return self._show_file(ref, "pyproject.toml")

@@ -42,6 +42,10 @@ class LayerConfig:
         names = list(self._patterns)
         return frozenset(names[names.index(source) :])
 
+    def layer_names(self) -> tuple[str, ...]:
+        """Return the layers that name at least one pattern."""
+        return tuple(name for name, globs in self._patterns.items() if globs)
+
     @staticmethod
     def _globs(value: object) -> list[str]:
         if not isinstance(value, list) or any(

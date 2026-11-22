@@ -10,6 +10,8 @@ from typing import Self
 
 import pytest
 
+from tests.layers_repo import LayersRepo
+
 
 class GitSandbox:
     """A throwaway git repository the ratchet tests drive end-to-end.
@@ -103,3 +105,13 @@ def private_home(
             handler.close()
     root.handlers[:] = handlers
     root.setLevel(level)
+
+
+@pytest.fixture
+def repo(
+    git_sandbox: GitSandbox,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> LayersRepo:
+    """Return a repo whose ``app.kernel`` imports ``app.service`` (a violation)."""
+    return LayersRepo(git_sandbox, capsys, monkeypatch)

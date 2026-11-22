@@ -74,7 +74,7 @@ class DeclaredLayers(LayerConfig):
                 raise LayerConfigError(
                     f"layer {name!r} must be a table of prefixes and imports"
                 )
-            patterns[name] = cls._globs(spec.get("prefixes", []))
+            patterns[name] = cls._prefixes(name, spec.get("prefixes"))
             for prefix in patterns[name]:
                 other = owner.setdefault(prefix, name)
                 if other != name:
@@ -86,3 +86,15 @@ class DeclaredLayers(LayerConfig):
             if not targets <= set(table):
                 raise LayerConfigError(f"layer {name!r} imports an undeclared layer")
         return patterns, imports
+
+    @classmethod
+    def _prefixes(cls, name: str, value: object) -> list[str]:
+        prefixes = cls._globs(value if value is not None else [])
+        if not prefixes:
+            raise LayerConfigError(f"layer {name!r} needs a non-empty prefixes list")
+        for prefix in prefixes:
+            if "*" in prefix.removesuffix("*") or prefix.endswith("."):
+                raise LayerConfigError(
+                    f"layer {name!r}: prefix {prefix!r} may only end in * and not in ."
+                )
+        return prefixes

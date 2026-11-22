@@ -15,21 +15,38 @@ class LayerTable:
     @classmethod
     def load(cls, root: Path, override: Path | None = None) -> LayerConfig | None:
         """Read an explicit file or the nearest ancestor pyproject, if any."""
-        path = override or cls._nearest(root)
+        path = override or cls.nearest(root)
         if path is None:
             return None
-        table = cls._read(path)
+        return cls._config(cls._read(path), str(path), strict=override is not None)
+
+    @classmethod
+    def from_text(cls, text: str, label: str) -> LayerConfig | None:
+        """Read the layers table of pyproject ``text``; ``None`` when it has none."""
+        try:
+            table: object = tomllib.loads(text)
+        except tomllib.TOMLDecodeError as exc:
+            raise LayerConfigError(f"cannot read {label}: {exc}") from exc
+        return cls._config(table, label, strict=False)
+
+    @classmethod
+    def _config(cls, table: object, path: str, *, strict: bool) -> LayerConfig | None:
         for key in ("tool", "oo-ratchet", "layers"):
             if not isinstance(table, dict):
                 raise LayerConfigError(f"{path}: layer configuration must be a table")
             if key not in table:
-                if override is not None:
+                if strict:
                     raise LayerConfigError(f"{path}: missing [tool.oo-ratchet.layers]")
                 return None
             table = table[key]
         if not isinstance(table, dict):
             raise LayerConfigError(f"{path}: layers must be a table")
         return cls.build(table)
+
+    @staticmethod
+    def ordered(config: LayerConfig | None) -> LayerConfig | None:
+        """Return ``config`` in the fixed form; declared layers shape no data rules."""
+        return config if config is not None and config.ORDERED else None
 
     @staticmethod
     def build(table: dict[str, object]) -> LayerConfig:
@@ -39,7 +56,7 @@ class LayerTable:
         return LayerConfig(table)
 
     @staticmethod
-    def _nearest(root: Path) -> Path | None:
+    def nearest(root: Path) -> Path | None:
         return next(
             (
                 parent / "pyproject.toml"

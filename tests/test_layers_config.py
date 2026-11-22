@@ -129,3 +129,24 @@ class TestValidation:
         config = LayerTable.load(tmp_path)
         assert config is not None
         assert config.layer("app.kernel") == "kernel"
+
+
+class TestDeclaredPrefixValidation:
+    """A prefix that cannot match what it looks like is refused, not ignored."""
+
+    def test_prefixes_are_required(self) -> None:
+        with pytest.raises(LayerConfigError, match="prefixes"):
+            DeclaredLayers({"a": {"imports": []}})
+
+    def test_prefixes_may_not_be_empty(self) -> None:
+        with pytest.raises(LayerConfigError, match="prefixes"):
+            DeclaredLayers({"a": {"prefixes": []}})
+
+    @pytest.mark.parametrize("prefix", ["a*b", "*a", "a.", "a.*b"])
+    def test_misplaced_star_or_trailing_dot_is_refused(self, prefix: str) -> None:
+        with pytest.raises(LayerConfigError, match="prefix"):
+            DeclaredLayers({"a": {"prefixes": [prefix]}})
+
+    @pytest.mark.parametrize("prefix", ["a", "a.b", "a*", "a.b_*"])
+    def test_plain_and_trailing_star_prefixes_are_accepted(self, prefix: str) -> None:
+        assert DeclaredLayers({"a": {"prefixes": [prefix]}}).layer_names() == ("a",)

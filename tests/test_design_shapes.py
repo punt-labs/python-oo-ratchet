@@ -585,3 +585,15 @@ def test_size_cap_excludes_posonly_receiver_and_variadics(tmp_path: Path) -> Non
 def test_size_cap_uses_code_lines_not_docstrings_or_comments(tmp_path: Path) -> None:
     source = '"""\n' + "doc\n" * 401 + '"""\n' + "# comment\n" * 500 + "value=0\n" * 400
     assert not symbols(scan(tmp_path, source), "size-cap")
+
+
+def test_declared_layers_leave_shape_rules_as_with_no_config(tmp_path: Path) -> None:
+    root = tmp_path / "pkg"
+    root.mkdir()
+    (root / "model.py").write_text("def f(a:int,b:str): pass")
+    (tmp_path / "pyproject.toml").write_text(
+        '[tool.oo-ratchet.layers.application]\nprefixes = ["model"]\nimports = []\n'
+    )
+    doc = json.loads(DesignScanner(root).report.to_json())
+    rows = [row for row in doc["findings"] if row["rule"] in RULES]
+    assert symbols(rows, "primitive-params") == {"f"}

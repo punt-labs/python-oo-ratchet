@@ -173,3 +173,105 @@ class TestScanErrors:
         pkg = _package(tmp_path, {}, "[tool.other]\nx = 1\n")
         with pytest.raises(LayerConfigError, match=r"no \[tool"):
             LayerScan(pkg)
+
+
+class TestProblems:
+    """A scan that cannot vouch for every module reports a problem."""
+
+    def test_unassigned_module_is_a_problem(self, tmp_path: Path) -> None:
+        pkg = _package(tmp_path, {"kernel.py": "", "stray.py": ""})
+        assert any("app.stray" in p for p in LayerScan(pkg).problems)
+
+    def test_layer_matching_no_module_is_a_problem(self, tmp_path: Path) -> None:
+        config = DECLARED + '[tool.oo-ratchet.layers.ghost]\nprefixes = ["nothing"]\n'
+        pkg = _package(tmp_path, {"kernel.py": ""}, config)
+        assert any("ghost" in p for p in LayerScan(pkg).problems)
+
+    def test_empty_layers_table_is_a_problem(self, tmp_path: Path) -> None:
+        pkg = _package(tmp_path, {"kernel.py": ""}, "[tool.oo-ratchet.layers]\n")
+        assert LayerScan(pkg).problems
+
+    def test_fully_assigned_package_has_no_problem(self, tmp_path: Path) -> None:
+        pkg = _package(tmp_path, {"kernel.py": "", "service.py": "", "cli.py": ""})
+        assert LayerScan(pkg).problems == ()
+
+    def test_fixed_form_with_an_empty_layer_is_fine_when_all_assigned(
+        self, tmp_path: Path
+    ) -> None:
+        config = '[tool.oo-ratchet.layers]\nentry = []\ndomain = ["app.*"]\n'
+        pkg = _package(tmp_path, {"kernel.py": ""}, config)
+        assert LayerScan(pkg).problems == ()
+
+
+class TestSourceDirectory:
+    """The scanned directory must be a package with something to check."""
+
+    def test_directory_without_init_fails(self, tmp_path: Path) -> None:
+        pkg = _package(tmp_path, {"kernel.py": ""})
+        with pytest.raises(LayersScanError, match="__init__"):
+            LayerScan(pkg.parent)
+
+    def test_package_with_only_its_root_fails(self, tmp_path: Path) -> None:
+        pkg = _package(tmp_path, {})
+        with pytest.raises(LayersScanError, match="no modules"):
+            LayerScan(pkg)
+
+
+class TestRootReexports:
+    """A name the root re-exports counts as an import of its defining module."""
+
+    def test_from_root_import_follows_the_reexport(self, tmp_path: Path) -> None:
+        pkg = _package(
+            tmp_path,
+            {
+                "__init__.py": "from .service import thing\n",
+                "service.py": "thing = 1\n",
+                "kernel.py": "from app import thing\n",
+            },
+        )
+        assert Edge("app.kernel", "app.service") in LayerScan(pkg).edges
+
+    def test_reexport_through_an_alias_and_a_chain(self, tmp_path: Path) -> None:
+        pkg = _package(
+            tmp_path,
+            {
+                "__init__.py": "from .service import thing as other\n",
+                "service/__init__.py": "from .impl import thing\n",
+                "service/impl.py": "thing = 1\n",
+                "kernel.py": "from app import other\n",
+            },
+        )
+        edges = LayerScan(pkg).edges
+        assert Edge("app.kernel", "app.service.impl") in edges
+
+    def test_importing_a_submodule_is_unchanged(self, tmp_path: Path) -> None:
+        pkg = _package(
+            tmp_path,
+            {
+                "__init__.py": "from .service import thing\n",
+                "service.py": "thing = 1\n",
+                "kernel.py": "from app import service\n",
+            },
+        )
+        assert Edge("app.kernel", "app.service") in LayerScan(pkg).edges
+
+
+class TestDynamicImports:
+    """Literal-string dynamic imports of package modules are edges."""
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            'import importlib\nimportlib.import_module("app.service")\n',
+            'from importlib import import_module\nimport_module("app.service")\n',
+            '__import__("app.service")\n',
+        ],
+    )
+    def test_literal_dynamic_import_is_an_edge(self, tmp_path: Path, text: str) -> None:
+        pkg = _package(tmp_path, {"kernel.py": text, "service.py": ""})
+        assert Edge("app.kernel", "app.service") in LayerScan(pkg).edges
+
+    def test_computed_name_is_not_an_edge(self, tmp_path: Path) -> None:
+        text = 'import importlib\nname = "service"\nimportlib.import_module(name)\n'
+        pkg = _package(tmp_path, {"kernel.py": text, "service.py": ""})
+        assert LayerScan(pkg).edges == set()

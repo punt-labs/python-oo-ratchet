@@ -37,7 +37,10 @@ class Options:
     @classmethod
     def parse(cls, argv: list[str] | None = None) -> Self:
         """Build options from ``argv`` (defaults to ``sys.argv``)."""
-        ns = cls._build_parser().parse_args(argv)
+        parser = cls._build_parser()
+        ns = parser.parse_args(argv)
+        if not ns.check and (ns.base_ref is not None or ns.require_base or ns.tripwire):
+            parser.error("--base-ref, --require-base and --tripwire need --check")
         return cls(
             src=Path(ns.src),
             check=bool(ns.check),

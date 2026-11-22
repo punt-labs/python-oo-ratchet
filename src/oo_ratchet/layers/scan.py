@@ -1,53 +1,68 @@
-"""Scan one package with the design gate's layer check, for the layers gate."""
+"""Scan one package with the design gate's layer rules, for the layers gate."""
 
 from __future__ import annotations
 
 from pathlib import Path
 from typing import Self
 
-from oo_ratchet.design.layer_config import LayerConfigError
+from oo_ratchet.design.layer_config import LayerConfig, LayerConfigError
 from oo_ratchet.design.layer_edges import Edge, Violation
 from oo_ratchet.design.layer_table import LayerTable
-from oo_ratchet.design.layer_violations import LayerViolations
 from oo_ratchet.design.modules import ModuleIndex
+
+from .strict import StrictViolations
 
 
 class LayersScanError(Exception):
-    """A module of the package could not be read or parsed."""
+    """The scanned directory is not a readable package with modules to check."""
 
 
 class LayerScan:
     """The violating import edges of one package under a layer config.
 
-    ``src`` is the package directory itself (``src/pkg``). The config is read
-    from the nearest ``pyproject.toml`` above it; a missing
+    ``src`` is the package directory itself (``src/pkg``) and must hold an
+    ``__init__.py`` and at least one module besides it. The config is read from
+    the nearest ``pyproject.toml`` above it unless one is passed in; a missing
     ``[tool.oo-ratchet.layers]`` table is an error because the gate has nothing
-    to enforce. Classification and import resolution are the design gate's, so
-    ``oo-ratchet design`` and ``oo-ratchet layers`` always agree. Like the
-    design gate, imports under ``TYPE_CHECKING`` count as edges. A module the
-    scan could not parse fails the scan instead of silently dropping its edges.
+    to enforce. Classification and import resolution are the design gate's, plus
+    re-exports and literal dynamic imports. Like the design gate, imports under
+    ``TYPE_CHECKING`` count as edges. A module the scan could not parse fails
+    the scan instead of silently dropping its edges.
+
+    ``problems`` lists what stops the scan vouching for the package: a module no
+    layer claims, or a layer that claims no module.
     """
 
+    _src: Path
+    _config: LayerConfig
     _modules: tuple[str, ...]
     _violations: tuple[Violation, ...]
     _unassigned: tuple[str, ...]
 
-    def __new__(cls, src: Path) -> Self:
+    def __new__(cls, src: Path, config: LayerConfig | None = None) -> Self:
         self = super().__new__(cls)
-        config = LayerTable.load(src)
-        if config is None:
-            msg = f"no [tool.oo-ratchet.layers] table above {src}"
-            raise LayerConfigError(msg)
+        self._src = src
+        self._config = config or cls._load(src)
+        if not (src / "__init__.py").is_file():
+            msg = f"{src} is not a package: no __init__.py (pass src/<package>)"
+            raise LayersScanError(msg)
         index = ModuleIndex(src)
         if index.skipped:
             names = ", ".join(sorted(str(p) for p in index.skipped))
             msg = f"cannot read or parse: {names}"
             raise LayersScanError(msg)
-        found = LayerViolations(index, config)
+        found = StrictViolations(index, self._config)
         self._modules = tuple(sorted(found.name(m) for m in index.modules()))
+        if all("." not in m for m in self._modules):
+            msg = f"no modules to check under {src}"
+            raise LayersScanError(msg)
         self._violations = tuple(found.violations())
         self._unassigned = tuple(found.unassigned())
         return self
+
+    def under(self, config: LayerConfig) -> Self:
+        """Return the same package scanned under another layer config."""
+        return type(self)(self._src, config)
 
     @property
     def modules(self) -> tuple[str, ...]:
@@ -66,5 +81,26 @@ class LayerScan:
 
     @property
     def unassigned(self) -> tuple[str, ...]:
-        """Return the non-exempt modules that match no layer."""
+        """Return the non-root modules that match no layer."""
         return self._unassigned
+
+    @property
+    def problems(self) -> tuple[str, ...]:
+        """Return why this scan cannot vouch for the package, if it cannot."""
+        used = {self._config.layer(m) for m in self._modules}
+        return (
+            *(f"unassigned module: {m}" for m in self._unassigned),
+            *(
+                f"layer {name!r} matches no module"
+                for name in self._config.layer_names()
+                if name not in used
+            ),
+        )
+
+    @staticmethod
+    def _load(src: Path) -> LayerConfig:
+        config = LayerTable.load(src)
+        if config is None:
+            msg = f"no [tool.oo-ratchet.layers] table above {src}"
+            raise LayerConfigError(msg)
+        return config

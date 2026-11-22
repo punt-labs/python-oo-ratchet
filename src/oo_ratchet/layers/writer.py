@@ -41,23 +41,12 @@ class LayersWriter:
         way to loosen the baseline is to fix the code or edit the file by hand,
         and ``check`` rejects a hand edit that grows it past the merge base.
         """
-        if os.environ.get("GITHUB_ACTIONS") == "true" and not allow_ci_write:
-            return Outcome.failed(
-                "FAIL: refusing to write layers baseline under GITHUB_ACTIONS "
-                "without --allow-ci-write"
-            )
+        blocked = self._blocked(scan, allow_ci_write=allow_ci_write)
+        if blocked is not None:
+            return blocked
         current = frozenset(v.edge for v in scan.violations)
         recorded = self._baseline.edges
         adopting = not self._baseline.exists
-        refused = sorted(current - recorded) if not adopting else []
-        if refused:
-            return Outcome(
-                1,
-                (
-                    "FAIL: refusing to baseline new layer violations:",
-                    *(f"  {edge}" for edge in refused),
-                ),
-            )
         self._baseline.save(current)
         self._audit.append(
             verdict="adopt" if adopting else "pass",
@@ -72,3 +61,27 @@ class LayersWriter:
             f"Wrote {self._baseline.path}",
             f"  violations: {len(current)} ({len(recorded - current)} removed)",
         )
+
+    def _blocked(self, scan: LayerScan, *, allow_ci_write: bool) -> Outcome | None:
+        """Return the refusal that stops an update, or ``None`` when it may write."""
+        if os.environ.get("GITHUB_ACTIONS") == "true" and not allow_ci_write:
+            return Outcome.failed(
+                "FAIL: refusing to write layers baseline under GITHUB_ACTIONS "
+                "without --allow-ci-write"
+            )
+        refusals = {
+            "a package the layers do not cover": list(scan.problems),
+            "new layer violations": self._added(scan),
+        }
+        for what, rows in refusals.items():
+            if rows:
+                return Outcome(
+                    1,
+                    (f"FAIL: refusing to baseline {what}:", *(f"  {r}" for r in rows)),
+                )
+        return None
+
+    def _added(self, scan: LayerScan) -> list[str]:
+        if not self._baseline.exists:
+            return []
+        return [str(e) for e in sorted(scan.edges - self._baseline.edges)]

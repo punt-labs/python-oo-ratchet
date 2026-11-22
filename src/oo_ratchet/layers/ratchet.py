@@ -14,10 +14,12 @@ from typing import Self
 
 from oo_ratchet.coupling.outcome import Outcome
 from oo_ratchet.design.layer_edges import Edge
+from oo_ratchet.design.layer_table import LayerTable
 
 from .baseline import LayersBaseline
 from .gitio import LayersGit
 from .scan import LayerScan
+from .verdict import LayersVerdict
 
 
 class LayersRatchet:
@@ -59,26 +61,23 @@ class LayersRatchet:
     def _verdict(
         self, scan: LayerScan, base_edges: frozenset[Edge] | None, base: str
     ) -> Outcome:
-        found = {v.edge: v for v in scan.violations}
-        recorded = self._baseline.edges
-        new = sorted(set(found) - recorded)
-        stale = sorted(recorded - set(found))
-        grown = sorted(recorded - base_edges) if base_edges is not None else []
-        lines: list[str] = []
-        if new:
-            lines.append("FAIL: layer violations not in the baseline:")
-            lines.extend(f"  {found[edge]}" for edge in new)
-        if stale:
-            lines.append("FAIL: baseline entries that no longer violate (--update):")
-            lines.extend(f"  {edge}" for edge in stale)
-        if grown:
-            lines.append(f"FAIL: baseline holds edges the base {base[:10]} did not:")
-            lines.extend(f"  {edge}" for edge in grown)
-        if lines:
-            return Outcome(1, tuple(lines))
-        return Outcome.passed(
-            f"PASS: {len(found)} baselined layer violations, none new, none stale"
-        )
+        return LayersVerdict(
+            scan,
+            self._baseline.edges,
+            base_edges=base_edges,
+            base_config=self._under_base(scan, base, base_edges),
+            base=base,
+        ).outcome()
+
+    def _under_base(
+        self, scan: LayerScan, base: str, base_edges: frozenset[Edge] | None
+    ) -> list[Edge]:
+        """Return edges that break the base config's rules and the base baseline."""
+        text = self._git.show_pyproject_text(base) if base_edges is not None else None
+        config = LayerTable.from_text(text, f"{base}:pyproject.toml") if text else None
+        if config is None or base_edges is None:
+            return []
+        return sorted(scan.under(config).edges - base_edges)
 
     def _no_base(self, *, require_base: bool) -> Outcome | None:
         """Fail closed when no base resolves; ``None`` allows a first adoption."""

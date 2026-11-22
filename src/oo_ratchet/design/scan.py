@@ -30,7 +30,7 @@ class DesignScanner:
         findings = [f for m in index.modules() for f in class_rules.findings(m)]
         findings.extend(BoundaryCheck(index).findings())
         config = LayerTable.load(root, layers)
-        findings.extend(DataRules(index, config).findings())
+        findings.extend(DataRules(index, LayerTable.ordered(config)).findings())
         if config is not None:
             findings.extend(LayerCheck(index, config).findings())
         self._report = DesignReport(findings, index.skipped, len(index.modules()))

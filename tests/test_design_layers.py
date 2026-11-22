@@ -156,6 +156,13 @@ def test_unlayered_and_root_package(tmp_path: Path) -> None:
     assert keys(root) == {(Rules.UNLAYERED_MODULE, "forgotten.py", "<module>")}
 
 
+def test_class_open_does_not_hide_method_builtin(tmp_path: Path) -> None:
+    root = package(
+        tmp_path, "class Reader:\n open = custom\n def read(self):\n  return open('x')"
+    )
+    assert keys(root) == {(Rules.DOMAIN_IO, "domain.py", "open")}
+
+
 def test_entry_complexity_and_qualified_names(tmp_path: Path) -> None:
     root = package(
         tmp_path,

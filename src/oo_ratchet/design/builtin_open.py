@@ -18,10 +18,11 @@ class BuiltinOpen:
 
     def calls(self) -> list[ast.Call]:
         """Return builtin open calls (not dynamic aliases or getattr)."""
-        return self._scan(self._tree, set())
+        return self._scan(self._tree, (set(), set()))
 
     @classmethod
-    def _scan(cls, node: ast.AST, bound: set[str]) -> list[ast.Call]:
+    def _scan(cls, node: ast.AST, scope: tuple[set[str], set[str]]) -> list[ast.Call]:
+        bound, enclosing = scope
         if isinstance(
             node,
             (
@@ -32,13 +33,15 @@ class BuiltinOpen:
                 ast.Lambda,
             ),
         ):
-            bound = bound | cls._bindings(node)
+            bound = enclosing | cls._bindings(node)
+            if not isinstance(node, ast.ClassDef):
+                enclosing = bound
         out = []
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
             if node.func.id == "open" and "open" not in bound:
                 out.append(node)
         for child in ast.iter_child_nodes(node):
-            out.extend(cls._scan(child, bound))
+            out.extend(cls._scan(child, (bound, enclosing)))
         return out
 
     @staticmethod

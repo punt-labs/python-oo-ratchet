@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ast
 import os.path
+from pathlib import Path
 from typing import Self
 
 from .modules import Module, ModuleIndex
@@ -17,7 +18,7 @@ class LayerImports:
 
     def __new__(cls, index: ModuleIndex) -> Self:
         self = super().__new__(cls)
-        self._package = os.path.basename(os.path.normpath(index.layout.root.absolute()))
+        self._package = Path(os.path.normpath(index.layout.root.absolute())).name
         self._names = frozenset(self.name(module) for module in index.modules())
         return self
 

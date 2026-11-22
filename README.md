@@ -178,6 +178,10 @@ a key once per added or removed occurrence, in sorted order.
 Modules are dotted names rooted at the scanned
 package (`pkg.sub`, including its `__init__.py`), not checkout paths. Renames are
 reported as added and removed keys, never matched or netted against each other.
+If a module and a package share an import name (`foo.py` and `foo/__init__.py`),
+both are scanned. The package retains `pkg.foo`; the shadowed file uses a
+source-relative identity such as `pkg:foo.py`. Layer matching and relative
+imports still use the logical import spelling for both files.
 
 The ordered, unweighted verdict is:
 

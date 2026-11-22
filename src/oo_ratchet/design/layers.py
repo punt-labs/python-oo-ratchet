@@ -32,7 +32,7 @@ class LayerCheck:
         """Return all configured layer findings in the scanned tree."""
         out: list[Finding] = []
         for module in self._index.modules():
-            layer = self._config.layer(self._imports.name(module))
+            layer = self._config.layer(self._imports.canonical_name(module))
             if layer is None:
                 out.append(
                     self._finding(

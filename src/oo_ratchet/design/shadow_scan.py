@@ -22,7 +22,8 @@ class ShadowScan:
     def __new__(cls, source: Path, repo: Path, layers: Path | None) -> Self:
         self = super().__new__(cls)
         try:
-            report = DesignScanner(source, layers).report
+            scanner = DesignScanner(source, layers)
+            report = scanner.report
         except LayerConfigError as exc:
             raise LayerConfigError(str(exc).replace(str(repo), "<repo>")) from exc
         scorer = Scorer(source, repo)
@@ -33,7 +34,9 @@ class ShadowScan:
         if broken:
             raise ValueError(f"unreadable or unparseable Python: {', '.join(broken)}")
         self._keys = tuple(
-            DesignKey(f.rule, cls._module(Path(f.path), source), f.symbol)
+            DesignKey(
+                f.rule, cls._module(scanner.module_key(Path(f.path)), source), f.symbol
+            )
             for f in report._findings
         )
         self._metrics = Baseline.metrics_by_file(scorer.results)
@@ -50,8 +53,7 @@ class ShadowScan:
         return self._metrics
 
     @staticmethod
-    def _module(path: Path, source: Path) -> str:
-        parts = path.relative_to(source).with_suffix("").parts
-        if parts[-1] == "__init__":
-            parts = parts[:-1]
-        return ".".join((source.name, *parts))
+    def _module(key: str, source: Path) -> str:
+        if key.startswith("/"):
+            return source.name + ":" + key[1:]
+        return source.name + ("" if key == "__init__" else "." + key)

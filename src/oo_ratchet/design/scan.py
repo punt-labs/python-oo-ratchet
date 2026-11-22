@@ -18,10 +18,12 @@ class DesignScanner:
     """Index a package tree once and collect the findings of every rule."""
 
     _report: DesignReport
+    _index: ModuleIndex
 
     def __new__(cls, root: Path, layers: Path | None = None) -> Self:
         self = super().__new__(cls)
         index = ModuleIndex(root)
+        self._index = index
         class_rules = ClassRules(index.interface_methods())
         findings = [f for m in index.modules() for f in class_rules.findings(m)]
         findings.extend(BoundaryCheck(index).findings())
@@ -36,3 +38,7 @@ class DesignScanner:
     def report(self) -> DesignReport:
         """Return the collected report."""
         return self._report
+
+    def module_key(self, path: Path) -> str:
+        """Return the same unique file identity used by the rule inventories."""
+        return self._index.key_for(path)

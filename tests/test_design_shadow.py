@@ -53,6 +53,61 @@ def scan(repo: Path, capsys: pytest.CaptureFixture[str], *args: str) -> str:
     return output.out
 
 
+@pytest.mark.parametrize("name", ["foo", "nested/foo"])
+def test_module_and_package_collisions_keep_both_files(
+    repo: Path, capsys: pytest.CaptureFixture[str], name: str
+) -> None:
+    source = "import os\ndef f(a,b): pass\n"
+    seed(repo, {f"{name}.py": source, f"{name}/__init__.py": source})
+    config = repo / "layers.toml"
+    module = "pkg." + name.replace("/", ".")
+    config.write_text(f'[tool.oo-ratchet.layers]\ndomain=["{module}"]\n')
+    assert main(["design", str(repo / "pkg"), "--layers", str(config), "--json"]) == 0
+    plain = json.loads(capsys.readouterr().out)
+    assert plain["files_scanned"] == 2
+    assert plain["counts"]["domain-io"] == 2
+    assert plain["counts"]["primitive-params"] == 2
+    assert plain["counts"]["unlayered-module"] == 0
+    assert {
+        Path(f["path"]).relative_to(repo / "pkg").as_posix() for f in plain["findings"]
+    } == {f"{name}.py", f"{name}/__init__.py"}
+    write(repo, {f"{name}.py": source.replace("def f(", "def g(")})
+    first = scan(repo, capsys, "--layers", str(config), "--json")
+    payload = json.loads(first)
+    assert payload["verdict"] == "would-fail: tier1"
+    assert payload["tier1"] == {
+        "added": [
+            {"rule": "primitive-params", "module": f"pkg:{name}.py", "symbol": "g"}
+        ],
+        "removed": [
+            {"rule": "primitive-params", "module": f"pkg:{name}.py", "symbol": "f"}
+        ],
+    }
+    assert payload["tier0"] == {"added": [], "removed": []}
+    assert scan(repo, capsys, "--layers", str(config), "--json") == first
+
+
+def test_same_named_classes_in_colliding_modules_are_distinct_clump_owners(
+    repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    source = (
+        "from dataclasses import dataclass\n@dataclass\nclass Record:\n"
+        " a: str\n b: str\n c: str\n d: str\n"
+    )
+    seed(
+        repo,
+        {
+            "foo.py": source,
+            "foo/__init__.py": source,
+            "other.py": source.replace("Record", "Other"),
+        },
+    )
+    assert main(["design", str(repo / "pkg"), "--json"]) == 0
+    plain = json.loads(capsys.readouterr().out)
+    assert plain["files_scanned"] == 3
+    assert plain["counts"]["data-clump"] == 3
+
+
 def test_repeated_domain_io_key_is_new_tier0_debt(
     repo: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

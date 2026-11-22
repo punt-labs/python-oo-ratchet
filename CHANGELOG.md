@@ -4,6 +4,9 @@
 
 ### Changed
 
+- Design scans retain files whose module names collide with packages instead of
+  silently replacing them. Shadowed files receive stable source-relative keys;
+  plain reports retain both paths and layer rules apply to both files.
 - Shadow comparisons preserve finding multiplicity for stable design keys:
   repeated keys count as additional debt instead of being silently deduplicated.
   Added/removed lists repeat keys for each changed occurrence.

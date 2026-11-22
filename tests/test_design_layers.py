@@ -181,6 +181,39 @@ def test_comprehension_open_does_not_bind_outer(
     assert keys(root) == {(Rules.DOMAIN_IO, "domain.py", "open")}
 
 
+@pytest.mark.parametrize(
+    "body",
+    [
+        "os = Fake()\n return os.getenv('HOME')",
+        "return os.getenv('HOME')",
+    ],
+)
+def test_io_alias_local_shadowing(tmp_path: Path, body: str) -> None:
+    params = "" if body.startswith("os =") else "os"
+    root = package(tmp_path, f"import os\ndef read({params}):\n {body}")
+    assert keys(root) == set()
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "import os as system\ndef f(system):\n return system.getenv('HOME')",
+        "from os import getenv as env\ndef f(env):\n return env('HOME')",
+        "from pathlib import Path\ndef f(Path):\n return Path('x').exists()",
+        "import builtins\ndef f(builtins):\n return builtins.open('x')",
+        "import os\ndef outer(os):\n def inner():\n  return os.getenv('HOME')",
+        "def local():\n import os\ndef other(os):\n return os.getenv('HOME')",
+    ],
+)
+def test_shadowed_alias_variants(tmp_path: Path, source: str) -> None:
+    assert keys(package(tmp_path, source)) == set()
+
+
+def test_shadowed_alias_keeps_real_sibling_use(tmp_path: Path) -> None:
+    source = "import os\ndef fake(os):\n return os.getenv('HOME')\ndef real():\n return os.getenv('HOME')"
+    assert keys(package(tmp_path, source)) == {(Rules.DOMAIN_IO, "domain.py", "os")}
+
+
 def test_entry_complexity_and_qualified_names(tmp_path: Path) -> None:
     root = package(
         tmp_path,

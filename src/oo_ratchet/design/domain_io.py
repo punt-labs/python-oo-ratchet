@@ -5,6 +5,7 @@ from __future__ import annotations
 import ast
 from typing import ClassVar, Self
 
+from .alias_scopes import AliasScopes
 from .builtin_open import BuiltinOpen
 from .findings import Finding, Rules
 from .modules import Module
@@ -85,18 +86,17 @@ class DomainIO:
         }
     )
     _module: Module
-    _aliases: dict[str, str]
+    _aliases: AliasScopes
 
     def __new__(cls, module: Module) -> Self:
         self = super().__new__(cls)
         self._module = module
-        self._aliases = {}
+        self._aliases = AliasScopes(module.tree)
         return self
 
     def findings(self) -> list[Finding]:
         """Return IO import findings and unqualified builtin open calls."""
         imports = self._imports()
-        self._path_bindings()
         uses = self._filesystem_uses()
         out = [
             self._finding(node, symbol)
@@ -111,14 +111,10 @@ class DomainIO:
         for node in ast.walk(self._module.tree):
             if isinstance(node, ast.Import):
                 for alias in node.names:
-                    self._aliases[alias.asname or alias.name.split(".")[0]] = (
-                        alias.name if alias.asname else alias.name.split(".")[0]
-                    )
                     imports.append((node, alias.name, alias.name))
             elif isinstance(node, ast.ImportFrom) and node.level == 0:
                 for alias in node.names:
                     name = f"{node.module}.{alias.name}"
-                    self._aliases[alias.asname or alias.name] = name
                     imports.append((node, alias.name, name))
         return imports
 
@@ -140,18 +136,6 @@ class DomainIO:
         )
         return out
 
-    def _path_bindings(self) -> None:
-        for node in ast.walk(self._module.tree):
-            if isinstance(node, (ast.Assign, ast.AnnAssign)) and node.value is not None:
-                name = self._name(node.value)
-                if name in {"pathlib.Path", "pathlib.PosixPath", "pathlib.WindowsPath"}:
-                    targets = (
-                        node.targets if isinstance(node, ast.Assign) else [node.target]
-                    )
-                    for target in targets:
-                        if isinstance(target, ast.Name):
-                            self._aliases[target.id] = name
-
     def _filesystem_uses(self) -> set[str]:
         uses = {
             self._name(node.func)
@@ -167,15 +151,7 @@ class DomainIO:
         return {name for name in uses if name.rsplit(".", 1)[-1] in self.FS}
 
     def _name(self, node: ast.AST) -> str:
-        if isinstance(node, ast.Name):
-            return self._aliases.get(node.id, node.id)
-        if isinstance(node, ast.Attribute):
-            return f"{self._name(node.value)}.{node.attr}"
-        if isinstance(node, ast.Call):
-            return self._name(node.func)
-        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
-            return self._name(node.left)
-        return ""
+        return self._aliases.name(node)
 
     @classmethod
     def _is_io(cls, name: str) -> bool:

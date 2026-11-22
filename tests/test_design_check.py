@@ -210,9 +210,10 @@ class Engine:
 
 
 class Wrapper:
-    __slots__ = ("_data", "_where")
+    __slots__ = ("_data", "_where", "_kind")
     _data: dict[str, int]
     _where: "str | None"
+    _kind: Literal["a b", "c"]
 
     def __new__(cls, data: dict[str, int]) -> "Wrapper":
         self = super().__new__(cls)
@@ -221,6 +222,23 @@ class Wrapper:
 
     def require(self, key: str) -> int:
         return self._data[key]
+
+
+class QuotedPeer:
+    __slots__ = ("_peers",)
+    _peers: list["Engine"]
+
+    def __init__(self) -> None:
+        self._peers = []
+
+
+class Unannotated:
+    __slots__ = ("_name", "_engine")
+    _name: str
+
+    def __init__(self, engine: object) -> None:
+        self._name = ""
+        self._engine = engine
 
 
 class Mutable:
@@ -265,7 +283,8 @@ class EngineValue:
 _CAR = """
 from typing import TYPE_CHECKING
 
-from pkg.engine.core import Engine, EngineValue, Mutable, Wrapper, Handle, Helper, Child
+from pkg.engine.core import Engine, EngineValue, Mutable, Wrapper, Handle
+from pkg.engine.core import Helper, Child, QuotedPeer, Unannotated
 from ..engine import Engine as Reexported
 from pkg.engine import PublicEngine
 
@@ -375,6 +394,8 @@ def test_concrete_cross_package_imports(tmp_path: Path) -> None:
         "Handle",
         "Mutable",
         "PublicEngine",
+        "QuotedPeer",
+        "Unannotated",
     ]
     assert all(f.path.endswith("body.py") for f in rows)
     assert any("PublicEngine" in f.detail for f in rows)

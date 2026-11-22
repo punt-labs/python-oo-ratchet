@@ -210,8 +210,36 @@ def test_shadowed_alias_variants(tmp_path: Path, source: str) -> None:
 
 
 def test_shadowed_alias_keeps_real_sibling_use(tmp_path: Path) -> None:
-    source = "import os\ndef fake(os):\n return os.getenv('HOME')\ndef real():\n return os.getenv('HOME')"
+    source = (
+        "import os\ndef fake(os):\n return os.getenv('HOME')\n"
+        "def real():\n return os.getenv('HOME')"
+    )
     assert keys(package(tmp_path, source)) == {(Rules.DOMAIN_IO, "domain.py", "os")}
+
+
+@pytest.mark.parametrize(
+    "operation",
+    [
+        "path.isfile",
+        "path.isdir",
+        "path.islink",
+        "path.lexists",
+        "path.isjunction",
+        "path.isdevdrive",
+        "path.sameopenfile",
+        "path.exists",
+        "path.getsize",
+        "path.getmtime",
+        "path.getatime",
+        "path.getctime",
+        "path.ismount",
+        "path.samefile",
+        "listdir",
+    ],
+)
+def test_os_filesystem_spellings(tmp_path: Path, operation: str) -> None:
+    root = package(tmp_path, f"import os\nx = os.{operation}('x')")
+    assert keys(root) == {(Rules.DOMAIN_IO, "domain.py", "os")}
 
 
 def test_entry_complexity_and_qualified_names(tmp_path: Path) -> None:

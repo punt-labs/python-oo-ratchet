@@ -49,6 +49,13 @@ class DomainIO:
             "is_file",
             "is_dir",
             "is_symlink",
+            "isfile",
+            "isdir",
+            "islink",
+            "lexists",
+            "isjunction",
+            "isdevdrive",
+            "sameopenfile",
             "stat",
             "lstat",
             "resolve",
@@ -110,8 +117,7 @@ class DomainIO:
         imports: list[tuple[ast.stmt, str, str]] = []
         for node in ast.walk(self._module.tree):
             if isinstance(node, ast.Import):
-                for alias in node.names:
-                    imports.append((node, alias.name, alias.name))
+                imports.extend((node, alias.name, alias.name) for alias in node.names)
             elif isinstance(node, ast.ImportFrom) and node.level == 0:
                 for alias in node.names:
                     name = f"{node.module}.{alias.name}"

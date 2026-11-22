@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -193,7 +196,9 @@ def test_project_aliases_forward_annotations_and_reexports(tmp_path: Path) -> No
     assert symbols(rows, "feature-envy") == {"read"}
 
 
-def test_clump_three_way_intersection_and_sorted_detail(tmp_path: Path) -> None:
+def test_clump_ignores_candidates_requiring_three_way_intersection(
+    tmp_path: Path,
+) -> None:
     source = "\n".join(
         f"class {name}:\n" + "\n".join(f" {field}: int" for field in fields)
         for name, fields in [("A", "abcdef"), ("B", "abcdeg"), ("C", "abcdfg")]
@@ -203,8 +208,42 @@ def test_clump_three_way_intersection_and_sorted_detail(tmp_path: Path) -> None:
         for row in scan(tmp_path, {"records.py": source})
         if row["rule"] == "data-clump"
     ]
-    assert {row["symbol"] for row in rows} == {"A", "B", "C"}
-    assert [row["detail"] for row in rows] == ["a, b, c, d"] * 3
+    assert rows == []
+
+
+@pytest.mark.parametrize("complement", [False, True], ids=["one-extra", "all-but-one"])
+def test_clump_adversarial_thirty_owners_under_one_second(
+    tmp_path: Path, complement: bool
+) -> None:
+    root = tmp_path / "pkg"
+    root.mkdir()
+    extras = {f"extra_{i}" for i in range(30)}
+    classes = []
+    for i, extra in enumerate(sorted(extras)):
+        fields = {"a", "b", "c", "d"} | (extras - {extra} if complement else {extra})
+        classes.append(
+            f"class Owner{i}:\n" + "\n".join(f" {name}: int" for name in sorted(fields))
+        )
+    (root / "records.py").write_text("\n".join(classes))
+    code = (
+        "import sys\nfrom pathlib import Path\n"
+        "from oo_ratchet.design.scanner import DesignScanner\n"
+        "print(DesignScanner(Path(sys.argv[1])).report.to_json())"
+    )
+    start = time.monotonic()
+    result = subprocess.run(
+        [sys.executable, "-c", code, str(root)],
+        capture_output=True,
+        text=True,
+        timeout=1,
+        check=True,
+    )
+    assert time.monotonic() - start < 1
+    rows = [
+        r for r in json.loads(result.stdout)["findings"] if r["rule"] == "data-clump"
+    ]
+    assert len(rows) == (0 if complement else 30)
+    assert all(r["detail"] == "a, b, c, d" for r in rows)
 
 
 def test_clump_keeps_subsets_with_different_owners(tmp_path: Path) -> None:

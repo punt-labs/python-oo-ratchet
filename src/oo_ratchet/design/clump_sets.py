@@ -1,7 +1,8 @@
-"""Intersection closure and maximal repeated field-name sets."""
+"""Pairwise candidates and maximal repeated field-name sets."""
 
 from __future__ import annotations
 
+from itertools import combinations
 from typing import Self
 
 
@@ -32,8 +33,9 @@ class ClumpSets:
         ]
 
     def _intersections(self) -> set[frozenset[str]]:
-        candidates: set[frozenset[str]] = set()
-        for names in sorted(set(self._sets), key=lambda s: tuple(sorted(s))):
-            intersections = {candidate & names for candidate in candidates}
-            candidates.update(s for s in intersections | {names} if len(s) >= 4)
-        return candidates
+        owners = [names for names in self._sets if len(names) >= 4]
+        return {
+            candidate
+            for left, right in combinations(owners, 2)
+            if len(candidate := left & right) >= 4
+        }

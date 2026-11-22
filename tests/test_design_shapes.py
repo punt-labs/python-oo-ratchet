@@ -30,6 +30,41 @@ def symbols(rows: list[dict[str, object]], rule: str) -> set[str]:
     return {str(row["symbol"]) for row in rows if row["rule"] == rule}
 
 
+def context_source(kind: str, parameters: str) -> str:
+    definition = f"def f({parameters}): pass"
+    if kind == "function":
+        return definition
+    decorator = "" if kind == "instance" else f" @{kind}method\n"
+    return "class C:\n" + decorator + " " + definition
+
+
+@pytest.mark.parametrize("name", ["self", "cls"])
+@pytest.mark.parametrize("kind", ["function", "static", "instance", "class"])
+def test_size_cap_receiver_context(tmp_path: Path, name: str, kind: str) -> None:
+    parameters = f"{name}:Value," + ",".join(f"p{i}:Value" for i in range(5))
+    expected = (
+        {"f" if kind == "function" else "C.f"}
+        if kind in {"function", "static"}
+        else set()
+    )
+    assert (
+        symbols(scan(tmp_path, context_source(kind, parameters)), "size-cap")
+        == expected
+    )
+
+
+@pytest.mark.parametrize("name", ["self", "cls"])
+@pytest.mark.parametrize("kind", ["function", "static", "instance", "class"])
+def test_primitive_receiver_context(tmp_path: Path, name: str, kind: str) -> None:
+    source = context_source(kind, f"{name}:str,other:int")
+    expected = (
+        {"f" if kind == "function" else "C.f"}
+        if kind in {"function", "static"}
+        else set()
+    )
+    assert symbols(scan(tmp_path, source), "primitive-params") == expected
+
+
 @pytest.mark.parametrize(
     "annotation,expected",
     [

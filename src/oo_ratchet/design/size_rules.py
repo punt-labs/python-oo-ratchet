@@ -12,7 +12,8 @@ from .data_inventory import DataInventory
 from .declaration import Declaration
 from .findings import Finding, Rules
 from .modules import Module, ModuleIndex
-from .shape import ClassShape, Method
+from .shape import ClassShape
+from .signature_rules import SignatureRules
 
 
 class SizeRules:
@@ -69,15 +70,14 @@ class SizeRules:
         if isinstance(owner.node, ast.ClassDef):
             return {"methods": len(ClassShape(owner.node).method_names())}
         return {
-            "params": cls._parameters(owner.node),
+            "params": cls._parameters(owner),
             "complexity": ModuleMetrics._cyclomatic_complexity(owner.node),
         }
 
     @staticmethod
-    def _parameters(node: Method) -> int:
-        args = node.args
-        positional = args.posonlyargs + args.args
-        count = len(positional) + len(args.kwonlyargs)
-        if positional and positional[0].arg in {"self", "cls"}:
-            count -= 1
-        return count
+    def _parameters(owner: Declaration) -> int:
+        if isinstance(owner.node, ast.ClassDef):
+            return 0
+        args = owner.node.args
+        count = len(args.posonlyargs) + len(args.args) + len(args.kwonlyargs)
+        return count - (SignatureRules._receiver(owner) is not None)

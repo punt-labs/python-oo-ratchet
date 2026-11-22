@@ -9,6 +9,7 @@ from .data_inventory import DataInventory
 from .declaration import Declaration
 from .findings import Finding, Rules
 from .function_shape import FunctionShape
+from .shape import ClassShape
 from .tag_switch import TagSwitch
 from .type_reference import TypeReference
 
@@ -62,16 +63,27 @@ class SignatureRules:
             part.startswith("_") for part in owner.symbol.split(".")
         )
 
-    @staticmethod
-    def _parameters(owner: Declaration) -> list[ast.arg]:
+    @classmethod
+    def _parameters(cls, owner: Declaration) -> list[ast.arg]:
         parameters = FunctionShape(owner).parameters()
+        receiver = cls._receiver(owner)
+        return [parameter for parameter in parameters if parameter is not receiver]
+
+    @staticmethod
+    def _receiver(owner: Declaration) -> ast.arg | None:
+        node = owner.node
+        if owner.kind != "method" or isinstance(node, ast.ClassDef):
+            return None
+        positional = node.args.posonlyargs + node.args.args
         if (
-            owner.kind == "method"
-            and parameters
-            and parameters[0].arg in {"self", "cls"}
+            positional
+            and positional[0].arg in {"self", "cls"}
+            and not any(
+                ClassShape._name(d) == "staticmethod" for d in node.decorator_list
+            )
         ):
-            return parameters[1:]
-        return parameters
+            return positional[0]
+        return None
 
     @classmethod
     def _primitive(cls, annotation: ast.expr | None) -> bool:

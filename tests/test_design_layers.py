@@ -331,3 +331,15 @@ def test_layer_order_not_toml_order() -> None:
     config = LayerConfig({"domain": ["pkg.*"], "entry": ["pkg.entry"]})
     assert config.layer("pkg.entry") == "entry"
     assert config.layer("pkg.core") == "domain"
+
+
+def test_dot_root_uses_resolved_package_name(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = package(tmp_path, "import json\nfrom pkg.adapters import Store")
+    (root / "adapters.py").write_text("class Store: pass")
+    monkeypatch.chdir(root)
+    assert keys(Path(".")) == {
+        (Rules.DOMAIN_IO, "domain.py", "json"),
+        (Rules.LAYER_IMPORT, "domain.py", "Store"),
+    }

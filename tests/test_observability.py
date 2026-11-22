@@ -140,6 +140,18 @@ def test_invalid_gate_input_records_an_invalid_outcome(
     assert "Finished design gate: invalid" in _log(private_home).read_text("utf-8")
 
 
+def test_unopenable_store_never_changes_the_gate_result(
+    private_home: Path, secret_src: Path
+) -> None:
+    _db(private_home).mkdir(parents=True)  # a directory where the store goes
+
+    result = _cli(private_home, "suppressions", str(secret_src))
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.lstrip().startswith("Total suppressions:")
+    assert "Finished suppressions gate: pass" in _log(private_home).read_text("utf-8")
+
+
 def test_unknown_gate_configures_nothing(private_home: Path) -> None:
     assert main(["bogus"]) == 2
     assert not (private_home / ".punt-labs").exists()

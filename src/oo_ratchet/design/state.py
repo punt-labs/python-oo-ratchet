@@ -135,8 +135,16 @@ class StateProbe:
     @staticmethod
     def _is_setattr(node: ast.Call, receiver: str) -> bool:
         func = node.func
-        named = (isinstance(func, ast.Name) and func.id == "setattr") or (
-            isinstance(func, ast.Attribute) and func.attr == "__setattr__"
-        )
         first = node.args[0] if node.args else None
-        return named and isinstance(first, ast.Name) and first.id == receiver
+        if isinstance(func, ast.Name):
+            named = func.id == "setattr"
+            return named and isinstance(first, ast.Name) and first.id == receiver
+        if not (isinstance(func, ast.Attribute) and func.attr == "__setattr__"):
+            return False
+        owner = func.value
+        bound = (isinstance(owner, ast.Name) and owner.id == receiver) or (
+            isinstance(owner, ast.Call)
+            and isinstance(owner.func, ast.Name)
+            and owner.func.id == "super"
+        )
+        return bound or (isinstance(first, ast.Name) and first.id == receiver)

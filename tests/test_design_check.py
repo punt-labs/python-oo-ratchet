@@ -73,6 +73,22 @@ class Allocated:
         return 1
 
 
+class BoundSetattr:
+    def __init__(self) -> None:
+        self.__setattr__("_v", 1)
+
+    def get(self) -> int:
+        return 1
+
+
+class SuperSetattr:
+    def __init__(self) -> None:
+        super().__setattr__("_v", 1)
+
+    def get(self) -> int:
+        return 1
+
+
 class DictBacked:
     def put(self, key: str) -> None:
         self.__dict__[key] = 1

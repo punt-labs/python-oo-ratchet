@@ -7,6 +7,7 @@ from typing import Self
 
 from .boundaries import BoundaryCheck
 from .class_rules import ClassRules
+from .data_rules import DataRules
 from .layer_config import LayerConfig
 from .layers import LayerCheck
 from .modules import ModuleIndex
@@ -25,6 +26,7 @@ class DesignScanner:
         findings = [f for m in index.modules() for f in class_rules.findings(m)]
         findings.extend(BoundaryCheck(index).findings())
         config = LayerConfig.load(root, layers)
+        findings.extend(DataRules(index, config).findings())
         if config is not None:
             findings.extend(LayerCheck(index, config).findings())
         self._report = DesignReport(findings, index.skipped, len(index.modules()))

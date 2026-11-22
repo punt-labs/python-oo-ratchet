@@ -38,10 +38,6 @@ PAIRS = sorted(path.parent for path in ROOT.glob("*/expected.toml"))
 VARIANTS = ("bad", "good")
 FUTURE_RULES = frozenset(
     {
-        "envied-data",
-        "feature-envy",
-        "data-clump",
-        "misplaced-function",
         "primitive-params",
         "tag-switch",
         "middle-man",

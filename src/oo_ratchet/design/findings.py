@@ -38,6 +38,10 @@ class Rules:
     DOMAIN_IO = "domain-io"
     UNLAYERED_MODULE = "unlayered-module"
     THICK_ENTRY = "thick-entry"
+    ENVIED_DATA = "envied-data"
+    FEATURE_ENVY = "feature-envy"
+    DATA_CLUMP = "data-clump"
+    MISPLACED_FUNCTION = "misplaced-function"
 
     DESCRIPTIONS: ClassVar[dict[str, str]] = {
         STATELESS_SINGLE: "stateless class with one public method: a function-object",
@@ -50,6 +54,10 @@ class Rules:
         DOMAIN_IO: "domain module imports IO or calls builtin open",
         UNLAYERED_MODULE: "module matches no declared layer",
         THICK_ENTRY: "entry function has cyclomatic complexity greater than four",
+        ENVIED_DATA: "data class fields are read together in another module",
+        FEATURE_ENVY: "a typed parameter's attributes dominate a function",
+        DATA_CLUMP: "four or more names shared by at least three owners",
+        MISPLACED_FUNCTION: "public function belongs on a project class",
     }
 
     @classmethod

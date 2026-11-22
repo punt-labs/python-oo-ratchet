@@ -5,10 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Self
 
-from oo_ratchet.design.layer_config import LayerConfig, LayerConfigError
+from oo_ratchet.design.layer_config import LayerConfigError
 from oo_ratchet.design.layer_edges import Edge, Violation
-from oo_ratchet.design.layer_imports import LayerImports
-from oo_ratchet.design.layers import LayerCheck
+from oo_ratchet.design.layer_table import LayerTable
+from oo_ratchet.design.layer_violations import LayerViolations
 from oo_ratchet.design.modules import ModuleIndex
 
 
@@ -34,7 +34,7 @@ class LayerScan:
 
     def __new__(cls, src: Path) -> Self:
         self = super().__new__(cls)
-        config = LayerConfig.load(src)
+        config = LayerTable.load(src)
         if config is None:
             msg = f"no [tool.oo-ratchet.layers] table above {src}"
             raise LayerConfigError(msg)
@@ -43,12 +43,10 @@ class LayerScan:
             names = ", ".join(sorted(str(p) for p in index.skipped))
             msg = f"cannot read or parse: {names}"
             raise LayersScanError(msg)
-        check = LayerCheck(index, config)
-        imports = LayerImports(index)
-        found = (imports.canonical_name(m) for m in index.modules())
-        self._modules = tuple(sorted(found))
-        self._violations = tuple(check.violations())
-        self._unassigned = tuple(check.unassigned())
+        found = LayerViolations(index, config)
+        self._modules = tuple(sorted(found.name(m) for m in index.modules()))
+        self._violations = tuple(found.violations())
+        self._unassigned = tuple(found.unassigned())
         return self
 
     @property

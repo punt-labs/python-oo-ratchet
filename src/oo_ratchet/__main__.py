@@ -8,12 +8,8 @@ from collections.abc import Callable
 from typing import ClassVar, Self
 
 from oo_ratchet import __version__
-from oo_ratchet.coupling.cli import main as coupling_main
-from oo_ratchet.design.cli import main as design_main
-from oo_ratchet.layers.cli import main as layers_main
+from oo_ratchet.gates import GATES as REGISTRY
 from oo_ratchet.logging_config import DiagnosticLog, LoggingSetupError
-from oo_ratchet.oo.cli import main as oo_main
-from oo_ratchet.suppression.cli import main as suppression_main
 from oo_ratchet.usage import Usage
 
 logger = logging.getLogger(__name__)
@@ -22,13 +18,7 @@ logger = logging.getLogger(__name__)
 class Dispatcher:
     """Route one command line to the gate its first argument names."""
 
-    GATES: ClassVar[dict[str, Callable[[list[str] | None], int]]] = {
-        "oo": oo_main,
-        "coupling": coupling_main,
-        "suppressions": suppression_main,
-        "design": design_main,
-        "layers": layers_main,
-    }
+    GATES: ClassVar[dict[str, Callable[[list[str] | None], int]]] = REGISTRY
     USAGE: ClassVar[str] = (
         "usage: oo-ratchet {oo,coupling,suppressions,design,layers} <src> [flags]\n"
         "       oo-ratchet <gate> --help for that gate's flags"

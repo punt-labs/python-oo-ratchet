@@ -4,6 +4,10 @@
 
 ### Added
 
+- Optional strict `[tool.oo-ratchet.layers]` configuration and `design --layers`
+  override, with advisory layer-import, domain-io, unlayered-module and thick-entry
+  checks. Layer eval expectations now run without future-rule xfails. Findings
+  still exit 0; adopter ratchet gates are unchanged.
 - Seeded library-loan design eval pairs with behavior equivalence, finding-key
   recall/precision and ordering checks, and strict future-rule xfails.
 - `make lint` and `make type` (hence `make check`) now also cover `evals/`.

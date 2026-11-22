@@ -46,10 +46,6 @@ FUTURE_RULES = frozenset(
         "tag-switch",
         "middle-man",
         "split-cohesion",
-        "layer-import",
-        "domain-io",
-        "unlayered-module",
-        "thick-entry",
         "size-cap",
     }
 )
@@ -67,7 +63,10 @@ def _expected(pair: Path, variant: str) -> set[Key]:
 
 
 def _scan(root: Path) -> set[Key]:
-    doc = json.loads(DesignScanner(root).report.to_json())
+    layers = root.parents[1] / "layers.toml"
+    doc = json.loads(
+        DesignScanner(root, layers if layers.is_file() else None).report.to_json()
+    )
     assert doc["skipped"] == []
     return {
         (row["rule"], Path(row["path"]).relative_to(root).as_posix(), row["symbol"])

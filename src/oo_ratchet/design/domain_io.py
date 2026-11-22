@@ -1,0 +1,191 @@
+"""Syntactic IO imports and filesystem/environment use in domain modules."""
+
+from __future__ import annotations
+
+import ast
+from typing import ClassVar, Self
+
+from .builtin_open import BuiltinOpen
+from .findings import Finding, Rules
+from .modules import Module
+
+
+class DomainIO:
+    """Resolve import aliases and simple Path assignments without executing code."""
+
+    IO: ClassVar[tuple[str, ...]] = (
+        "subprocess",
+        "socket",
+        "shutil",
+        "json",
+        "sqlite3",
+        "httpx",
+        "requests",
+        "urllib.request",
+        "typer",
+        "rich",
+        "mcp",
+        "fastmcp",
+        "logging.handlers",
+    )
+    FS: ClassVar[frozenset[str]] = frozenset(
+        {
+            "open",
+            "read_text",
+            "read_bytes",
+            "write_text",
+            "write_bytes",
+            "touch",
+            "mkdir",
+            "rmdir",
+            "unlink",
+            "rename",
+            "replace",
+            "iterdir",
+            "glob",
+            "rglob",
+            "exists",
+            "is_file",
+            "is_dir",
+            "is_symlink",
+            "stat",
+            "lstat",
+            "resolve",
+            "absolute",
+            "cwd",
+            "home",
+            "chmod",
+            "chown",
+            "symlink_to",
+            "hardlink_to",
+            "getenv",
+            "putenv",
+            "unsetenv",
+            "getcwd",
+            "chdir",
+            "listdir",
+            "scandir",
+            "remove",
+            "removedirs",
+            "makedirs",
+            "walk",
+            "access",
+            "readlink",
+            "expanduser",
+            "expandvars",
+            "getsize",
+            "getmtime",
+            "getatime",
+            "getctime",
+            "ismount",
+            "samefile",
+            "realpath",
+            "abspath",
+            "environ",
+        }
+    )
+    _module: Module
+    _aliases: dict[str, str]
+
+    def __new__(cls, module: Module) -> Self:
+        self = super().__new__(cls)
+        self._module = module
+        self._aliases = {}
+        return self
+
+    def findings(self) -> list[Finding]:
+        """Return IO import findings and unqualified builtin open calls."""
+        imports = self._imports()
+        self._path_bindings()
+        uses = self._filesystem_uses()
+        out = [
+            self._finding(node, symbol)
+            for node, symbol, name in imports
+            if self._is_io(name) or self._uses_filesystem(name, uses)
+        ]
+        out.extend(self._open_calls())
+        return out
+
+    def _imports(self) -> list[tuple[ast.stmt, str, str]]:
+        imports: list[tuple[ast.stmt, str, str]] = []
+        for node in ast.walk(self._module.tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    self._aliases[alias.asname or alias.name.split(".")[0]] = (
+                        alias.name if alias.asname else alias.name.split(".")[0]
+                    )
+                    imports.append((node, alias.name, alias.name))
+            elif isinstance(node, ast.ImportFrom) and node.level == 0:
+                for alias in node.names:
+                    name = f"{node.module}.{alias.name}"
+                    self._aliases[alias.asname or alias.name] = name
+                    imports.append((node, alias.name, name))
+        return imports
+
+    @staticmethod
+    def _uses_filesystem(name: str, uses: set[str]) -> bool:
+        return name.split(".")[0] in {"os", "pathlib"} and any(
+            use == name or use.startswith(name + ".") for use in uses
+        )
+
+    def _open_calls(self) -> list[Finding]:
+        out = [
+            self._finding(node, "open")
+            for node in BuiltinOpen(self._module.tree).calls()
+        ]
+        out.extend(
+            self._finding(node, "open")
+            for node in ast.walk(self._module.tree)
+            if isinstance(node, ast.Call) and self._name(node.func) == "builtins.open"
+        )
+        return out
+
+    def _path_bindings(self) -> None:
+        for node in ast.walk(self._module.tree):
+            if isinstance(node, (ast.Assign, ast.AnnAssign)) and node.value is not None:
+                name = self._name(node.value)
+                if name in {"pathlib.Path", "pathlib.PosixPath", "pathlib.WindowsPath"}:
+                    targets = (
+                        node.targets if isinstance(node, ast.Assign) else [node.target]
+                    )
+                    for target in targets:
+                        if isinstance(target, ast.Name):
+                            self._aliases[target.id] = name
+
+    def _filesystem_uses(self) -> set[str]:
+        uses = {
+            self._name(node.func)
+            for node in ast.walk(self._module.tree)
+            if isinstance(node, ast.Call)
+        }
+        uses.update(
+            self._name(node)
+            for node in ast.walk(self._module.tree)
+            if isinstance(node, (ast.Name, ast.Attribute))
+            and self._name(node).startswith("os.environ")
+        )
+        return {name for name in uses if name.rsplit(".", 1)[-1] in self.FS}
+
+    def _name(self, node: ast.AST) -> str:
+        if isinstance(node, ast.Name):
+            return self._aliases.get(node.id, node.id)
+        if isinstance(node, ast.Attribute):
+            return f"{self._name(node.value)}.{node.attr}"
+        if isinstance(node, ast.Call):
+            return self._name(node.func)
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
+            return self._name(node.left)
+        return ""
+
+    @classmethod
+    def _is_io(cls, name: str) -> bool:
+        return any(name == io or name.startswith(io + ".") for io in cls.IO)
+
+    def _finding(self, node: ast.stmt | ast.expr, symbol: str) -> Finding:
+        return Finding(
+            Rules.DOMAIN_IO,
+            str(self._module.path),
+            node.lineno,
+            symbol,
+            "domain module depends on IO",
+        )

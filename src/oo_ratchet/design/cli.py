@@ -3,50 +3,42 @@
 from __future__ import annotations
 
 import argparse
-import sys
-from pathlib import Path
 from typing import Self
 
-from .scanner import DesignScanner
+from .output import DesignOutput
 
 
 class DesignCli:
     """Parse the design check's arguments and print its report."""
 
-    _root: Path
-    _json: bool
+    _output: DesignOutput
 
     def __new__(cls, argv: list[str] | None) -> Self:
         self = super().__new__(cls)
-        ns = cls._parser().parse_args(argv)
-        self._root = Path(ns.src)
-        self._json = bool(ns.json)
+        self._output = DesignOutput(cls._parser().parse_args(argv))
         return self
 
     def run(self) -> int:
-        """Print the report; exit 0 unless the source is not a directory."""
-        if not self._root.is_dir():
-            sys.stderr.write(f"oo-ratchet design: {self._root} is not a directory\n")
-            return 2
-        sys.stdout.write(self._render())
-        return 0
+        """Print the advisory report or an input error."""
+        return self._output.run()
 
-    def _render(self) -> str:
-        report = DesignScanner(self._root).report
-        return report.to_json() + "\n" if self._json else report.to_text()
-
-    @staticmethod
-    def _parser() -> argparse.ArgumentParser:
+    @classmethod
+    def _parser(cls) -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser(
             prog="oo-ratchet design",
-            description=(
-                "advisory OO design check: stateless wrapper classes, getter-heavy "
-                "classes, concrete imports across package boundaries; never fails"
-            ),
+            description=cls._description(),
         )
         parser.add_argument("src", help="package directory to scan")
         parser.add_argument("--json", action="store_true", help="emit JSON")
+        parser.add_argument("--layers", help="TOML layer configuration override")
         return parser
+
+    @staticmethod
+    def _description() -> str:
+        return (
+            "Advisory OO design and optional layer checks. Findings never fail; "
+            "invalid paths or layer configuration exit 2."
+        )
 
 
 def main(argv: list[str] | None = None) -> int:

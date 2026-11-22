@@ -27,6 +27,9 @@ strict xfails track their removal. The known cases are:
   of the domain. Ordering excludes known-misfire keys, as precision does;
   separate precision xfails still track their removal.
 
+The layer-leak pair passes its `layers.toml` to the scanner; its four layer
+expectations are implemented checks, not future-rule xfails.
+
 `make type` runs strict mypy separately for every variant plus its shared
 behavior file, since every variant intentionally uses the same package name.
 Pyright and Ruff cover all evals. The self-ratchets retain their `src/` scope.

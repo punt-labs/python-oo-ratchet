@@ -26,10 +26,13 @@ class TagSwitch:
 
     @classmethod
     def _guards(cls, block: list[ast.stmt]) -> bool:
+        return cls._run([cls._guard(statement) for statement in block])
+
+    @staticmethod
+    def _run(arms: list[set[str]]) -> bool:
         common: set[str] = set()
         count = 0
-        for statement in block:
-            targets = cls._guard(statement)
+        for targets in arms:
             overlap = common & targets
             if overlap:
                 common = overlap
@@ -70,7 +73,7 @@ class TagSwitch:
             current = (
                 tail[0] if len(tail) == 1 and isinstance(tail[0], ast.If) else None
             )
-        return len(arms) >= 3 and bool(set.intersection(*arms))
+        return cls._run(arms)
 
     @classmethod
     def _comparison(cls, node: ast.expr) -> set[str]:

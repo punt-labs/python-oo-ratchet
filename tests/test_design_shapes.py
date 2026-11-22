@@ -30,6 +30,30 @@ def symbols(rows: list[dict[str, object]], rule: str) -> set[str]:
     return {str(row["symbol"]) for row in rows if row["rule"] == rule}
 
 
+@pytest.mark.parametrize(
+    "values,expected",
+    [
+        (["'a'", "'b'", "'c'", "fallback"], {"fee"}),
+        (["fallback", "'a'", "'b'", "'c'", "fallback"], {"fee"}),
+        (["Kind.A", "Kind.B", "Kind.C", "fallback"], {"fee"}),
+        (["'a'", "'b'", "fallback", "'c'"], set()),
+        (["'a'", "fallback", "'b'", "'c'"], set()),
+        (["fallback", "'a'", "'b'", "'c'"], {"fee"}),
+        ([], set()),
+        (["fallback"] * 4, set()),
+    ],
+)
+def test_tag_switch_consecutive_literal_runs(
+    tmp_path: Path, values: list[str], expected: set[str]
+) -> None:
+    arms = "\n".join(
+        f" {'if' if i == 0 else 'elif'} kind == {value}: return 1"
+        for i, value in enumerate(values)
+    )
+    source = "def fee(kind, fallback):\n" + (arms or " pass")
+    assert symbols(scan(tmp_path, source), "tag-switch") == expected
+
+
 @pytest.mark.parametrize("mixed", [False, True])
 def test_lcom4_shared_callable_field(tmp_path: Path, mixed: bool) -> None:
     body = (

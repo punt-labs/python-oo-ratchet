@@ -234,6 +234,11 @@ class Mutable:
         self._n += 1
 
 
+class Child(Engine):
+    def go(self) -> int:
+        return 2
+
+
 class Helper:
     def help(self) -> int:
         return 1
@@ -260,7 +265,7 @@ class EngineValue:
 _CAR = """
 from typing import TYPE_CHECKING
 
-from pkg.engine.core import Engine, EngineValue, Mutable, Wrapper, Handle, Helper
+from pkg.engine.core import Engine, EngineValue, Mutable, Wrapper, Handle, Helper, Child
 from ..engine import Engine as Reexported
 from pkg.engine import PublicEngine
 
@@ -363,6 +368,7 @@ def test_concrete_cross_package_imports(tmp_path: Path) -> None:
     )
     rows = [f for f in _findings(root) if f.rule == Rules.CONCRETE_IMPORT]
     assert sorted(f.symbol for f in rows) == [
+        "Child",
         "Engine",
         "Engine",
         "Engine",

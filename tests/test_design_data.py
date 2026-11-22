@@ -521,3 +521,39 @@ def test_other_receiver_bindings_do_not_leak_nested_bodies(tmp_path: Path) -> No
     rows = scan(tmp_path, {"model.py": MODEL, "consumer.py": source})
     assert symbols(rows, "envied-data") == {"Item"}
     assert symbols(rows, "feature-envy") == {"read"}
+
+
+@pytest.mark.parametrize(
+    ("source", "envied", "feature"),
+    [
+        ("def read(x: Item):\n x.a += 1\n return x.b", {"Item"}, set()),
+        ("def read(x: Item):\n x.a += 1\n return x.b + x.c", {"Item"}, {"read"}),
+        ("def read(x: Item):\n x.a += 1\n x.b += 1\n x.c += 1", {"Item"}, {"read"}),
+        ("def read(x: Item):\n x.a = 1\n return x.b", set(), set()),
+        (
+            "class Reader:\n def read(self, x: Item):\n"
+            "  self.a += 1\n  self.b += 1\n  self.c += 1\n"
+            "  return x.a + x.b + x.c",
+            {"Item"},
+            set(),
+        ),
+    ],
+)
+def test_augmented_attribute_targets_are_reads(
+    tmp_path: Path, source: str, envied: set[str], feature: set[str]
+) -> None:
+    rows = scan(
+        tmp_path,
+        {"model.py": MODEL, "consumer.py": "from .model import Item\n" + source},
+    )
+    assert symbols(rows, "envied-data") == envied
+    assert symbols(rows, "feature-envy") == feature
+
+
+def test_augmented_attribute_target_places_returning_function(tmp_path: Path) -> None:
+    source = (
+        "from .model import Item\ndef update(n: int) -> Item:\n"
+        " x = Item()\n x.a += n\n return x"
+    )
+    rows = scan(tmp_path, {"model.py": MODEL, "consumer.py": source})
+    assert symbols(rows, "misplaced-function") == {"update"}

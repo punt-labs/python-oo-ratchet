@@ -44,13 +44,14 @@ class FunctionShape:
         return out
 
     def reads(self) -> dict[str, set[str]]:
-        """Group distinct direct attribute loads by their bare receiver name."""
+        """Group direct attribute reads, including augmented assignment targets."""
         reads: dict[str, set[str]] = {}
-        for node in self.nodes():
+        for item in self.nodes():
+            node = item.target if isinstance(item, ast.AugAssign) else item
             if (
                 isinstance(node, ast.Attribute)
                 and isinstance(node.value, ast.Name)
-                and isinstance(node.ctx, ast.Load)
+                and (isinstance(node.ctx, ast.Load) or isinstance(item, ast.AugAssign))
             ):
                 reads.setdefault(node.value.id, set()).add(node.attr)
         return reads

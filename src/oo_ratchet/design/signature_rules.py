@@ -73,10 +73,15 @@ class SignatureRules:
             return parameters[1:]
         return parameters
 
-    @staticmethod
-    def _primitive(annotation: ast.expr | None) -> bool:
+    @classmethod
+    def _primitive(cls, annotation: ast.expr | None) -> bool:
         if annotation is None:
             return True
+        if isinstance(annotation, ast.Constant) and isinstance(annotation.value, str):
+            try:
+                return cls._primitive(ast.parse(annotation.value, mode="eval").body)
+            except SyntaxError:
+                return False
         if isinstance(annotation, ast.Subscript):
             annotation = annotation.value
         return TypeReference.name(annotation) in {"str", "int", "float", "bool", "dict"}

@@ -31,6 +31,23 @@ def symbols(rows: list[dict[str, object]], rule: str) -> set[str]:
 
 
 @pytest.mark.parametrize(
+    "annotation,expected",
+    [
+        ("'dict[str, int]'", {"f"}),
+        ("'dict[str, list[int]]'", {"f"}),
+        ("'list[str]'", set()),
+        ("'dict['", set()),
+        ("''", set()),
+    ],
+)
+def test_quoted_generic_primitive_annotations(
+    tmp_path: Path, annotation: str, expected: set[str]
+) -> None:
+    source = f"def f(a:{annotation},b:str): pass"
+    assert symbols(scan(tmp_path, source), "primitive-params") == expected
+
+
+@pytest.mark.parametrize(
     "source,expected",
     [
         ("def f(a: str,b: int): pass", {"f"}),

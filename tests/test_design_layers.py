@@ -239,6 +239,18 @@ def test_dot_root_uses_resolved_package_name(
     }
 
 
+def test_symlink_uses_package_spelling(tmp_path: Path) -> None:
+    root = package(tmp_path, "import json\nfrom pkg.adapters import Store")
+    (root / "adapters.py").write_text("class Store: pass")
+    target = tmp_path / "other_dir"
+    root.rename(target)
+    root.symlink_to(target, target_is_directory=True)
+    assert keys(root) == {
+        (Rules.DOMAIN_IO, "domain.py", "json"),
+        (Rules.LAYER_IMPORT, "domain.py", "Store"),
+    }
+
+
 @pytest.mark.parametrize(
     "source,symbol",
     [

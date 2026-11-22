@@ -16,7 +16,7 @@ class LayerImports:
 
     def __new__(cls, index: ModuleIndex) -> Self:
         self = super().__new__(cls)
-        self._package = index.layout.root.resolve().name
+        self._package = index.layout.name or index.layout.root.resolve().name
         self._names = frozenset(self.name(module) for module in index.modules())
         return self
 

@@ -146,19 +146,24 @@ class StateProbe:
             and target.value.id == receiver
         )
 
-    @staticmethod
-    def _is_setattr(node: ast.Call, receiver: str) -> bool:
+    @classmethod
+    def _is_setattr(cls, node: ast.Call, receiver: str) -> bool:
         func = node.func
         first = node.args[0] if node.args else None
+        passes_receiver = isinstance(first, ast.Name) and first.id == receiver
         if isinstance(func, ast.Name):
-            named = func.id == "setattr"
-            return named and isinstance(first, ast.Name) and first.id == receiver
-        if not (isinstance(func, ast.Attribute) and func.attr == "__setattr__"):
-            return False
-        owner = func.value
-        bound = (isinstance(owner, ast.Name) and owner.id == receiver) or (
+            return func.id == "setattr" and passes_receiver
+        if isinstance(func, ast.Attribute) and func.attr == "__setattr__":
+            return passes_receiver or cls._bound_to(func.value, receiver)
+        return False
+
+    @staticmethod
+    def _bound_to(owner: ast.expr, receiver: str) -> bool:
+        """Return whether ``owner.__setattr__`` is bound to the instance."""
+        if isinstance(owner, ast.Name):
+            return owner.id == receiver
+        return (
             isinstance(owner, ast.Call)
             and isinstance(owner.func, ast.Name)
             and owner.func.id == "super"
         )
-        return bound or (isinstance(first, ast.Name) and first.id == receiver)

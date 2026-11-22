@@ -16,7 +16,7 @@ from .shadow_keys import DesignKey
 class ShadowScan:
     """Reject unreadable Python rather than mistake skipped debt for a trade."""
 
-    _keys: frozenset[DesignKey]
+    _keys: tuple[DesignKey, ...]
     _metrics: dict[str, dict[str, float]]
 
     def __new__(cls, source: Path, repo: Path, layers: Path | None) -> Self:
@@ -32,7 +32,7 @@ class ShadowScan:
         )
         if broken:
             raise ValueError(f"unreadable or unparseable Python: {', '.join(broken)}")
-        self._keys = frozenset(
+        self._keys = tuple(
             DesignKey(f.rule, cls._module(Path(f.path), source), f.symbol)
             for f in report._findings
         )
@@ -40,8 +40,8 @@ class ShadowScan:
         return self
 
     @property
-    def keys(self) -> frozenset[DesignKey]:
-        """Return deduplicated, line-independent finding identities."""
+    def keys(self) -> tuple[DesignKey, ...]:
+        """Return line-independent identities, preserving finding multiplicity."""
         return self._keys
 
     @property

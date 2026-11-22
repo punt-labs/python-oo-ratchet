@@ -4,6 +4,9 @@
 
 ### Changed
 
+- Shadow comparisons preserve finding multiplicity for stable design keys:
+  repeated keys count as additional debt instead of being silently deduplicated.
+  Added/removed lists repeat keys for each changed occurrence.
 - `domain-io` is purely import-based, including os, os.path, pathlib, io,
   tempfile and glob, with TYPE_CHECKING imports exempt and findings keyed by
   the imported module. Domain code reaches the filesystem and environment

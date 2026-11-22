@@ -10,7 +10,7 @@ from .shadow_metrics import ShadowMetrics
 
 
 class ShadowReport:
-    """Let design-key sets dominate unweighted per-file OO metric deltas."""
+    """Let design-key multiplicities dominate unweighted OO metric deltas."""
 
     _keys: KeyChanges
     _metrics: ShadowMetrics

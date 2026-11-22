@@ -53,6 +53,53 @@ def scan(repo: Path, capsys: pytest.CaptureFixture[str], *args: str) -> str:
     return output.out
 
 
+def test_repeated_domain_io_key_is_new_tier0_debt(
+    repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    seed(repo, {"model.py": 'open("first")\n'})
+    write(repo, {"model.py": 'open("first")\nopen("second")\nopen("third")\n'})
+    config = repo / "layers.toml"
+    config.write_text('[tool.oo-ratchet.layers]\ndomain=["pkg*"]\n')
+    first = scan(repo, capsys, "--layers", str(config), "--json")
+    payload = json.loads(first)
+    assert payload["verdict"] == "would-fail: tier0"
+    assert payload["tier0"] == {
+        "added": [{"rule": "domain-io", "module": "pkg.model", "symbol": "open"}] * 2,
+        "removed": [],
+    }
+    assert scan(repo, capsys, "--layers", str(config), "--json") == first
+
+
+@pytest.mark.parametrize("remove", [False, True])
+def test_existing_clump_key_multiplicity_changes(
+    repo: Path, capsys: pytest.CaptureFixture[str], remove: bool
+) -> None:
+    def source(extra: bool) -> str:
+        fields = {
+            "A": "abcdefgh" if extra else "abcd",
+            "B": "abcd",
+            "C": "abcd",
+            "D": "efgh",
+            "E": "efgh",
+            "F": "efgh",
+        }
+        return "from dataclasses import dataclass\n" + "".join(
+            f"@dataclass\nclass {owner}:\n"
+            + "".join(f"    {field}: str\n" for field in names)
+            for owner, names in fields.items()
+        )
+
+    seed(repo, {"model.py": source(remove)})
+    write(repo, {"model.py": source(not remove)})
+    payload = json.loads(scan(repo, capsys, "--json"))
+    assert payload["verdict"] == ("good-deed: trade" if remove else "would-fail: tier1")
+    key = {"rule": "data-clump", "module": "pkg.model", "symbol": "A"}
+    assert payload["tier1"] == {
+        "added": [] if remove else [key],
+        "removed": [key] if remove else [],
+    }
+
+
 @pytest.mark.parametrize(
     "before,after,expected",
     [

@@ -171,8 +171,11 @@ waiver is read. The base scan uses an isolated detached worktree that is removed
 afterward. Without `--layers`, each tree discovers its own layer configuration;
 an explicit override is applied to both scans.
 
-Design debt is a set of `(rule, module, symbol)` keys: line numbers and diagnostic
-detail do not participate. Modules are dotted names rooted at the scanned
+Design debt is a multiset of `(rule, module, symbol)` keys: line numbers and
+diagnostic detail do not participate. Each finding contributes one occurrence;
+an increased count adds debt even when that key already exists. Reports repeat
+a key once per added or removed occurrence, in sorted order.
+Modules are dotted names rooted at the scanned
 package (`pkg.sub`, including its `__init__.py`), not checkout paths. Renames are
 reported as added and removed keys, never matched or netted against each other.
 

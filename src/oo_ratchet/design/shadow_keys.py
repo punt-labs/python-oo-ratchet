@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import asdict, dataclass
 from typing import ClassVar, Self
 
@@ -18,7 +19,7 @@ class DesignKey:
 
 
 class KeyChanges:
-    """Compare complete repository scan sets without matching renamed modules."""
+    """Compare finding multiplicities without matching renamed modules."""
 
     TIER0: ClassVar[frozenset[str]] = frozenset(
         {Rules.SIZE_CAP, Rules.LAYER_IMPORT, Rules.DOMAIN_IO}
@@ -26,10 +27,13 @@ class KeyChanges:
     _added: tuple[DesignKey, ...]
     _removed: tuple[DesignKey, ...]
 
-    def __new__(cls, base: frozenset[DesignKey], current: frozenset[DesignKey]) -> Self:
+    def __new__(
+        cls, base: tuple[DesignKey, ...], current: tuple[DesignKey, ...]
+    ) -> Self:
         self = super().__new__(cls)
-        self._added = tuple(sorted(current - base))
-        self._removed = tuple(sorted(base - current))
+        before, after = Counter(base), Counter(current)
+        self._added = tuple(sorted((after - before).elements()))
+        self._removed = tuple(sorted((before - after).elements()))
         return self
 
     def added(self, tier: int) -> tuple[DesignKey, ...]:

@@ -80,9 +80,7 @@ class ModuleCouplingMetrics:
 
     @staticmethod
     def _node_public_names(node: ast.AST) -> int:
-        if isinstance(node, ast.ClassDef):
-            return 0 if node.name.startswith("_") else 1
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
             return 0 if node.name.startswith("_") else 1
         if isinstance(node, ast.Assign):
             return sum(
@@ -197,19 +195,10 @@ class ModuleCouplingMetrics:
         )
 
     @staticmethod
-    def _is_slots(target: ast.expr) -> bool:
-        return isinstance(target, ast.Name) and target.id == "__slots__"
-
-    @staticmethod
     def _is_type_definition(node: ast.ClassDef) -> bool:
         """Return True for Protocol/TypedDict/BaseModel classes (excluded from LCOM)."""
         for base in node.bases:
-            if isinstance(base, ast.Name) and base.id in _TYPE_BASES:
-                return True
-            if (
-                isinstance(base, ast.Subscript)
-                and isinstance(base.value, ast.Name)
-                and base.value.id in _TYPE_BASES
-            ):
+            target = base.value if isinstance(base, ast.Subscript) else base
+            if isinstance(target, ast.Name) and target.id in _TYPE_BASES:
                 return True
         return False

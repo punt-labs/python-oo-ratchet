@@ -25,7 +25,19 @@ class SourceHistory:
 
     @staticmethod
     def _roots(patterns: set[str], tree: Path) -> set[Path]:
-        return {p for pattern in patterns for p in tree.glob(pattern) if p.is_dir()}
+        roots = {
+            SourceHistory._resolved(p, tree)
+            for pattern in patterns
+            for p in tree.glob(pattern)
+        }
+        return {p for p in roots if p.is_dir()}
+
+    @staticmethod
+    def _resolved(path: Path, tree: Path) -> Path:
+        root = path.resolve()
+        if not root.is_relative_to(tree.resolve()):
+            raise ValueError(f"historical namespace root escapes checkout: {path}")
+        return root
 
     @staticmethod
     def patterns(source: Sources, repo: Path, renames: dict[str, str]) -> set[str]:

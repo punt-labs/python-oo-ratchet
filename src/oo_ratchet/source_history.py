@@ -29,7 +29,8 @@ class SourceHistory:
                 roots.add(root)
         if not roots:
             return tree / source.roots[0].relative_to(repo)
-        return Sources(tuple(sorted(roots)), source.namespace, tree)
+        project = tree / source.project.relative_to(repo) if source.project else None
+        return Sources(tuple(sorted(roots)), source.namespace, project)
 
     @staticmethod
     def _old_root(old: str, source: Sources, tree: Path) -> Path | None:

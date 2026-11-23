@@ -259,3 +259,33 @@ def test_deleted_configured_portion_stays_in_base_suppressions(
     assert before is not None
     assert before.total == 1
     assert deleted in before.by_file
+
+
+def test_shadow_preserves_nested_project_layer_configuration(
+    workspace: GitSandbox,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repo = workspace
+    repo.write("pyproject.toml", "")
+    repo.write("nested/pyproject.toml", CONFIG)
+    repo.write("nested/src/app/a.py", HEADER + "import app.b\n")
+    repo.write("nested/src/app/b.py", HEADER)
+    base = repo.commit("nested project")
+    monkeypatch.chdir(repo.root / "nested")
+    assert (
+        main(
+            [
+                "design",
+                "--namespace",
+                "app",
+                "src/app",
+                "--shadow-check",
+                base,
+                "--json",
+            ]
+        )
+        == 0
+    )
+    report = json.loads(capsys.readouterr().out)
+    assert report["tier0"] == {"added": [], "removed": []}

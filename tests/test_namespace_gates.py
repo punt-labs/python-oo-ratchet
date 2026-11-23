@@ -403,3 +403,22 @@ def test_nested_namespace_history_keeps_repository_ruff_ignores(
     before = BaseRescanner(GitRepo(repo.root), repo.root).rescan(base, source)
     assert before is not None
     assert before.total == current.total == 1
+
+
+def test_historical_root_globs_ignore_deleted_namesakes(
+    workspace: GitSandbox,
+) -> None:
+    repo = workspace
+    repo.write(
+        "pyproject.toml",
+        '[tool.oo-ratchet]\nnamespace = "app"\nroots = ["portions/*"]\n' + CONFIG,
+    )
+    repo.write("portions/app/core.py", HEADER)
+    repo.write("portions/other/__init__.py", HEADER)
+    base = repo.commit("unrelated glob match")
+    repo.run_git("rm", "-r", "portions/other")
+    before = BaseRescanner(GitRepo(repo.root), repo.root).rescan(
+        base, Options.parse([]).src
+    )
+    assert before is not None
+    assert before.total == 0

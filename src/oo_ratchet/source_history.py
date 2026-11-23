@@ -30,7 +30,10 @@ class SourceHistory:
     @staticmethod
     def patterns(source: Sources, repo: Path, renames: dict[str, str]) -> set[str]:
         """Return historical root patterns, including selected physical renames."""
-        patterns = {str(p.relative_to(repo)) for p in source.patterns or source.roots}
+        patterns = {
+            str(p.relative_to(repo).with_name(source.namespace))
+            for p in source.patterns or source.roots
+        }
         for new, old in renames.items():
             parts = Path(old).parts
             if source.namespace in parts and any(

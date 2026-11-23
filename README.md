@@ -50,6 +50,41 @@ flags. Baseline and audit files (`.oo-baseline.json`, `.oo-audit.jsonl`,
 `.oo-coupling-baseline.json`, ...) keep the same names as the embedded copies,
 so a repo switches over without rebaselining.
 
+### Layers gate
+
+`oo-ratchet layers src/pkg/ [--check|--update|--json]` turns the design check's layer rules into a shrinking baseline. It reads the same `[tool.oo-ratchet.layers]` table, either the fixed four-layer form or declared layers:
+
+```toml
+[tool.oo-ratchet.layers.kernel]
+prefixes = ["paths", "log_*"]   # relative to the package; trailing * = string prefix
+imports = []                     # layers kernel may import
+
+[tool.oo-ratchet.layers.service]
+prefixes = ["service", "hooks"]
+imports = ["kernel"]
+```
+
+Each layer needs a non-empty `prefixes` list. A `*` may only end a prefix, and a prefix may not end in `.`. The longest prefix wins; an exact prefix beats a `*` prefix of equal length; the package root is exempt. A declared config affects only the layer rules: the design check's primitive-params, tag-switch and data-rule eligibility behave as with no config.
+
+`src/pkg/` must be the package directory (it needs an `__init__.py` and at least one other module).
+
+- `--check` fails on a violating import edge not in `.oo-layers-baseline.json` and on a baseline entry that no longer violates. It also fails when a non-root module matches no layer, or a layer matches no module, so a misspelled prefix cannot hide a package. The PASS line prints the modules scanned and unassigned counts.
+- Against the merge base it fails if the baseline gained an edge, and if an edge violates under the base commit's `[tool.oo-ratchet.layers]` (read from the same `pyproject.toml` the scan used, as a repository-relative path; a base that has a baseline but no layer config there fails) and is not in the base baseline, so widening `imports` or narrowing `prefixes` in the same change as a new violation is caught.
+- `--update` adopts a first baseline, then only shrinks it, refuses a package the layers do not fully cover, and appends `.oo-layers-audit.jsonl`.
+- The repository (and so the baseline and audit files) is the git repository containing `src`, not the working directory; a `src` outside any repository is refused. The baseline is shared by the repository's packages, and each check or update reads and rewrites only the scanned package's rows. A baseline deleted after the base had one fails, even for a clean package.
+- `--check` also fails when a layer's `imports` widens against the base config; land that as its own reviewed change with `--allow-config-change` (accepted with `--check` or `--update`; `--update` records `config_change` in the audit entry).
+- `--update` writes the baseline atomically (temp file, then rename) and restores the previous one if the audit entry cannot be written. A package with no rows is adopted on `--update`; `--check` accepts that when the package does not exist at the base, and fails if an existing package gained rows. `--update` also drops rows of packages whose directory no longer exists in the repository, and records them as `retired` in the audit.
+- `--base-ref`, `--require-base` and `--tripwire` are accepted only with `--check`; `--allow-ci-write` and `--source` behave as for coupling.
+
+The gate over-approximates: it must never pass a forbidden import, and a rare false positive is fixed by restructuring. Edges counted: imports anywhere in a module (functions included) and `TYPE_CHECKING` imports (as in the design check).
+
+- **Re-exports.** `from pkg import X` is an edge to every module the package's `__init__` imports `X` from, on any path: an import anywhere in the `__init__` counts (module scope, any block, function bodies, `import a.b as X`), and rebinding, `del`, annotations, `with ... as X` or `__all__` never remove it. A wildcard `from M import *` in an `__init__` makes every name imported from that package an edge to `M` as well, transitively through chained wildcards.
+- **Dynamic imports.** Any call anywhere in a module (body, function bodies, defaults, decorators, class bodies, lambdas) whose callee's final name or attribute is `import_module` or `__import__`, with a literal string name (positional or `name=`; a relative name resolved with a literal `package`), is an edge when the name is a module of the scanned package. There is no binding analysis: a method of an unrelated object called `import_module` is a deliberate false positive, and so is a call after the name was rebound. Names aliased with `from importlib import import_module as x` or `x = importlib.import_module` count in any scope.
+- A relative import that climbs above the package root fails the check ("unresolvable relative import", with file and line). Computed module names and attribute access on an imported package (`import pkg; pkg.a.f()`) are out of scope.
+- Git failures (`ls-files`, `ls-tree`) fail the gate closed. Retired-row detection reads the working tree, so an unstaged deletion retires. The audit log is appended with one write per record and cut back on failure; the baseline is replaced atomically and keeps its file mode (0644 for a new file).
+
+Wiring `layers` into this repository's own `Makefile` and CI needs a layer design for `oo_ratchet` itself and is a follow-up.
+
 ### Advisory design check
 
 `oo-ratchet design src/pkg/ [--json] [--layers FILE]` reports OO design smells the metric

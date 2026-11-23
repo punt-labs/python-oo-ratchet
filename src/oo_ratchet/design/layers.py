@@ -10,7 +10,7 @@ from oo_ratchet.oo.metrics import ModuleMetrics
 from .domain_io import DomainIO
 from .findings import Finding, Rules
 from .layer_config import LayerConfig
-from .layer_imports import LayerImports
+from .layer_violations import LayerViolations
 from .modules import Module, ModuleIndex
 
 
@@ -19,55 +19,53 @@ class LayerCheck:
 
     _index: ModuleIndex
     _config: LayerConfig
-    _imports: LayerImports
+    _found: LayerViolations
 
     def __new__(cls, index: ModuleIndex, config: LayerConfig) -> Self:
         self = super().__new__(cls)
         self._index = index
         self._config = config
-        self._imports = LayerImports(index)
+        self._found = LayerViolations(index, config)
         return self
 
     def findings(self) -> list[Finding]:
         """Return all configured layer findings in the scanned tree."""
         out: list[Finding] = []
         for module in self._index.modules():
-            layer = self._config.layer(self._imports.canonical_name(module))
+            name = self._found.name(module)
+            layer = self._config.layer(name)
             if layer is None:
-                out.append(
-                    self._finding(
-                        module,
-                        Rules.UNLAYERED_MODULE,
-                        1,
-                        "<module>",
-                        "module matches no layer glob",
-                    )
-                )
+                out.extend(self._unlayered(module, name))
                 continue
             out.extend(self._dependencies(module, layer))
-            if layer == "domain":
-                out.extend(DomainIO(module).findings())
-            if layer == "entry":
-                out.extend(self._entry(module, module.tree, ""))
+            out.extend(self._shape(module, layer))
         return out
 
+    def _unlayered(self, module: Module, name: str) -> list[Finding]:
+        if self._config.EXEMPTS_ROOT and "." not in name:
+            return []
+        detail = "module matches no layer glob"
+        return [self._finding(module, Rules.UNLAYERED_MODULE, 1, "<module>", detail)]
+
+    def _shape(self, module: Module, layer: str) -> list[Finding]:
+        if not self._config.ORDERED:
+            return []
+        if layer == "domain":
+            return DomainIO(module).findings()
+        return self._entry(module, module.tree, "") if layer == "entry" else []
+
     def _dependencies(self, module: Module, layer: str) -> list[Finding]:
-        out: list[Finding] = []
-        for node, symbol, target in self._imports.imports(module):
-            imported = self._config.layer(target)
-            if imported is not None and LayerConfig.ORDER.index(
-                imported
-            ) < LayerConfig.ORDER.index(layer):
-                out.append(
-                    self._finding(
-                        module,
-                        Rules.LAYER_IMPORT,
-                        node.lineno,
-                        symbol,
-                        f"{layer} imports outer {imported} module {target}",
-                    )
-                )
-        return out
+        way = "outer " if self._config.ORDERED else ""
+        return [
+            self._finding(
+                module,
+                Rules.LAYER_IMPORT,
+                node.lineno,
+                symbol,
+                f"{layer} imports {way}{imported} module {target}",
+            )
+            for node, symbol, target, imported in self._found.refused(module, layer)
+        ]
 
     def _entry(self, module: Module, scope: ast.AST, prefix: str) -> list[Finding]:
         out: list[Finding] = []

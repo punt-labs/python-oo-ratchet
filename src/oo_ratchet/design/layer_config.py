@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import tomllib
 from fnmatch import fnmatchcase
-from pathlib import Path
 from typing import ClassVar, Self
 
 
@@ -16,6 +14,8 @@ class LayerConfig:
     """Match dotted modules, with outer layers taking precedence on overlap."""
 
     ORDER: ClassVar[tuple[str, ...]] = ("entry", "adapters", "application", "domain")
+    ORDERED: ClassVar[bool] = True
+    EXEMPTS_ROOT: ClassVar[bool] = False
     _patterns: dict[str, list[str]]
 
     def __new__(cls, table: dict[str, object]) -> Self:
@@ -37,42 +37,14 @@ class LayerConfig:
             None,
         )
 
-    @classmethod
-    def load(cls, root: Path, override: Path | None = None) -> Self | None:
-        """Read an explicit file or the nearest ancestor pyproject, if any."""
-        path = override or cls._nearest(root)
-        if path is None:
-            return None
-        table = cls._read(path)
-        for key in ("tool", "oo-ratchet", "layers"):
-            if not isinstance(table, dict):
-                raise LayerConfigError(f"{path}: layer configuration must be a table")
-            if key not in table:
-                if override is not None:
-                    raise LayerConfigError(f"{path}: missing [tool.oo-ratchet.layers]")
-                return None
-            table = table[key]
-        if not isinstance(table, dict):
-            raise LayerConfigError(f"{path}: layers must be a table")
-        return cls(table)
+    def allowed(self, source: str) -> frozenset[str]:
+        """Return the layers ``source`` may import: itself and every inner one."""
+        names = list(self._patterns)
+        return frozenset(names[names.index(source) :])
 
-    @staticmethod
-    def _nearest(root: Path) -> Path | None:
-        return next(
-            (
-                parent / "pyproject.toml"
-                for parent in (root.resolve(), *root.resolve().parents)
-                if (parent / "pyproject.toml").is_file()
-            ),
-            None,
-        )
-
-    @staticmethod
-    def _read(path: Path) -> object:
-        try:
-            return tomllib.loads(path.read_text(encoding="utf-8"))
-        except (OSError, UnicodeError, tomllib.TOMLDecodeError) as exc:
-            raise LayerConfigError(f"cannot read {path}: {exc}") from exc
+    def layer_names(self) -> tuple[str, ...]:
+        """Return the layers that name at least one pattern."""
+        return tuple(name for name, globs in self._patterns.items() if globs)
 
     @staticmethod
     def _globs(value: object) -> list[str]:

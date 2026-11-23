@@ -72,8 +72,10 @@ def test_update_check_and_require_base_follow_physical_renames(
     report = capsys.readouterr().out
     assert "regressed" not in report.lower()
     assert "cannot" not in report.lower()
-    if gate != "oo":
-        assert code == 0, report
+    assert code == (1 if gate == "oo" else 0), report
+    if gate == "oo":
+        assert "(all metrics unchanged)" in report
+        assert "FAIL: no metric improved" in report
     assert (
         main(
             [

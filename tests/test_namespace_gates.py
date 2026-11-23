@@ -14,6 +14,7 @@ from tests.test_namespace_sources import CONFIG, HEADER
 
 @pytest.fixture
 def workspace(git_sandbox: GitSandbox, monkeypatch: pytest.MonkeyPatch) -> GitSandbox:
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
     repo = git_sandbox
     monkeypatch.chdir(repo.root)
     repo.write("pyproject.toml", CONFIG)

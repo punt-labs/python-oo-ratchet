@@ -53,7 +53,7 @@ class SourceOptions:
             tuple(sorted(paths)),
             selected,
             cls._project(base, paths),
-            tuple(Path(root).absolute() for root in roots),
+            tuple(Path(root).resolve() for root in roots),
         )
 
     @staticmethod
@@ -82,7 +82,7 @@ class SourceOptions:
             matches = list(Path(path.anchor).glob(str(path.relative_to(path.anchor))))
             if not matches:
                 raise ValueError(f"source root matches nothing: {pattern}")
-            paths.update(p.absolute() for p in matches)
+            paths.update(p.resolve() for p in matches)
         return paths
 
     @staticmethod

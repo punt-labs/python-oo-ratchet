@@ -312,3 +312,10 @@ def test_renames_do_not_move_literal_ignore_pattern_counts(
     )
     assert code == 0, capsys.readouterr().out
     assert main([*args, "--check", "--base-ref", base, "--require-base"]) == 0
+
+
+def test_equivalent_source_root_spellings_are_deduplicated(
+    workspace: GitSandbox,
+) -> None:
+    options = Options.parse(["--namespace", "app", "src/app", "src/../src/app"])
+    assert options.src.roots == ((workspace.root / "src/app").resolve(),)

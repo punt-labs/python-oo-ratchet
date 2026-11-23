@@ -45,6 +45,6 @@ class PackageTree:
     def path_at(self, path: str) -> bool:
         """Return whether a file or directory exists in this snapshot."""
         prefix = Path(path)
-        return prefix == Path(".") or any(
+        return prefix == Path() or any(
             file == prefix or prefix in file.parents for file in self._files
         )

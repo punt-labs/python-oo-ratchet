@@ -94,6 +94,13 @@ detection to pair its old and new keys, including historical shadow and
 suppression scans. List all portions of the namespace when moving a monolith
 into a workspace so its before/after graph scopes are equivalent.
 
+Historical root globs are constrained to the selected namespace name and retain
+resolved physical portions. Relative symlink portions within the checkout are
+deduplicated; links escaping a historical checkout fail closed. Use physical
+roots rather than absolute symlinks for portable history checks. Historical
+scans retain both the selected project's configuration and repository-root Ruff
+ignores.
+
 The usual `--check`, `--update`, `--base-ref` and `--require-base` flags apply
 to the baseline gates; design retains its advisory `--shadow-check REF`.
 

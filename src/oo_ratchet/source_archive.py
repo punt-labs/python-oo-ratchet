@@ -20,8 +20,7 @@ class SourceArchive:
 
     def __new__(cls, git: ArchiveRepo, root: Path) -> Self:
         self = super().__new__(cls)
-        self._git = git
-        self._root = root
+        self._git, self._root = git, root
         return self
 
     def at(
@@ -40,10 +39,9 @@ class SourceArchive:
             (p / "pyproject.toml").relative_to(self._root).as_posix()
             for p in {self._root, source.project or self._root}
         }
-        return [
+        paths = {
             path
             for path in [".", *listing.split("\0")]
-            if path in configs
-            or path
-            and any(Path(path).full_match(pattern) for pattern in patterns)
-        ]
+            if path and any(Path(path).full_match(p) for p in patterns)
+        }
+        return sorted(paths | configs.intersection(listing.split("\0")))

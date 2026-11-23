@@ -9,11 +9,11 @@ import pytest
 
 from oo_ratchet.__main__ import main
 from oo_ratchet.coupling.cli import Options
+from oo_ratchet.layers.trees import BaseTree, WorkingTree
 from oo_ratchet.source_set import SourceSet
 from oo_ratchet.suppression.gitio import GitRepo
 from oo_ratchet.suppression.rescan import BaseRescanner
 from oo_ratchet.suppression.scanner import Scanner
-from oo_ratchet.layers.trees import BaseTree, WorkingTree
 from tests.conftest import GitSandbox
 from tests.test_namespace_sources import CONFIG, HEADER
 
@@ -494,3 +494,16 @@ def test_namespace_history_accepts_missing_configuration(
     before = BaseRescanner(GitRepo(workspace.root), workspace.root).rescan(base, source)
     assert before is not None
     assert before.total == 0
+
+
+def test_historical_namespace_roots_cannot_escape_the_checkout(
+    workspace: GitSandbox,
+) -> None:
+    repo = workspace
+    (repo.root / "historical/src").mkdir(parents=True)
+    (repo.root / "historical/src/app").symlink_to(
+        repo.root / "src/app", target_is_directory=True
+    )
+    source = SourceSet.from_roots((repo.root / "src/app",), "app")
+    with pytest.raises(ValueError, match="historical namespace root escapes checkout"):
+        source.at_base(repo.root, repo.root / "historical", {})

@@ -289,3 +289,26 @@ def test_shadow_preserves_nested_project_layer_configuration(
     )
     report = json.loads(capsys.readouterr().out)
     assert report["tier0"] == {"added": [], "removed": []}
+
+
+def test_renames_do_not_move_literal_ignore_pattern_counts(
+    workspace: GitSandbox, capsys: pytest.CaptureFixture[str]
+) -> None:
+    repo = workspace
+    repo.write(
+        "pyproject.toml",
+        CONFIG + "\n[tool.ruff.lint.per-file-ignores]\n"
+        '"src/app/a/core.py" = ["F401"]\n',
+    )
+    assert main(["suppressions", "src/app", "--update"]) == 0
+    base = repo.commit("literal per-file ignore")
+    roots = move(repo)
+    path = "packages/a/src/app/a/core.py"
+    file = repo.root / path
+    file.write_text(file.read_text() + "value = 1  # noqa: F841\n")
+    args = ["suppressions", "--namespace", "app", *roots]
+    code = main(
+        [*args, "--relax", path, "--justify", "new suppression", "--base-ref", base]
+    )
+    assert code == 0, capsys.readouterr().out
+    assert main([*args, "--check", "--base-ref", base, "--require-base"]) == 0

@@ -91,8 +91,9 @@ class SuppressionReport:
                 if fpath.startswith(old_prefix)
                 else fpath
             )
-            merged = by_file.setdefault(new_key, {})
             for category, count in counts.items():
+                key = fpath if category == "per_file_ignores" else new_key
+                merged = by_file.setdefault(key, {})
                 merged[category] = merged.get(category, 0) + count
         self._by_file = by_file
         return self

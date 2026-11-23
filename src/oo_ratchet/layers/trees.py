@@ -29,14 +29,13 @@ class BaseTree:
         A directory named ``name`` inside another package (``core/utils``) is a
         different import name and does not count.
         """
-        for line in self._files:
-            folder = line.removesuffix("__init__.py").rstrip("/")
-            head, _, last = folder.rpartition("/")
-            if not line.endswith("__init__.py") or last != name:
-                continue
-            if (f"{head}/__init__.py" if head else "__init__.py") not in self._files:
-                return True
-        return False
+        return any(
+            parent.name == name
+            and str(parent.parent / "__init__.py") not in self._files
+            for line in self._files
+            if line.endswith(".py")
+            for parent in Path(line).parents
+        )
 
     def path_at(self, path: str) -> bool:
         """Return whether anything exists at repo-relative ``path`` in the tree."""

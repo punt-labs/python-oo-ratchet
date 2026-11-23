@@ -201,3 +201,36 @@ def test_updating_another_package_keeps_namespace_baseline(
     repo.write("src/other/b/core.py", HEADER)
     assert main(["layers", "src/other", "--update"]) == 0
     assert json.loads(baseline.read_text()) == before, capsys.readouterr().out
+
+
+def test_moved_namespace_still_checks_base_layer_prefixes(
+    workspace: GitSandbox, capsys: pytest.CaptureFixture[str]
+) -> None:
+    repo = workspace
+    (repo.root / "src/app/__init__.py").unlink()
+    repo.write("src/app/b/core.py", HEADER)
+    assert main(["layers", "--namespace", "app", "src/app", "--update"]) == 0
+    base = repo.commit("namespace baseline")
+    destination = repo.root / "packages/member/src"
+    destination.mkdir(parents=True)
+    repo.run_git("mv", "src/app", str(destination / "app"))
+    repo.write("packages/member/src/app/a/core.py", HEADER + "import app.b.core\n")
+    repo.write(
+        "pyproject.toml",
+        '[tool.oo-ratchet.layers.a]\nprefixes = ["a", "b"]\nimports = []\n',
+    )
+    code = main(
+        [
+            "layers",
+            "--namespace",
+            "app",
+            str(destination / "app"),
+            "--check",
+            "--base-ref",
+            base,
+            "--require-base",
+        ]
+    )
+    report = capsys.readouterr().out
+    assert code == 1, report
+    assert "app.a.core -> app.b.core" in report

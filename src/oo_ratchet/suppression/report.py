@@ -11,7 +11,6 @@ from .patterns import CATEGORIES, PATTERN_NAMES, FileSuppressions
 class SuppressionReport:
     """Aggregate suppression counts across files and render them."""
 
-    _total: int
     _by_category: dict[str, int]
     _by_file: dict[str, dict[str, int]]
 
@@ -41,13 +40,12 @@ class SuppressionReport:
             if count <= 0:
                 continue
             self._by_file.setdefault(pattern, {})["per_file_ignores"] = count
-        self._total = sum(self._by_category.values())
         return self
 
     @property
     def total(self) -> int:
         """Return the total suppression count across all files and config."""
-        return self._total
+        return sum(self._by_category.values())
 
     @property
     def by_category(self) -> dict[str, int]:
@@ -82,7 +80,6 @@ class SuppressionReport:
         unchanged.
         """
         self = super().__new__(cls)
-        self._total = source._total
         self._by_category = dict(source._by_category)
         by_file: dict[str, dict[str, int]] = {}
         for fpath, counts in source._by_file.items():
@@ -92,7 +89,7 @@ class SuppressionReport:
                 else fpath
             )
             for category, count in counts.items():
-                key = fpath if category == "per_file_ignores" else new_key
+                key = {"per_file_ignores": fpath}.get(category, new_key)
                 merged = by_file.setdefault(key, {})
                 merged[category] = merged.get(category, 0) + count
         self._by_file = by_file
@@ -102,7 +99,7 @@ class SuppressionReport:
         """Return the report as machine-readable JSON."""
         return json.dumps(
             {
-                "total": self._total,
+                "total": self.total,
                 "by_category": self._by_category,
                 "by_file": self._by_file,
             },
@@ -112,7 +109,7 @@ class SuppressionReport:
     def render(self) -> list[str]:
         """Return the human-readable summary as report lines."""
         lines = [
-            f"\nTotal suppressions: {self._total}",
+            f"\nTotal suppressions: {self.total}",
             f"\n{'Category':<20} {'Count':>6}",
             "-" * 28,
         ]

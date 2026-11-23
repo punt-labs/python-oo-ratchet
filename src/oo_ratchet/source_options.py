@@ -44,10 +44,8 @@ class SourceOptions:
             roots = cls._configured(config, base)
         if not roots:
             raise ValueError("the following arguments are required: src")
-        if not isinstance(selected, str) or not selected:
-            raise ValueError(
-                "multiple roots require --namespace or configured namespace"
-            )
+        if not isinstance(selected, str):
+            raise ValueError("multiple roots need --namespace or configured namespace")
         paths = cls._paths(roots)
         return Sources(
             tuple(sorted(paths)),
@@ -58,12 +56,9 @@ class SourceOptions:
 
     @staticmethod
     def _project(base: Path, paths: set[Path]) -> Path | None:
-        return (
-            base
-            if (base / "pyproject.toml").is_file()
-            and all(p.is_relative_to(base) for p in paths)
-            else None
-        )
+        if not (base / "pyproject.toml").is_file():
+            return None
+        return base if all(p.is_relative_to(base) for p in paths) else None
 
     @staticmethod
     def _configured(config: dict[str, object], base: Path) -> list[str]:
@@ -88,8 +83,7 @@ class SourceOptions:
     @staticmethod
     def _config() -> tuple[dict[str, object], Path]:
         for parent in (Path.cwd(), *Path.cwd().parents):
-            file = parent / "pyproject.toml"
-            if file.is_file():
+            if (file := parent / "pyproject.toml").is_file():
                 table = tomllib.loads(file.read_text(encoding="utf-8"))
                 tool = table.get("tool", {})
                 if not isinstance(tool, dict):

@@ -7,7 +7,7 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Protocol, Self
 
-from oo_ratchet.source_history import SourceHistory
+from oo_ratchet.source_archive import SourceArchive
 from oo_ratchet.sources import Sources
 
 
@@ -50,30 +50,11 @@ class NamespaceRescan[T]:
         renames = self._renames(ref)
         with tempfile.TemporaryDirectory() as tmp:
             tree = Path(tmp)
-            self._git.archive_paths(ref, self._paths(ref, source, renames), tree)
-            target = SourceHistory.at(source, root, tree, renames)
+            target = SourceArchive(self._git, root).at(ref, source, renames, tree)
             if isinstance(target, Path):
                 return None
             report = self._scan(target, tree)
             return self._rekey(report, renames)
-
-    def _paths(self, ref: str, source: Sources, renames: dict[str, str]) -> list[str]:
-        root = self._git.root
-        assert root is not None
-        listing = self._git._git(["ls-tree", "-r", "-d", "--name-only", "-z", ref])
-        if listing is None:
-            raise OSError(f"git ls-tree at {ref} failed")
-        patterns = SourceHistory.patterns(source, root, renames)
-        paths = [
-            path
-            for path in listing.split("\0")
-            if path and any(Path(path).full_match(pattern) for pattern in patterns)
-        ]
-        config = (source.project or root) / "pyproject.toml"
-        relative = config.relative_to(root).as_posix()
-        if self._git._git(["cat-file", "-e", f"{ref}:{relative}"]) is not None:
-            paths.append(relative)
-        return paths
 
     def _rekey(self, report: T, renames: dict[str, str]) -> T:
         for new, old in renames.items():

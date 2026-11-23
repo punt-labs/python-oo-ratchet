@@ -9,6 +9,7 @@ import pytest
 
 from oo_ratchet.__main__ import main
 from oo_ratchet.coupling.cli import Options
+from oo_ratchet.source_set import SourceSet
 from oo_ratchet.suppression.gitio import GitRepo
 from oo_ratchet.suppression.rescan import BaseRescanner
 from tests.conftest import GitSandbox
@@ -320,6 +321,7 @@ def test_equivalent_source_root_spellings_are_deduplicated(
     workspace: GitSandbox,
 ) -> None:
     options = Options.parse(["--namespace", "app", "src/app", "src/../src/app"])
+    assert isinstance(options.src, SourceSet)
     assert options.src.roots == ((workspace.root / "src/app").resolve(),)
 
 
@@ -352,3 +354,31 @@ def test_export_ignore_is_already_honored_by_legacy_history(
         before = scanner.rescan(base, source)
         assert before is not None
         assert before.total == 0
+
+
+def test_namespace_history_returns_none_for_an_absent_portion(
+    workspace: GitSandbox,
+) -> None:
+    base = workspace.commit("original portions")
+    workspace.write("packages/new/src/app/new.py", HEADER)
+    source = Options.parse(["--namespace", "app", "packages/new/src/app"]).src
+    assert (
+        BaseRescanner(GitRepo(workspace.root), workspace.root).rescan(base, source)
+        is None
+    )
+
+
+def test_namespace_history_surfaces_directory_listing_failure(
+    workspace: GitSandbox,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base = workspace.commit("original portions")
+    original = GitRepo._git
+
+    def fail_listing(repo: GitRepo, args: list[str]) -> str | None:
+        return None if args[0] == "ls-tree" else original(repo, args)
+
+    monkeypatch.setattr(GitRepo, "_git", fail_listing)
+    source = Options.parse(["--namespace", "app", "src/app"]).src
+    with pytest.raises(OSError, match="git ls-tree"):
+        BaseRescanner(GitRepo(workspace.root), workspace.root).rescan(base, source)

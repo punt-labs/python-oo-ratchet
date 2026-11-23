@@ -839,6 +839,13 @@
     "max_lcom": 0.071,
     "avg_lcom": 0.071
   },
+  "src/oo_ratchet/source_archive.py": {
+    "efferent_coupling": 2.0,
+    "public_names": 1.0,
+    "circular_imports": 0.0,
+    "max_lcom": 0.0,
+    "avg_lcom": 0.0
+  },
   "src/oo_ratchet/source_history.py": {
     "efferent_coupling": 1.0,
     "public_names": 1.0,
@@ -941,8 +948,8 @@
     "efferent_coupling": 1.0,
     "public_names": 1.0,
     "circular_imports": 0.0,
-    "max_lcom": 0.333,
-    "avg_lcom": 0.333
+    "max_lcom": 0.286,
+    "avg_lcom": 0.286
   },
   "src/oo_ratchet/suppression/rescan.py": {
     "efferent_coupling": 4.0,

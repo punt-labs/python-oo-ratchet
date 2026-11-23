@@ -31,11 +31,10 @@ class Sources:
         keys: dict[str, Path] = {}
         for path in self.files(self):
             key = self.key_for(path)
-            if key in keys and keys[key] != path:
+            if keys.setdefault(key, path) != path:
                 raise ValueError(
                     f"duplicate module {self.namespace}.{key}: {keys[key]}, {path}"
                 )
-            keys[key] = path
         if not keys:
             raise ValueError("namespace roots contain no Python modules")
 

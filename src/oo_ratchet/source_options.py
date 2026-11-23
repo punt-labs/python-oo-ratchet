@@ -49,7 +49,12 @@ class SourceOptions:
                 "multiple roots require --namespace or configured namespace"
             )
         paths = cls._paths(roots)
-        return Sources(tuple(sorted(paths)), selected, cls._project(base, paths))
+        return Sources(
+            tuple(sorted(paths)),
+            selected,
+            cls._project(base, paths),
+            tuple(Path(root).absolute() for root in roots),
+        )
 
     @staticmethod
     def _project(base: Path, paths: set[Path]) -> Path | None:

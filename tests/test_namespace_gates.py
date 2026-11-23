@@ -8,6 +8,9 @@ from pathlib import Path
 import pytest
 
 from oo_ratchet.__main__ import main
+from oo_ratchet.coupling.cli import Options
+from oo_ratchet.suppression.gitio import GitRepo
+from oo_ratchet.suppression.rescan import BaseRescanner
 from tests.conftest import GitSandbox
 from tests.test_namespace_sources import CONFIG, HEADER
 
@@ -234,3 +237,25 @@ def test_moved_namespace_still_checks_base_layer_prefixes(
     report = capsys.readouterr().out
     assert code == 1, report
     assert "app.a.core -> app.b.core" in report
+
+
+def test_deleted_configured_portion_stays_in_base_suppressions(
+    workspace: GitSandbox,
+) -> None:
+    repo = workspace
+    repo.write(
+        "pyproject.toml",
+        '[tool.oo-ratchet]\nnamespace = "app"\n'
+        'roots = ["packages/*/src/app"]\n' + CONFIG,
+    )
+    repo.write("packages/kept/src/app/a.py", HEADER)
+    deleted = "packages/deleted/src/app/b.py"
+    repo.write(deleted, HEADER + "value = 1  # noqa: F841\n")
+    base = repo.commit("two configured portions")
+    repo.run_git("rm", "-r", "packages/deleted")
+    before = BaseRescanner(GitRepo(repo.root), repo.root).rescan(
+        base, Options.parse([]).src
+    )
+    assert before is not None
+    assert before.total == 1
+    assert deleted in before.by_file

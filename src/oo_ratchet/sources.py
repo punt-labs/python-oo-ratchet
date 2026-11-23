@@ -15,6 +15,7 @@ class Sources:
     roots: tuple[Path, ...]
     namespace: str
     project: Path | None = None
+    patterns: tuple[Path, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.namespace.isidentifier() or keyword.iskeyword(self.namespace):

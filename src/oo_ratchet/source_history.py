@@ -16,9 +16,10 @@ class SourceHistory:
     ) -> Path | Sources:
         """Select the same portions at the base, including moved namespace roots."""
         roots = {
-            tree / root.relative_to(repo)
-            for root in source.roots
-            if (tree / root.relative_to(repo)).is_dir()
+            root
+            for pattern in source.patterns or source.roots
+            for root in tree.glob(str(pattern.relative_to(repo)))
+            if root.is_dir()
         }
         for new, old in renames.items():
             if not any((repo / new).is_relative_to(root) for root in source.roots):

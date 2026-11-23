@@ -461,3 +461,36 @@ def test_namespace_namesakes_below_regular_ancestors_are_not_top_level(
         else WorkingTree(repo.root).has_package("app")
     )
     assert not found
+
+
+def test_namespace_history_does_not_confuse_config_probe_failure_with_absence(
+    workspace: GitSandbox,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repo = workspace
+    repo.write(
+        "pyproject.toml",
+        CONFIG + '\n[tool.ruff.lint.per-file-ignores]\n"src/app/*.py" = ["F401"]\n',
+    )
+    base = repo.commit("configuration present")
+    original = GitRepo._git
+
+    def fail_probe(git: GitRepo, args: list[str]) -> str | None:
+        return None if args[0] == "cat-file" else original(git, args)
+
+    monkeypatch.setattr(GitRepo, "_git", fail_probe)
+    source = Options.parse(["--namespace", "app", "src/app"]).src
+    before = BaseRescanner(GitRepo(repo.root), repo.root).rescan(base, source)
+    assert before is not None
+    assert before.total == 1
+
+
+def test_namespace_history_accepts_missing_configuration(
+    workspace: GitSandbox,
+) -> None:
+    (workspace.root / "pyproject.toml").unlink()
+    base = workspace.commit("namespace without configuration")
+    source = Options.parse(["--namespace", "app", "src/app"]).src
+    before = BaseRescanner(GitRepo(workspace.root), workspace.root).rescan(base, source)
+    assert before is not None
+    assert before.total == 0

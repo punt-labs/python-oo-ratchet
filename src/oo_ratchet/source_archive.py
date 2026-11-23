@@ -32,17 +32,18 @@ class SourceArchive:
         return SourceHistory.at(source, self._root, tree, renames)
 
     def _paths(self, ref: str, source: Sources, renames: dict[str, str]) -> list[str]:
-        listing = self._git._git(["ls-tree", "-r", "-d", "--name-only", "-z", ref])
+        listing = self._git._git(["ls-tree", "-r", "-t", "--name-only", "-z", ref])
         if listing is None:
             raise OSError(f"git ls-tree at {ref} failed")
         patterns = SourceHistory.patterns(source, self._root, renames)
-        paths = [
+        configs = {
+            (p / "pyproject.toml").relative_to(self._root).as_posix()
+            for p in {self._root, source.project or self._root}
+        }
+        return [
             path
             for path in [".", *listing.split("\0")]
-            if path and any(Path(path).full_match(pattern) for pattern in patterns)
+            if path in configs
+            or path
+            and any(Path(path).full_match(pattern) for pattern in patterns)
         ]
-        for project in {self._root, source.project or self._root}:
-            relative = (project / "pyproject.toml").relative_to(self._root).as_posix()
-            if self._git._git(["cat-file", "-e", f"{ref}:{relative}"]) is not None:
-                paths.append(relative)
-        return paths

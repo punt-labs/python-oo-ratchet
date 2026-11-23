@@ -422,3 +422,22 @@ def test_historical_root_globs_ignore_deleted_namesakes(
     )
     assert before is not None
     assert before.total == 0
+
+
+def test_historical_root_globs_keep_resolved_symlink_portions(
+    workspace: GitSandbox,
+) -> None:
+    repo = workspace
+    repo.write(
+        "pyproject.toml",
+        '[tool.oo-ratchet]\nnamespace = "app"\nroots = ["members/*"]\n' + CONFIG,
+    )
+    repo.write("actual/app/core.py", HEADER + "value = 1  # noqa: F841\n")
+    (repo.root / "members").mkdir()
+    (repo.root / "members/app").symlink_to("../actual/app", target_is_directory=True)
+    base = repo.commit("symlink-selected namespace")
+    before = BaseRescanner(GitRepo(repo.root), repo.root).rescan(
+        base, Options.parse([]).src
+    )
+    assert before is not None
+    assert before.total == 1

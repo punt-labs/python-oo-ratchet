@@ -32,7 +32,7 @@ class SourceHistory:
         """Return historical root patterns, including selected physical renames."""
         patterns = {
             str(p.relative_to(repo).with_name(source.namespace))
-            for p in source.patterns or source.roots
+            for p in source.patterns + source.roots
         }
         for new, old in renames.items():
             parts = Path(old).parts

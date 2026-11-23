@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Removed
+
+- The unused `_is_slots` helper in the coupling metrics scanner.
+
 ## [0.5.0] - 2026-11-22
 
 ### Added

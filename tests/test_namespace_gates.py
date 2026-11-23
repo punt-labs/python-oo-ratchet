@@ -13,6 +13,7 @@ from oo_ratchet.source_set import SourceSet
 from oo_ratchet.suppression.gitio import GitRepo
 from oo_ratchet.suppression.rescan import BaseRescanner
 from oo_ratchet.suppression.scanner import Scanner
+from oo_ratchet.layers.trees import BaseTree, WorkingTree
 from tests.conftest import GitSandbox
 from tests.test_namespace_sources import CONFIG, HEADER
 
@@ -441,3 +442,22 @@ def test_historical_root_globs_keep_resolved_symlink_portions(
     )
     assert before is not None
     assert before.total == 1
+
+
+@pytest.mark.parametrize("kind", ["base", "working"])
+def test_namespace_namesakes_below_regular_ancestors_are_not_top_level(
+    workspace: GitSandbox,
+    kind: str,
+) -> None:
+    repo = workspace
+    repo.commit("original top-level package")
+    repo.run_git("rm", "-r", "src/app")
+    repo.write("src/outer/__init__.py", HEADER)
+    repo.write("src/outer/nested/app/core.py", HEADER)
+    base = repo.commit("only a nested namespace namesake")
+    found = (
+        BaseTree(base, repo.root).package_at("app")
+        if kind == "base"
+        else WorkingTree(repo.root).has_package("app")
+    )
+    assert not found

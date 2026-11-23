@@ -7,8 +7,8 @@ from typing import Self
 
 from oo_ratchet.design.layer_edges import Edge
 
-from .gitio import LayersGit
 from .scan import LayerScan
+from .trees import BaseTree
 
 
 class Adoption:
@@ -21,17 +21,16 @@ class Adoption:
     """
 
     _root: Path
-    _git: LayersGit
 
-    def __new__(cls, root: Path, git: LayersGit) -> Self:
+    def __new__(cls, root: Path) -> Self:
         self = super().__new__(cls)
         self._root = root
-        self._git = git
         return self
 
     def is_new(self, scan: LayerScan, base: str, rows: frozenset[Edge]) -> bool:
         """Return whether ``scan``'s package did not exist at ``base``."""
-        if rows or self._git.package_at(base, scan.package):
+        if rows:
             return False
+        tree = BaseTree(base, self._root)
         real = scan.src.resolve().relative_to(self._root.resolve())
-        return not self._git.path_at(base, real.as_posix())
+        return not (tree.package_at(scan.package) or tree.path_at(real.as_posix()))

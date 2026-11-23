@@ -36,7 +36,7 @@ class LayersRatchet:
     def __new__(cls, root: Path, git: LayersGit) -> Self:
         self = super().__new__(cls)
         self._config = BaseConfig(root, git)
-        self._adoption = Adoption(root, git)
+        self._adoption = Adoption(root)
         self._baseline = LayersBaseline(root)
         self._git = git
         return self
@@ -62,7 +62,7 @@ class LayersRatchet:
             return blocked or self._verdict(
                 scan, None, "", allow_config_change=allow_config_change
             )
-        text = self._git.show_baseline_text(base)
+        text = self._git.show_text(base, LayersBaseline.FILENAME)
         if text is None:
             blocked = self._absent_base_baseline(tripwire=tripwire)
             return blocked or self._verdict(
@@ -142,7 +142,7 @@ class LayersRatchet:
                     "with an in-tree baseline present; fetch origin/main"
                 )
             return None
-        if self._git.show_baseline_text(tip) is not None:
+        if self._git.show_text(tip, LayersBaseline.FILENAME) is not None:
             return Outcome.failed(
                 "FAIL: base commit predates baseline adoption; rebase onto current main"
             )

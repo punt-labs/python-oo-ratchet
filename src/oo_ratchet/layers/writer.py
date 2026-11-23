@@ -18,6 +18,7 @@ from .audit import LayersAudit
 from .baseline import LayersBaseline
 from .gitio import LayersGit
 from .scan import LayerScan
+from .trees import WorkingTree
 
 
 class LayersWriter:
@@ -26,12 +27,14 @@ class LayersWriter:
     _baseline: LayersBaseline
     _audit: LayersAudit
     _git: LayersGit
+    _tree: WorkingTree
 
     def __new__(cls, root: Path, git: LayersGit) -> Self:
         self = super().__new__(cls)
         self._baseline = LayersBaseline(root)
         self._audit = LayersAudit(root)
         self._git = git
+        self._tree = WorkingTree(root)
         return self
 
     def update(
@@ -112,7 +115,7 @@ class LayersWriter:
             for e in self._baseline.edges
             if not e.within(package)
         }
-        dead = {n for n in gone if n.isidentifier() and not self._git.has_package(n)}
+        dead = {n for n in gone if n.isidentifier() and not self._tree.has_package(n)}
         return frozenset(
             e for e in self._baseline.edges if e.source.split(".")[0] in dead
         )

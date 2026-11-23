@@ -1,62 +1,13 @@
-"""Git queries the layers ratchet needs, on top of the coupling gate's."""
+"""Read a file committed at a ref, on top of the coupling gate's git access."""
 
 from __future__ import annotations
 
-from oo_ratchet.coupling.gitio import GitError, GitRepo
-
-from .baseline import LayersBaseline
+from oo_ratchet.coupling.gitio import GitRepo
 
 
 class LayersGit(GitRepo):
-    """Resolve the comparison base and read the layers baseline committed at it."""
-
-    def show_baseline_text(self, ref: str) -> str | None:
-        """Return the baseline JSON committed at ``ref``, or ``None`` if absent."""
-        return self._show_file(ref, LayersBaseline.FILENAME)
+    """Resolve the comparison base and read repository files committed at it."""
 
     def show_text(self, ref: str, path: str) -> str | None:
         """Return the repo-relative file ``path`` at ``ref``, or ``None`` if absent."""
         return self._show_file(ref, path)
-
-    def package_at(self, ref: str, name: str) -> bool:
-        """Return whether ``ref`` has a top-level package directory ``name``.
-
-        A directory named ``name`` inside another package (``core/utils``) is a
-        different import name and does not count.
-        """
-        files = set(self._listing(ref))
-        for line in files:
-            folder = line.removesuffix("__init__.py").rstrip("/")
-            head, _, last = folder.rpartition("/")
-            if not line.endswith("__init__.py") or last != name:
-                continue
-            if (f"{head}/__init__.py" if head else "__init__.py") not in files:
-                return True
-        return False
-
-    def path_at(self, ref: str, path: str) -> bool:
-        """Return whether anything exists at repo-relative ``path`` in ``ref``."""
-        return bool(self._listing(ref, path))
-
-    def _listing(self, ref: str, path: str | None = None) -> list[str]:
-        args = ["ls-tree", "-r", "--name-only", ref]
-        listing = self._git([*args, "--", path] if path else args)
-        if listing is None:
-            msg = f"git ls-tree {ref} failed"
-            raise GitError(msg)
-        return listing.splitlines()
-
-    def has_package(self, name: str) -> bool:
-        """Return whether a package directory ``name`` exists in the working tree.
-
-        Tracked files that were deleted but not yet staged do not count; a failing
-        git call raises ``GitError`` rather than reading as "absent".
-        """
-        glob = f":(glob)**/{name}/__init__.py"
-        args = ["ls-files", "--cached", "--others", "--exclude-standard", "--", glob]
-        found = self._git(args)
-        root = self.root
-        if found is None or root is None:
-            msg = f"git ls-files for package {name!r} failed"
-            raise GitError(msg)
-        return any((root / line).is_file() for line in found.splitlines())

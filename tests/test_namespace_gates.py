@@ -319,3 +319,34 @@ def test_equivalent_source_root_spellings_are_deduplicated(
 ) -> None:
     options = Options.parse(["--namespace", "app", "src/app", "src/../src/app"])
     assert options.src.roots == ((workspace.root / "src/app").resolve(),)
+
+
+def test_namespace_history_does_not_export_unselected_symlinks(
+    workspace: GitSandbox,
+) -> None:
+    repo = workspace
+    (repo.root / "outside-link").symlink_to(repo.root.parent / "outside")
+    base = repo.commit("unrelated symlink")
+    scanner = BaseRescanner(GitRepo(repo.root), repo.root)
+    legacy = scanner.rescan(base, Path("src/app"))
+    assert legacy is not None
+    before = scanner.rescan(base, Options.parse(["--namespace", "app", "src/app"]).src)
+    assert before is not None
+    assert before.total == legacy.total
+
+
+def test_export_ignore_is_already_honored_by_legacy_history(
+    workspace: GitSandbox,
+) -> None:
+    repo = workspace
+    repo.write(".gitattributes", "src/app/a/core.py export-ignore\n")
+    repo.write("src/app/a/core.py", HEADER + "value = 1  # noqa: F841\n")
+    base = repo.commit("archive exclusion")
+    scanner = BaseRescanner(GitRepo(repo.root), repo.root)
+    for source in (
+        Path("src/app"),
+        Options.parse(["--namespace", "app", "src/app"]).src,
+    ):
+        before = scanner.rescan(base, source)
+        assert before is not None
+        assert before.total == 0

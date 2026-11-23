@@ -17,28 +17,26 @@ class SourceHistory:
         """Select the same portions at the base, including moved namespace roots."""
         roots = {
             root
-            for pattern in source.patterns or source.roots
-            for root in tree.glob(str(pattern.relative_to(repo)))
+            for pattern in SourceHistory.patterns(source, repo, renames)
+            for root in tree.glob(pattern)
             if root.is_dir()
         }
-        for new, old in renames.items():
-            if not any((repo / new).is_relative_to(root) for root in source.roots):
-                continue
-            root = SourceHistory._old_root(old, source, tree)
-            if root is not None:
-                roots.add(root)
         if not roots:
             return tree / source.roots[0].relative_to(repo)
         project = tree / source.project.relative_to(repo) if source.project else None
         return Sources(tuple(sorted(roots)), source.namespace, project)
 
     @staticmethod
-    def _old_root(old: str, source: Sources, tree: Path) -> Path | None:
-        parts = Path(old).parts
-        if source.namespace not in parts:
-            return None
-        root = tree.joinpath(*parts[: parts.index(source.namespace) + 1])
-        return root if root.is_dir() else None
+    def patterns(source: Sources, repo: Path, renames: dict[str, str]) -> set[str]:
+        """Return historical root patterns, including selected physical renames."""
+        patterns = {str(p.relative_to(repo)) for p in source.patterns or source.roots}
+        for new, old in renames.items():
+            parts = Path(old).parts
+            if source.namespace in parts and any(
+                (repo / new).is_relative_to(root) for root in source.roots
+            ):
+                patterns.add(str(Path(*parts[: parts.index(source.namespace) + 1])))
+        return patterns
 
     @staticmethod
     def metrics(

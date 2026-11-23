@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 import datetime
-import fcntl
 import json
 import logging
 import os
+import sys
 from pathlib import Path
 from typing import Self
 
 from oo_ratchet.design.layer_edges import Edge
+
+if sys.platform != "win32":
+    import fcntl
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +75,7 @@ class LayersAudit:
         """
         fd = os.open(self._path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)
         try:
-            fcntl.flock(fd, fcntl.LOCK_EX)
+            self._lock(fd)
             before = os.fstat(fd).st_size
             try:
                 pending = memoryview(record)
@@ -83,3 +86,9 @@ class LayersAudit:
                 raise
         finally:
             os.close(fd)
+
+    @staticmethod
+    def _lock(fd: int) -> None:
+        """Take an exclusive lock on ``fd``; a no-op where ``fcntl`` is unavailable."""
+        if sys.platform != "win32":
+            fcntl.flock(fd, fcntl.LOCK_EX)

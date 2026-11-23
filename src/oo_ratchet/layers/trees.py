@@ -5,10 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Self
 
-from oo_ratchet.coupling.gitio import GitError, GitRepo
+from .listing import NulListing
 
 
-class BaseTree(GitRepo):
+class BaseTree:
     """The files committed at one ref, read once.
 
     A failing ``git ls-tree`` raises ``GitError`` when the tree is built, so
@@ -18,12 +18,9 @@ class BaseTree(GitRepo):
     _files: frozenset[str]
 
     def __new__(cls, ref: str, root: Path) -> Self:
-        self = super().__new__(cls, root)
-        listing = self._git(["ls-tree", "-r", "--name-only", "-z", ref])
-        if listing is None:
-            msg = f"git ls-tree {ref} failed"
-            raise GitError(msg)
-        self._files = frozenset(listing.split("\0")) - {""}
+        self = super().__new__(cls)
+        listing = NulListing.run(root, ["ls-tree", "-r", "--name-only", "-z", ref])
+        self._files = frozenset(listing)
         return self
 
     def package_at(self, name: str) -> bool:
@@ -49,8 +46,15 @@ class BaseTree(GitRepo):
         )
 
 
-class WorkingTree(GitRepo):
+class WorkingTree:
     """The files present in the working tree, tracked or not."""
+
+    _root: Path
+
+    def __new__(cls, root: Path) -> Self:
+        self = super().__new__(cls)
+        self._root = root
+        return self
 
     def has_package(self, name: str) -> bool:
         """Return whether a package directory ``name`` exists in the working tree.
@@ -59,18 +63,6 @@ class WorkingTree(GitRepo):
         git call raises ``GitError`` rather than reading as "absent".
         """
         glob = f":(glob)**/{name}/__init__.py"
-        args = [
-            "ls-files",
-            "-z",
-            "--cached",
-            "--others",
-            "--exclude-standard",
-            "--",
-            glob,
-        ]
-        found = self._git(args)
-        root = self.root
-        if found is None or root is None:
-            msg = f"git ls-files for package {name!r} failed"
-            raise GitError(msg)
-        return any((root / line).is_file() for line in found.split("\0") if line)
+        args = ["ls-files", "-z", "--cached", "--others", "--exclude-standard", "--"]
+        found = NulListing.run(self._root, [*args, glob])
+        return any((self._root / line).is_file() for line in found)

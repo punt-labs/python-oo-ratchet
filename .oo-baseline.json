@@ -1016,10 +1016,10 @@
   "src/oo_ratchet/layers/audit.py": {
     "method_ratio": 1.0,
     "encapsulation_ratio": 1.0,
-    "avg_params": 2.75,
+    "avg_params": 2.4,
     "max_complexity": 6.0,
-    "avg_complexity": 2.75,
-    "module_size": 63.0,
+    "avg_complexity": 2.6,
+    "module_size": 69.0,
     "classes_per_module": 1.0,
     "class_to_func_ratio": 1.0,
     "init_violations": 0.0,
@@ -1130,6 +1130,19 @@
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
   },
+  "src/oo_ratchet/layers/listing.py": {
+    "method_ratio": 1.0,
+    "encapsulation_ratio": 1.0,
+    "avg_params": 2.0,
+    "max_complexity": 5.0,
+    "avg_complexity": 5.0,
+    "module_size": 23.0,
+    "classes_per_module": 1.0,
+    "class_to_func_ratio": 1.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
   "src/oo_ratchet/layers/ratchet.py": {
     "method_ratio": 1.0,
     "encapsulation_ratio": 1.0,
@@ -1185,10 +1198,10 @@
   "src/oo_ratchet/layers/trees.py": {
     "method_ratio": 1.0,
     "encapsulation_ratio": 1.0,
-    "avg_params": 1.25,
+    "avg_params": 1.2,
     "max_complexity": 6.0,
-    "avg_complexity": 4.25,
-    "module_size": 46.0,
+    "avg_complexity": 2.8,
+    "module_size": 36.0,
     "classes_per_module": 2.0,
     "class_to_func_ratio": 1.0,
     "init_violations": 0.0,

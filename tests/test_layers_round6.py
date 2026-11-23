@@ -36,6 +36,25 @@ class TestQuotedPaths:
         assert tree.path_at('weird"dir')
 
 
+CARRIAGE_RETURN = "weird\rdir/app/__init__.py"
+
+
+class TestExactPaths:
+    """NUL-separated output keeps carriage returns and other bytes as they are."""
+
+    def test_working_tree_keeps_a_carriage_return(
+        self, git_sandbox: GitSandbox
+    ) -> None:
+        git_sandbox.write(CARRIAGE_RETURN, "")
+        git_sandbox.commit("one")
+        assert WorkingTree(git_sandbox.root).has_package("app")
+
+    def test_base_tree_keeps_a_carriage_return(self, git_sandbox: GitSandbox) -> None:
+        git_sandbox.write(CARRIAGE_RETURN, "")
+        sha = git_sandbox.commit("one")
+        assert BaseTree(sha, git_sandbox.root).path_at("weird\rdir")
+
+
 class TestDeepChains:
     """Every origin is followed to a fixed point, however deep."""
 

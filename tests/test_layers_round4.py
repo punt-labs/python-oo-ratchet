@@ -9,8 +9,9 @@ from pathlib import Path
 
 import pytest
 
-from oo_ratchet.coupling.gitio import GitRepo
+from oo_ratchet.coupling.gitio import GitError
 from oo_ratchet.design.layer_edges import Edge
+from oo_ratchet.layers.listing import NulListing
 from oo_ratchet.layers.scan import LayerScan
 from tests.layers_repo import LayersRepo
 
@@ -86,12 +87,14 @@ class TestGitFailsClosed:
     ) -> None:
         repo.edit("kernel", "")
         repo.write(".oo-layers-baseline.json", '{"other.kernel": ["other.service"]}')
-        real = GitRepo._git
+        real = NulListing.run
 
-        def flaky(self: GitRepo, args: list[str]) -> str | None:
-            return None if args[0] == "ls-files" else real(self, args)
+        def flaky(root: Path, args: list[str]) -> list[str]:
+            if "ls-files" in args:
+                raise GitError("boom")
+            return real(root, args)
 
-        monkeypatch.setattr(GitRepo, "_git", flaky)
+        monkeypatch.setattr(NulListing, "run", staticmethod(flaky))
         code, out = repo.run("--update")
         assert code == 1
         assert "FAIL" in out

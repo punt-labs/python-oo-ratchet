@@ -62,7 +62,7 @@ class WorkingTree:
         Tracked files that were deleted but not yet staged do not count; a failing
         git call raises ``GitError`` rather than reading as "absent".
         """
-        glob = f":(glob)**/{name}/__init__.py"
+        glob = f":(glob)**/{name}/**/*.py"
         args = ["ls-files", "-z", "--cached", "--others", "--exclude-standard", "--"]
         found = NulListing.run(self._root, [*args, glob])
         return any((self._root / line).is_file() for line in found)

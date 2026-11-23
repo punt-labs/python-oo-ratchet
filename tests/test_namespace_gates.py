@@ -183,3 +183,21 @@ def test_configured_layers_catch_new_cross_root_violation(
         == 1
     )
     assert "app.a.core -> app.b.core" in capsys.readouterr().out
+
+
+def test_updating_another_package_keeps_namespace_baseline(
+    workspace: GitSandbox, capsys: pytest.CaptureFixture[str]
+) -> None:
+    repo = workspace
+    roots = move_after_commit(repo)
+    (Path(roots[0]) / "__init__.py").unlink()
+    repo.write("packages/a/src/app/a/core.py", HEADER + "import app.b.core\n")
+    assert main(["layers", "--namespace", "app", *roots, "--update"]) == 0
+    baseline = repo.root / ".oo-layers-baseline.json"
+    before = json.loads(baseline.read_text())
+    assert before["app.a.core"] == ["app.b.core"]
+    repo.write("src/other/__init__.py", HEADER)
+    repo.write("src/other/a/core.py", HEADER)
+    repo.write("src/other/b/core.py", HEADER)
+    assert main(["layers", "src/other", "--update"]) == 0
+    assert json.loads(baseline.read_text()) == before, capsys.readouterr().out

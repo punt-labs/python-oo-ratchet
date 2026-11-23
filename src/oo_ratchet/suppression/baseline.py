@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Self
+from typing import TYPE_CHECKING, Self
 
 from .gitio import GitRepo
 from .outcome import Outcome
@@ -12,6 +12,9 @@ from .persist import BaselineFile, SuppressionBaselineError
 from .relax import SuppressionRelax
 from .report import SuppressionReport
 from .rescan import BaseRescanner
+
+if TYPE_CHECKING:
+    from oo_ratchet.source_set import Source
 
 __all__ = ["SuppressionBaseline", "SuppressionBaselineError"]
 
@@ -54,7 +57,7 @@ class SuppressionBaseline:
         self,
         report: SuppressionReport,
         *,
-        target: Path,
+        target: Source,
         base_ref: str | None,
         require_base: bool,
         tripwire: bool = False,
@@ -91,7 +94,7 @@ class SuppressionBaseline:
             "with an in-tree baseline present; fetch origin/main or pass --base-ref"
         )
 
-    def _absent_base(self, target: Path, *, tripwire: bool = False) -> Outcome:
+    def _absent_base(self, target: Source, *, tripwire: bool = False) -> Outcome:
         """Decide the verdict when ``target`` does not exist at the base ref.
 
         Matches the OO and coupling ratchets' ``_absent_base_baseline`` exactly
@@ -188,7 +191,7 @@ class SuppressionBaseline:
         self,
         report: SuppressionReport,
         *,
-        target: Path,
+        target: Source,
         base_ref: str | None,
         file: str,
         justify: str,

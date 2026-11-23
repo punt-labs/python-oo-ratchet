@@ -5,6 +5,8 @@ from __future__ import annotations
 import argparse
 from typing import Self
 
+from oo_ratchet.source_set import SourceSet
+
 from .output import DesignOutput
 
 
@@ -15,7 +17,7 @@ class DesignCli:
 
     def __new__(cls, argv: list[str] | None) -> Self:
         self = super().__new__(cls)
-        self._output = DesignOutput(cls._parser().parse_args(argv))
+        self._output = DesignOutput(SourceSet.parse(cls._parser(), argv))
         return self
 
     def run(self) -> int:
@@ -28,7 +30,7 @@ class DesignCli:
             prog="oo-ratchet design",
             description=cls._description(),
         )
-        parser.add_argument("src", help="package directory to scan")
+        SourceSet.add(parser)
         parser.add_argument("--json", action="store_true", help="emit JSON")
         parser.add_argument("--layers", help="TOML layer configuration override")
         parser.add_argument(

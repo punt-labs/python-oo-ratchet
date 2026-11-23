@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 import ast
-import os.path
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Self
+from typing import TYPE_CHECKING, Self
 
 from oo_ratchet.coupling.layout import PackageLayout
 
 from .shape import ClassShape
+
+if TYPE_CHECKING:
+    from oo_ratchet.source_set import Source
 
 
 @dataclass(frozen=True, slots=True)
@@ -48,12 +50,10 @@ class ModuleIndex:
     _skipped: list[Path]
     _package_name: str
 
-    def __new__(cls, root: Path, *, package_name: str | None = None) -> Self:
+    def __new__(cls, root: Source, *, package_name: str | None = None) -> Self:
         self = super().__new__(cls)
         self._layout = PackageLayout(root)
-        self._package_name = (
-            package_name or Path(os.path.normpath(root.absolute())).name
-        )
+        self._package_name = package_name or self._layout.package_name
         self._modules = {}
         self._skipped = []
         paths = self._layout.root_files()
@@ -98,7 +98,7 @@ class ModuleIndex:
             parts = Path(key[1:]).parts
             return parts[0] if len(parts) > 1 else ""
         head = key.split(".")[0]
-        return head if (self._layout.root / head).is_dir() else ""
+        return head if self._layout.contains(head) else ""
 
     def interface_methods(self) -> tuple[frozenset[str], ...]:
         """Return the method names of each abstract class in the tree."""
@@ -126,4 +126,4 @@ class ModuleIndex:
         self._modules[key] = Module(key, path, tree, classes)
 
     def _path_key(self, path: Path) -> str:
-        return "/" + path.relative_to(self._layout.root).as_posix()
+        return "/" + self._layout.relative_path(path).as_posix()

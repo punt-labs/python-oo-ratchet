@@ -4,15 +4,18 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
-from typing import Self
+from typing import TYPE_CHECKING, Self
 
 from .config import CouplingConfig
-from .graph import ImportGraph
 from .imports import ImportResolver
 from .layout import PackageLayout
 from .metrics import ModuleCouplingMetrics
-from .packages import PackageMetrics, PackageScorer
+from .packages import PackageMetrics
 from .thresholds import CouplingThresholds
+from .tree import CouplingTree
+
+if TYPE_CHECKING:
+    from oo_ratchet.source_set import Source
 
 
 class CouplingScorer:
@@ -29,25 +32,19 @@ class CouplingScorer:
 
     def __new__(
         cls,
-        target: Path,
+        target: Source,
         repo_root: Path | None = None,
         config: CouplingConfig | None = None,
     ) -> Self:
         self = super().__new__(cls)
         root = repo_root if repo_root is not None else Path.cwd()
         self._config = config if config is not None else CouplingConfig()
-        if target.is_file():
-            layout = PackageLayout(target.parent)
-            self._results = [self._safe_score(target, layout, frozenset(), root)]
-            self._packages = ()
-        elif target.is_dir():
-            layout = PackageLayout(target)
-            graph = ImportGraph.build(layout)
-            self._results = self._score_directory(layout, graph, root)
-            self._packages = tuple(PackageScorer(layout, graph).score())
-        else:
-            self._results = []
-            self._packages = ()
+        tree = CouplingTree(target)
+        cycle = tree.cycles
+        self._results = [
+            self._safe_score(f, tree.layout, cycle, root) for f in tree.files
+        ]
+        self._packages = tree.packages
         return self
 
     @property
@@ -122,12 +119,6 @@ class CouplingScorer:
     def fail_count(self) -> int:
         """Return the number of aggregated metrics failing their threshold."""
         return sum(1 for g in self.grades.values() if g == "FAIL")
-
-    def _score_directory(
-        self, layout: PackageLayout, graph: ImportGraph, root: Path
-    ) -> list[dict[str, float | int | str]]:
-        cycle = frozenset(graph.cycle_members())
-        return [self._safe_score(f, layout, cycle, root) for f in layout.root_files()]
 
     def _safe_score(
         self,

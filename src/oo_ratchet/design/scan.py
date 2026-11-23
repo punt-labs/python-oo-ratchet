@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Self
+from typing import TYPE_CHECKING, Self
 
 from .boundaries import BoundaryCheck
 from .class_rules import ClassRules
@@ -13,6 +13,9 @@ from .layers import LayerCheck
 from .modules import ModuleIndex
 from .report import DesignReport
 
+if TYPE_CHECKING:
+    from oo_ratchet.source_set import Source
+
 
 class DesignScanner:
     """Index a package tree once and collect the findings of every rule."""
@@ -21,7 +24,11 @@ class DesignScanner:
     _index: ModuleIndex
 
     def __new__(
-        cls, root: Path, layers: Path | None = None, *, package_name: str | None = None
+        cls,
+        root: Source,
+        layers: Path | None = None,
+        *,
+        package_name: str | None = None,
     ) -> Self:
         self = super().__new__(cls)
         index = ModuleIndex(root, package_name=package_name)

@@ -11,6 +11,7 @@ from typing import Self
 from oo_ratchet.coupling.gitio import GitError
 from oo_ratchet.coupling.outcome import Outcome
 from oo_ratchet.design.layer_config import LayerConfigError
+from oo_ratchet.source_set import Source, SourceSet
 
 from .baseline import LayersBaselineError
 from .gitio import LayersGit
@@ -24,7 +25,7 @@ from .writer import LayersWriter
 class Options:
     """Parsed command-line options for one layers ratchet invocation."""
 
-    src: Path
+    src: Source
     check: bool
     update: bool
     json: bool
@@ -39,13 +40,13 @@ class Options:
     def parse(cls, argv: list[str] | None = None) -> Self:
         """Build options from ``argv`` (defaults to ``sys.argv``)."""
         parser = cls._build_parser()
-        ns = parser.parse_args(argv)
+        ns = SourceSet.parse(parser, argv)
         if not ns.check and (ns.base_ref is not None or ns.require_base or ns.tripwire):
             parser.error("--base-ref, --require-base and --tripwire need --check")
         if ns.allow_config_change and not (ns.check or ns.update):
             parser.error("--allow-config-change needs --check or --update")
         return cls(
-            src=Path(ns.src),
+            src=ns.src,
             check=bool(ns.check),
             update=bool(ns.update),
             json=bool(ns.json),
@@ -63,7 +64,7 @@ class Options:
             prog="oo-ratchet layers",
             description="package layer contract: imports only point down the layers",
         )
-        parser.add_argument("src", help="the package directory to scan (src/pkg)")
+        SourceSet.add(parser)
         action = parser.add_mutually_exclusive_group()
         action.add_argument("--check", action="store_true", help="ratchet check")
         action.add_argument(
@@ -107,16 +108,16 @@ class Cli:
         self = super().__new__(cls)
         self._opts = options
         src = options.src
-        self._git = LayersGit(src if src.is_dir() else None)
+        self._git = LayersGit(SourceSet(src).start_dir)
         self._root = self._git.root
         return self
 
     def run(self) -> int:
         """Execute the requested operation and return its exit code."""
-        if not self._opts.src.exists():
+        if not SourceSet.path(self._opts.src).exists():
             return self._emit(Outcome.failed(f"Not found: {self._opts.src}"))
         root = self._root
-        if root is None or not self._opts.src.resolve().is_relative_to(root.resolve()):
+        if root is None or not SourceSet(self._opts.src).inside(root):
             msg = f"FAIL: {self._opts.src} is not inside a git repository"
             return self._emit(Outcome.failed(msg))
         try:
@@ -157,8 +158,7 @@ class Cli:
 
     @staticmethod
     def _emit(outcome: Outcome) -> int:
-        for line in outcome.lines:
-            sys.stdout.write(line + "\n")
+        sys.stdout.writelines(line + "\n" for line in outcome.lines)
         return outcome.exit_code
 
 

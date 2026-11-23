@@ -7,6 +7,7 @@ from typing import Self
 
 from oo_ratchet.oo.baseline import Baseline
 from oo_ratchet.oo.scorer import Scorer
+from oo_ratchet.source_set import Source, SourceSet
 
 from .layer_config import LayerConfigError
 from .scanner import DesignScanner
@@ -21,7 +22,7 @@ class ShadowScan:
 
     def __new__(
         cls,
-        source: Path,
+        source: Source,
         repo: Path,
         layers: Path | None,
         *,
@@ -44,7 +45,8 @@ class ShadowScan:
             DesignKey(
                 f.rule,
                 cls._module(
-                    scanner.module_key(Path(f.path)), package_name or source.name
+                    scanner.module_key(Path(f.path)),
+                    package_name or SourceSet(source).name,
                 ),
                 f.symbol,
             )

@@ -1,47 +1,29 @@
-"""Scan a merge base and working tree, then report a non-gating ratchet."""
+"""Choose a legacy package scan or a joined namespace shadow scan."""
 
 from __future__ import annotations
 
-import os.path
 from pathlib import Path
 from typing import Self
 
-from oo_ratchet.oo.gitio import GitError, GitRepo
+from oo_ratchet.source_set import Source, SourceSet
 
-from .shadow_keys import KeyChanges
-from .shadow_metrics import ShadowMetrics
+from .legacy_shadow import LegacyShadow
+from .namespace_shadow import NamespaceShadow
 from .shadow_report import ShadowReport
-from .shadow_scan import ShadowScan
-from .shadow_snapshot import ShadowSnapshot
 
 
 class ShadowCheck:
-    """Use measured merge-base debt rather than a mutable baseline file."""
+    """Compare the same logical source selection on either side of a merge base."""
 
     _report: ShadowReport
 
-    def __new__(cls, source: Path, layers: Path | None, ref: str) -> Self:
+    def __new__(cls, source: Source, layers: Path | None, ref: str) -> Self:
         self = super().__new__(cls)
-        source = Path(os.path.normpath(source.absolute()))
-        git = GitRepo(source)
-        root = git.root
-        if root is None:
-            raise GitError("--shadow-check requires a git repository")
-        relative = source.resolve().relative_to(root)
-        resolved = git.resolve_ref(ref)
-        base = git.merge_base(resolved, "HEAD") if resolved is not None else None
-        if base is None:
-            raise GitError("--shadow-check ref has no resolvable merge base with HEAD")
-        override = layers.resolve() if layers is not None else None
-        with ShadowSnapshot(git, base).checkout() as tree:
-            before = ShadowScan(
-                tree / relative, tree, override, package_name=source.name
-            )
-        after = ShadowScan(source, root, override, package_name=source.name)
-        self._report = ShadowReport(
-            KeyChanges(before.keys, after.keys),
-            ShadowMetrics(before.metrics, after.metrics),
-            base,
+        self._report = SourceSet(source).shadow(
+            layers,
+            ref,
+            lambda source, layers, ref: LegacyShadow(source, layers, ref).report,
+            lambda source, layers, ref: NamespaceShadow(source, layers, ref).report,
         )
         return self
 

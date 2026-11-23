@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import Self
 
+from oo_ratchet.source_set import Source, SourceSet
+
 from .metrics import ModuleMetrics
 from .thresholds import Thresholds
 
@@ -33,15 +35,12 @@ class Scorer:
 
     _results: list[dict[str, float | int | str]]
 
-    def __new__(cls, target: Path, repo_root: Path | None = None) -> Self:
+    def __new__(cls, target: Source, repo_root: Path | None = None) -> Self:
         self = super().__new__(cls)
         root = repo_root if repo_root is not None else Path.cwd()
-        if target.is_file():
-            self._results = [self._score_or_error(target, root)]
-        elif target.is_dir():
-            self._results = self._score_directory(target, root)
-        else:
-            self._results = []
+        self._results = [
+            cls._score_or_error(p, root) for p in SourceSet(target).files()
+        ]
         return self
 
     @property
@@ -96,17 +95,6 @@ class Scorer:
             return cls._score_file(path, root)
         except (SyntaxError, UnicodeDecodeError, OSError) as e:
             return {"file": cls._normalize(path, root), "error": str(e)}
-
-    @classmethod
-    def _score_directory(
-        cls, directory: Path, root: Path
-    ) -> list[dict[str, float | int | str]]:
-        results: list[dict[str, float | int | str]] = []
-        for py_file in sorted(directory.rglob("*.py")):
-            if py_file.name.startswith("."):
-                continue
-            results.append(cls._score_or_error(py_file, root))
-        return results
 
     def _aggregate(self) -> dict[str, float]:
         agg: dict[str, list[float]] = {k: [] for k in Thresholds.names()}

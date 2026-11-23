@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Added
+
+- Opt-in `--namespace NAME` source selection across all gates, including design
+  shadow checks. Multiple physical portions of a PEP 420 namespace are scanned
+  together, preserving cross-root coupling, cycles and layer edges. Optional
+  `[tool.oo-ratchet]` `namespace` and `roots` (paths or globs) configure the same
+  selection. Legacy single-root invocations and configuration keys are unchanged;
+  baseline and waiver paths remain repository-relative physical paths, with Git
+  renames pairing files across workspace moves.
+
 ### Removed
 
 - The unused `_is_slots` helper in the coupling metrics scanner.

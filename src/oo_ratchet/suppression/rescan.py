@@ -6,6 +6,8 @@ import tempfile
 from pathlib import Path
 from typing import Self
 
+from oo_ratchet.source_set import Source, SourceSet
+
 from .gitio import GitError, GitRepo
 from .report import SuppressionReport
 from .scanner import Scanner
@@ -29,7 +31,7 @@ class BaseRescanner:
         self._pyproject_dir = pyproject_dir
         return self
 
-    def rescan(self, ref: str, target: Path) -> SuppressionReport | None:
+    def rescan(self, ref: str, target: Source) -> SuppressionReport | None:
         """Return a fresh report of ``target`` as it existed at ``ref``.
 
         Materializes the real historical ``target`` (and ``pyproject.toml``,
@@ -38,6 +40,15 @@ class BaseRescanner:
         ``target`` did not exist at ``ref`` (the ref predates the scanned
         source tree).
         """
+        return SourceSet(target).rescan(
+            ref, self._git, self._single, self._scan, SuppressionReport.rebased
+        )
+
+    @staticmethod
+    def _scan(target: Source, project: Path) -> SuppressionReport:
+        return Scanner(target, project).report
+
+    def _single(self, ref: str, target: Path) -> SuppressionReport | None:
         target_rel = self.relpath(target)
         if not self._git.path_exists_at_ref(ref, target_rel):
             return None
@@ -73,7 +84,7 @@ class BaseRescanner:
             self._git.archive_paths(ref, [rel], Path(tmp))
             return (Path(tmp) / rel).read_text()
 
-    def relpath(self, path: Path) -> str:
+    def relpath(self, path: Source) -> str:
         """Return ``path`` as a POSIX path relative to the git repository root.
 
         ``git archive``/``git cat-file`` pathspecs are always root-relative, so
@@ -86,7 +97,7 @@ class BaseRescanner:
         if git_root is None:
             msg = "not inside a git repository"
             raise GitError(msg)
-        resolved = path.resolve()
+        resolved = SourceSet.path(path).resolve()
         try:
             rel = resolved.relative_to(git_root.resolve())
         except ValueError as exc:

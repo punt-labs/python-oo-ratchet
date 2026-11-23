@@ -6,6 +6,8 @@ import tokenize
 from pathlib import Path
 from typing import Self
 
+from oo_ratchet.source_set import Source, SourceSet
+
 from .patterns import FileSuppressions
 from .pyproject import PerFileIgnoresCounter
 from .report import SuppressionReport
@@ -16,12 +18,15 @@ class Scanner:
 
     _report: SuppressionReport
 
-    def __new__(cls, target: Path, project_root: Path | None = None) -> Self:
+    def __new__(cls, target: Source, project_root: Path | None = None) -> Self:
         self = super().__new__(cls)
         root = project_root if project_root is not None else Path.cwd()
         file_results = self._collect_files(target)
         pfi = PerFileIgnoresCounter(root / "pyproject.toml")
         self._report = SuppressionReport(file_results, pfi.total, pfi.breakdown)
+        self._report = SourceSet(target).report_paths(
+            self._report, root, SuppressionReport.rebased
+        )
         return self
 
     @property
@@ -43,18 +48,8 @@ class Scanner:
             return path.read_text(encoding="utf-8")
 
     @staticmethod
-    def _collect_files(target: Path) -> list[FileSuppressions]:
-        if target.is_file():
-            return [FileSuppressions(str(target), Scanner._read(target))]
-        if not target.is_dir():
-            return []
-        results: list[FileSuppressions] = []
-        for py_file in sorted(target.rglob("*.py")):
-            if py_file.name.startswith("."):
-                continue
-            # Let an unreadable file raise OSError. As a CI gate, swallowing it
-            # would undercount a file that has NEW suppressions -- the total
-            # wouldn't rise and a real regression would pass. Fail closed instead;
-            # the CLI turns the OSError into a controlled non-zero.
-            results.append(FileSuppressions(str(py_file), Scanner._read(py_file)))
-        return results
+    def _collect_files(target: Source) -> list[FileSuppressions]:
+        return [
+            FileSuppressions(str(p), Scanner._read(p))
+            for p in SourceSet(target).files()
+        ]

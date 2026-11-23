@@ -11,14 +11,12 @@ from oo_ratchet.design.modules import Module
 
 from .exports import Origin, Reexports
 
-_DEPTH = 8
-
 
 class ExportChain:
     """Resolve ``from pkg import X`` to every module that can define ``X``.
 
     Each package ``__init__`` on the way may bind ``X`` to several origins (one
-    per branch); every origin is followed, to a bounded depth, and each module
+    per branch); every origin is followed, until no new origin appears, and each module
     reached is an edge the importer depends on.
     """
 
@@ -42,13 +40,14 @@ class ExportChain:
         reached: list[str] = []
         seen: set[Origin] = set()
         frontier = [(target, symbol)]
-        for _ in range(_DEPTH):
-            frontier = [
+        while frontier:
+            fresh = (
                 origin
                 for here, name in frontier
                 for origin in self._origins(here, name)
                 if origin[0] != here and origin not in seen
-            ]
+            )
+            frontier = list(dict.fromkeys(fresh))
             seen.update(frontier)
             reached.extend(module for module, _ in frontier)
         return reached

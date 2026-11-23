@@ -266,7 +266,7 @@ class TestUnrelatedCallsAreFalsePositives:
 
 
 class TestReexportInventory:
-    """Only module-scope bindings are exports, and a rebinding ends one."""
+    """Any import in a package __init__ is an export, wherever it sits."""
 
     def _exports(self, tmp_path: Path, init: str) -> bool:
         return _violation(

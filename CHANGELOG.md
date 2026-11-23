@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-22
+
 ### Added
 
 - `oo-ratchet layers <src> --check|--update`: layer gate with a shrinking baseline (`.oo-layers-baseline.json`, `.oo-layers-audit.jsonl`) built on the design check's layer code. `[tool.oo-ratchet.layers]` also accepts declared layers (`prefixes`, `imports`) beside the fixed four-layer form. The gate fails closed: unassigned modules, empty layers, a non-package `src`, config widened in the same change as a new violation, and re-exports and literal `importlib` imports are all counted.

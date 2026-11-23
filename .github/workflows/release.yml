@@ -66,14 +66,21 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
-      - name: Install from TestPyPI
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist/
+      - name: Install the package alone from TestPyPI
+        # --no-deps: nothing but punt-oo-ratchet may come from TestPyPI, where
+        # anyone can publish a higher version of a dependency's name.
+        # --only-binary: installing must not build, so no package code runs yet.
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           MAX_ATTEMPTS=10
           WAIT_SECONDS=60
           for attempt in $(seq 1 $MAX_ATTEMPTS); do
             echo "Attempt $attempt/$MAX_ATTEMPTS: installing punt-oo-ratchet==$VERSION from TestPyPI..."
-            if uv pip install --system --refresh \
+            if uv pip install --system --refresh --no-deps --only-binary :all: \
               --index-url https://test.pypi.org/simple/ \
               "punt-oo-ratchet==$VERSION"; then
               echo "Successfully installed punt-oo-ratchet==$VERSION"
@@ -84,12 +91,6 @@ jobs:
           done
           echo "Failed to install punt-oo-ratchet==$VERSION after $MAX_ATTEMPTS attempts"
           exit 1
-      - name: Verify CLI
-        run: oo-ratchet --help
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: dist
-          path: dist/
       - name: Verify TestPyPI serves this run's build
         # skip-existing keeps reruns working; this keeps them honest.
         run: |
@@ -103,6 +104,15 @@ jobs:
                   sys.exit(f"::error::TestPyPI {dist.name} is not this run's build; bump the version")
           print("TestPyPI artifacts match this run's build")
           EOF
+      - name: Install its dependencies from PyPI only
+        # The requirement list comes from the installed package's own metadata,
+        # so it never drifts from pyproject.toml.
+        run: |
+          python -c "import importlib.metadata as m; print('\n'.join(m.requires('punt-oo-ratchet') or []))" > requirements.txt
+          cat requirements.txt
+          uv pip install --system --index-url https://pypi.org/simple/ -r requirements.txt
+      - name: Verify CLI
+        run: oo-ratchet --help
 
   pypi:
     needs: test-install

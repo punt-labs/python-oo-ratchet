@@ -50,6 +50,60 @@ flags. Baseline and audit files (`.oo-baseline.json`, `.oo-audit.jsonl`,
 `.oo-coupling-baseline.json`, ...) keep the same names as the embedded copies,
 so a repo switches over without rebaselining.
 
+### Namespace workspaces
+
+All gates accept portions of one top-level namespace as a single scan:
+
+```bash
+oo-ratchet coupling --namespace punt_lux \
+  packages/lux-kernel/src/punt_lux packages/lux-hub/src/punt_lux --check
+oo-ratchet design --namespace punt_lux \
+  packages/lux-kernel/src/punt_lux packages/lux-hub/src/punt_lux \
+  --shadow-check origin/main
+```
+
+Each root is the namespace directory itself, not its parent `src` directory
+or a component such as `punt_lux/kernel`. A root `__init__.py` is not required.
+Portions are joined before resolving imports or measuring cycles and package
+metrics; they are not independent scans. Duplicate module definitions across
+portions, nonexistent roots, unmatched globs and entirely empty selections fail
+before any baseline is written. Repeated identical roots are deduplicated.
+
+Alternatively, configure the selection in the working directory's nearest
+`pyproject.toml` and omit positional sources:
+
+```toml
+[tool.oo-ratchet]
+namespace = "punt_lux"
+roots = ["packages/*/src/punt_lux"]
+```
+
+Configured paths and globs are relative to that file. Explicit roots override
+configured roots; specify `--namespace` with an explicit single root to opt in.
+A single positional source without `--namespace` retains legacy behavior.
+The namespace must be one top-level Python identifier.
+
+Import identity is the namespace plus the source-relative dotted key, e.g.
+`punt_lux.kernel.paths`. Internal coupling keys and design module keys retain
+the legacy namespace-relative spelling (`kernel.paths`); layer edges retain
+fully qualified names. Existing module-name declarations therefore need **no
+rekey**. Physical-path configuration (coupling caps, suppression waivers),
+baselines and audit rows retain actual repository-relative file paths. Moving
+a file changes its physical key as before; `--base-ref` uses Git rename
+detection to pair its old and new keys, including historical shadow and
+suppression scans. List all portions of the namespace when moving a monolith
+into a workspace so its before/after graph scopes are equivalent.
+
+Historical root globs are constrained to the selected namespace name and retain
+resolved physical portions. Relative symlink portions within the checkout are
+deduplicated; links escaping a historical checkout fail closed. Use physical
+roots rather than absolute symlinks for portable history checks. Historical
+scans retain both the selected project's configuration and repository-root Ruff
+ignores.
+
+The usual `--check`, `--update`, `--base-ref` and `--require-base` flags apply
+to the baseline gates; design retains its advisory `--shadow-check REF`.
+
 ### Layers gate
 
 `oo-ratchet layers src/pkg/ [--check|--update|--json]` turns the design check's layer rules into a shrinking baseline. It reads the same `[tool.oo-ratchet.layers]` table, either the fixed four-layer form or declared layers:

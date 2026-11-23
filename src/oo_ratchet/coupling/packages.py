@@ -51,15 +51,10 @@ class PackageScorer:
         return [self._score_one(pkg_dir) for pkg_dir in self._sub_packages()]
 
     def _sub_packages(self) -> list[Path]:
-        root = self._layout.root
-        return [
-            item.parent
-            for item in sorted(root.rglob("__init__.py"))
-            if item.parent != root
-        ]
+        return self._layout.package_dirs()
 
     def _score_one(self, pkg_dir: Path) -> PackageMetrics:
-        pkg_name = str(pkg_dir.relative_to(self._layout.root)).replace("/", ".")
+        pkg_name = self._layout.key_for(pkg_dir / "__init__.py")
         keys = self._module_keys(pkg_name)
         return PackageMetrics(
             package=pkg_name,

@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Self
 
+from oo_ratchet.source_set import Source, SourceSet
+
 from .audit import CouplingAuditError
 from .baseline import CouplingBaseline, CouplingBaselineError
 from .bless import CouplingBless
@@ -24,7 +26,7 @@ from .writer import CouplingWriter
 class Options:
     """Parsed command-line options for one coupling ratchet invocation."""
 
-    src: Path
+    src: Source
     check: bool
     update: bool
     rebaseline: bool
@@ -44,9 +46,9 @@ class Options:
     @classmethod
     def parse(cls, argv: list[str] | None = None) -> Self:
         """Build options from ``argv`` (defaults to ``sys.argv``)."""
-        ns = cls._build_parser().parse_args(argv)
+        ns = SourceSet.parse(cls._build_parser(), argv)
         return cls(
-            src=Path(ns.src),
+            src=ns.src,
             check=bool(ns.check),
             update=bool(ns.update),
             rebaseline=bool(ns.rebaseline),
@@ -77,7 +79,7 @@ class Options:
             prog="oo-ratchet coupling",
             description="module coupling/cohesion scorer and regression ratchet",
         )
-        parser.add_argument("src", help="file or directory to score")
+        SourceSet.add(parser)
         # Exactly one action selects the operation; passing two is an argparse
         # error, not a silent first-wins pick.
         action = parser.add_mutually_exclusive_group()
@@ -135,7 +137,7 @@ class Cli:
         guard = self._rebaseline_files_guard()
         if guard is not None:
             return self._emit(guard)
-        if not self._opts.src.exists():
+        if not SourceSet.path(self._opts.src).exists():
             return self._emit(Outcome.failed(f"Not found: {self._opts.src}"))
         try:
             # Score inside the try: a read/decode failure (OSError,
@@ -168,8 +170,7 @@ class Cli:
 
     @staticmethod
     def _emit(outcome: Outcome) -> int:
-        for line in outcome.lines:
-            sys.stdout.write(line + "\n")
+        sys.stdout.writelines(line + "\n" for line in outcome.lines)
         return outcome.exit_code
 
     def _run_action(self, scorer: CouplingScorer) -> Outcome | None:

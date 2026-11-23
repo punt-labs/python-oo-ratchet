@@ -9,6 +9,7 @@ from oo_ratchet.design.layer_config import LayerConfig, LayerConfigError
 from oo_ratchet.design.layer_edges import Edge, Violation
 from oo_ratchet.design.layer_table import LayerTable
 from oo_ratchet.design.modules import ModuleIndex
+from oo_ratchet.source_set import Source, SourceSet
 
 from .strict import StrictViolations
 
@@ -33,7 +34,7 @@ class LayerScan:
     layer claims, or a layer that claims no module.
     """
 
-    _src: Path
+    _src: SourceSet
     _config: LayerConfig
     _modules: tuple[str, ...]
     _violations: tuple[Violation, ...]
@@ -42,13 +43,11 @@ class LayerScan:
     _config_path: Path | None
     _package: str
 
-    def __new__(cls, src: Path, config: LayerConfig | None = None) -> Self:
+    def __new__(cls, src: Source, config: LayerConfig | None = None) -> Self:
         self = super().__new__(cls)
-        self._src = src
+        self._src = SourceSet(src)
         self._config = config or cls._load(src)
-        if not (src / "__init__.py").is_file():
-            msg = f"{src} is not a package: no __init__.py (pass src/<package>)"
-            raise LayersScanError(msg)
+        self._src.require_package(LayersScanError)
         index = ModuleIndex(src)
         if index.skipped:
             names = ", ".join(sorted(str(p) for p in index.skipped))
@@ -93,7 +92,7 @@ class LayerScan:
     @property
     def src(self) -> Path:
         """Return the scanned package directory."""
-        return self._src
+        return SourceSet.path(self._src)
 
     @property
     def package(self) -> str:
@@ -125,7 +124,7 @@ class LayerScan:
         )
 
     @staticmethod
-    def _load(src: Path) -> LayerConfig:
+    def _load(src: Source) -> LayerConfig:
         config = LayerTable.load(src)
         if config is None:
             msg = f"no [tool.oo-ratchet.layers] table above {src}"

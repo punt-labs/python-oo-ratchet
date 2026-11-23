@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Self
 
+from oo_ratchet.source_set import Source, SourceSet
+
 from .baseline import SuppressionBaseline, SuppressionBaselineError
 from .gitio import GitError, GitRepo
 from .outcome import Outcome
@@ -21,7 +23,7 @@ from .scanner import Scanner
 class Options:
     """Parsed command-line options for one suppression ratchet invocation."""
 
-    src: Path
+    src: Source
     check: bool
     update: bool
     rebaseline: bool
@@ -39,9 +41,9 @@ class Options:
     @classmethod
     def parse(cls, argv: list[str] | None = None) -> Self:
         """Build options from ``argv`` (defaults to ``sys.argv``)."""
-        ns = cls._build_parser().parse_args(argv)
+        ns = SourceSet.parse(cls._build_parser(), argv)
         return cls(
-            src=Path(ns.src),
+            src=ns.src,
             check=bool(ns.check),
             update=bool(ns.update),
             rebaseline=bool(ns.rebaseline),
@@ -63,7 +65,7 @@ class Options:
             prog="oo-ratchet suppressions",
             description="count lint/type suppressions and enforce a ratchet",
         )
-        parser.add_argument("src", help="file or directory to scan")
+        SourceSet.add(parser)
         action = parser.add_mutually_exclusive_group()
         action.add_argument("--check", action="store_true", help="ratchet check")
         action.add_argument("--update", action="store_true", help="update baseline")
@@ -112,7 +114,7 @@ class Cli:
 
     def run(self) -> int:
         """Execute the requested operation and return its exit code."""
-        if not self._opts.src.exists():
+        if not SourceSet.path(self._opts.src).exists():
             return self._emit(Outcome.failed(f"not found: {self._opts.src}"))
         try:
             # Anchor the scan's project root and the baseline path to the repo
@@ -173,8 +175,7 @@ class Cli:
 
     @staticmethod
     def _emit(outcome: Outcome) -> int:
-        for line in outcome.lines:
-            sys.stdout.write(line + "\n")
+        sys.stdout.writelines(line + "\n" for line in outcome.lines)
         return outcome.exit_code
 
 

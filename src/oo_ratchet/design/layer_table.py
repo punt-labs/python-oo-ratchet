@@ -5,6 +5,8 @@ from __future__ import annotations
 import tomllib
 from pathlib import Path
 
+from oo_ratchet.source_set import Source, SourceSet
+
 from .declared_layers import DeclaredLayers
 from .layer_config import LayerConfig, LayerConfigError
 
@@ -13,7 +15,7 @@ class LayerTable:
     """Read the layers table of a pyproject and build the config it describes."""
 
     @classmethod
-    def load(cls, root: Path, override: Path | None = None) -> LayerConfig | None:
+    def load(cls, root: Source, override: Path | None = None) -> LayerConfig | None:
         """Read an explicit file or the nearest ancestor pyproject, if any."""
         path = override or cls.nearest(root)
         if path is None:
@@ -56,7 +58,8 @@ class LayerTable:
         return LayerConfig(table)
 
     @staticmethod
-    def nearest(root: Path) -> Path | None:
+    def nearest(root: Source) -> Path | None:
+        root = SourceSet(root).config_anchor
         return next(
             (
                 parent / "pyproject.toml"

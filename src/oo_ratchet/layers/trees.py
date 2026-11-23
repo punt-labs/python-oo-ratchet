@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Self
 
-from .listing import NulListing
+from .package_tree import PackageTree
 
 
 class BaseTree:
@@ -15,12 +15,11 @@ class BaseTree:
     nothing here ever reads a failed call as "absent".
     """
 
-    _files: frozenset[str]
+    _tree: PackageTree
 
     def __new__(cls, ref: str, root: Path) -> Self:
         self = super().__new__(cls)
-        listing = NulListing.run(root, ["ls-tree", "-r", "--name-only", "-z", ref])
-        self._files = frozenset(listing)
+        self._tree = PackageTree.base(ref, root)
         return self
 
     def package_at(self, name: str) -> bool:
@@ -29,31 +28,21 @@ class BaseTree:
         A directory named ``name`` inside another package (``core/utils``) is a
         different import name and does not count.
         """
-        for line in self._files:
-            folder = line.removesuffix("__init__.py").rstrip("/")
-            head, _, last = folder.rpartition("/")
-            if not line.endswith("__init__.py") or last != name:
-                continue
-            if (f"{head}/__init__.py" if head else "__init__.py") not in self._files:
-                return True
-        return False
+        return self._tree.package_at(name)
 
     def path_at(self, path: str) -> bool:
         """Return whether anything exists at repo-relative ``path`` in the tree."""
-        prefix = path.rstrip("/") + "/"
-        return path == "." or any(
-            f == path or f.startswith(prefix) for f in self._files
-        )
+        return self._tree.path_at(path)
 
 
 class WorkingTree:
     """The files present in the working tree, tracked or not."""
 
-    _root: Path
+    _tree: PackageTree
 
     def __new__(cls, root: Path) -> Self:
         self = super().__new__(cls)
-        self._root = root
+        self._tree = PackageTree.working(root)
         return self
 
     def has_package(self, name: str) -> bool:
@@ -62,7 +51,4 @@ class WorkingTree:
         Tracked files that were deleted but not yet staged do not count; a failing
         git call raises ``GitError`` rather than reading as "absent".
         """
-        glob = f":(glob)**/{name}/__init__.py"
-        args = ["ls-files", "-z", "--cached", "--others", "--exclude-standard", "--"]
-        found = NulListing.run(self._root, [*args, glob])
-        return any((self._root / line).is_file() for line in found)
+        return self._tree.package_at(name)

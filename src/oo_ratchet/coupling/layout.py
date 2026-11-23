@@ -1,72 +1,65 @@
-"""The module-key naming scheme for a scored package tree."""
+"""Stable package-relative keys over one resolved source selection."""
 
 from __future__ import annotations
 
 from pathlib import Path
 from typing import Self
 
+from oo_ratchet.source_set import Source, SourceSet
+
 
 class PackageLayout:
-    """Map files under a package root to stable dotted module keys.
+    """Keep import identity independent of source portions' physical paths."""
 
-    Top-level modules key on their stem (``core``); a sub-package ``__init__``
-    keys on the directory name (``voxd``); a nested module keys on its dotted
-    path (``voxd.config``). The same scheme names both the coupling graph nodes
-    and the discovered internal-module set, so imports resolve against keys.
-    """
-
-    _root: Path
-    _name: str
+    _source: SourceSet
     _modules: frozenset[str]
 
-    def __new__(cls, directory: Path) -> Self:
+    def __new__(cls, directory: Source) -> Self:
         self = super().__new__(cls)
-        self._root = directory
-        self._name = directory.name
-        self._modules = cls._discover(directory)
+        self._source = SourceSet(directory)
+        self._modules = frozenset(self.key_for(p) for p in self.root_files())
         return self
 
     @property
     def name(self) -> str:
-        """Return the package (top directory) name."""
-        return self._name
+        """Return the namespace spelling used to resolve coupling imports."""
+        return self._source.name
 
     @property
     def root(self) -> Path:
-        """Return the package root directory."""
-        return self._root
+        """Return the physical common ancestor of the selection."""
+        return self._source.anchor
+
+    @property
+    def package_name(self) -> str:
+        """Return the logical name, preserving legacy symlink spelling."""
+        return self._source.package_name
 
     @property
     def modules(self) -> frozenset[str]:
-        """Return every internal module key at any depth."""
+        """Return every namespace-relative module key."""
         return self._modules
 
     def root_files(self) -> list[Path]:
-        """Return every non-hidden ``.py`` file under the package root."""
-        return [
-            py_file
-            for py_file in sorted(self._root.rglob("*.py"))
-            if not py_file.name.startswith(".")
-        ]
+        """Return each selected physical file once."""
+        return self._source.files()
 
     def key_for(self, py_file: Path) -> str:
-        """Return the dotted module key for a file under the package root."""
-        return self._parts_to_key(py_file.relative_to(self._root).with_suffix("").parts)
+        """Return the key paired with ``name`` to form the dotted import name."""
+        return self._source.key_for(py_file)
 
-    @classmethod
-    def _discover(cls, directory: Path) -> frozenset[str]:
-        names: set[str] = set()
-        for py_file in sorted(directory.rglob("*.py")):
-            if py_file.name.startswith("."):
-                continue
-            parts = py_file.relative_to(directory).with_suffix("").parts
-            names.add(cls._parts_to_key(parts))
-        return frozenset(names)
+    def relative_path(self, path: Path) -> Path:
+        """Return the source-relative spelling used for shadowed modules."""
+        return self._source.relative_path(path)
+
+    def contains(self, component: str) -> bool:
+        """Return whether a source portion contains this subdirectory."""
+        return self._source.contains(component)
+
+    def package_dirs(self) -> list[Path]:
+        """Return non-root package directories across every portion."""
+        return self._source.package_dirs()
 
     @staticmethod
     def _parts_to_key(parts: tuple[str, ...]) -> str:
-        if len(parts) == 1:
-            return parts[0]
-        if parts[-1] == "__init__":
-            return ".".join(parts[:-1])
-        return ".".join(parts)
+        return SourceSet.parts_to_key(parts)

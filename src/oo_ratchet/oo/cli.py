@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Self
 
+from oo_ratchet.source_set import Source, SourceSet
+
 from .audit import AuditError
 from .baseline import BaselineError
 from .gitio import GitError, GitRepo
@@ -21,7 +23,7 @@ from .writer import BaselineWriter
 class Options:
     """Parsed command-line options for one ratchet invocation."""
 
-    src: Path
+    src: Source
     check: bool
     update: bool
     reconcile: bool
@@ -44,10 +46,9 @@ class Options:
     @classmethod
     def parse(cls, argv: list[str] | None = None) -> Self:
         """Build options from ``argv`` (defaults to ``sys.argv``)."""
-        parser = cls._build_parser()
-        ns = parser.parse_args(argv)
+        ns = SourceSet.parse(cls._build_parser(), argv)
         return cls(
-            src=Path(ns.src),
+            src=ns.src,
             check=bool(ns.check),
             update=bool(ns.update),
             reconcile=bool(ns.reconcile),
@@ -80,7 +81,7 @@ class Options:
         parser = argparse.ArgumentParser(
             prog="oo-ratchet oo", description="OO quality scorer and baseline ratchet"
         )
-        parser.add_argument("src", help="file or directory to score")
+        SourceSet.add(parser)
         # Exactly one action selects the operation; passing two is an argparse
         # error, not a silent first-wins pick.
         action = parser.add_mutually_exclusive_group()
@@ -150,7 +151,7 @@ class Cli:
         guard = self._rebaseline_files_guard()
         if guard is not None:
             return self._emit(guard)
-        if not self._opts.src.exists():
+        if not SourceSet.path(self._opts.src).exists():
             return self._emit(Outcome.failed(f"Not found: {self._opts.src}"))
         scorer = Scorer(self._opts.src, self._root)
         try:
@@ -180,8 +181,7 @@ class Cli:
 
     @staticmethod
     def _emit(outcome: Outcome) -> int:
-        for line in outcome.lines:
-            sys.stdout.write(line + "\n")
+        sys.stdout.writelines(line + "\n" for line in outcome.lines)
         return outcome.exit_code
 
     def _unscorable(self, scorer: Scorer) -> Outcome | None:
@@ -192,7 +192,7 @@ class Cli:
         opts = self._opts
         if opts.log or opts.json:
             return None
-        if opts.src.is_file() and scorer.parse_errors:
+        if SourceSet.path(opts.src).is_file() and scorer.parse_errors:
             return Outcome.failed(f"FAIL: cannot score {opts.src}")
         return None
 

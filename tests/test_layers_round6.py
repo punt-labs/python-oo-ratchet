@@ -7,6 +7,8 @@ import os
 import threading
 from pathlib import Path
 
+import pytest
+
 from oo_ratchet.design.layer_edges import Edge
 from oo_ratchet.layers.audit import LayersAudit
 from oo_ratchet.layers.scan import LayerScan
@@ -53,6 +55,29 @@ class TestExactPaths:
         git_sandbox.write(CARRIAGE_RETURN, "")
         sha = git_sandbox.commit("one")
         assert BaseTree(sha, git_sandbox.root).path_at("weird\rdir")
+
+
+class TestUndecodablePaths:
+    """A filename that is not valid UTF-8 still resolves on disk (POSIX)."""
+
+    def _write(self, root: Path) -> str:
+        folder = os.fsdecode(b"weird\xffdir")
+        try:
+            (root / folder / "app").mkdir(parents=True)
+            (root / folder / "app" / "__init__.py").write_text("")
+        except OSError:
+            pytest.skip("filesystem rejects non-UTF-8 names")
+        return folder
+
+    def test_working_tree_finds_the_package(self, git_sandbox: GitSandbox) -> None:
+        self._write(git_sandbox.root)
+        git_sandbox.commit("one")
+        assert WorkingTree(git_sandbox.root).has_package("app")
+
+    def test_base_tree_finds_the_directory(self, git_sandbox: GitSandbox) -> None:
+        folder = self._write(git_sandbox.root)
+        sha = git_sandbox.commit("one")
+        assert BaseTree(sha, git_sandbox.root).path_at(folder)
 
 
 class TestDeepChains:

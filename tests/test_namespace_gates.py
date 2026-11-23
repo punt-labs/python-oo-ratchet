@@ -12,6 +12,7 @@ from oo_ratchet.coupling.cli import Options
 from oo_ratchet.source_set import SourceSet
 from oo_ratchet.suppression.gitio import GitRepo
 from oo_ratchet.suppression.rescan import BaseRescanner
+from oo_ratchet.suppression.scanner import Scanner
 from tests.conftest import GitSandbox
 from tests.test_namespace_sources import CONFIG, HEADER
 
@@ -382,3 +383,23 @@ def test_namespace_history_surfaces_directory_listing_failure(
     source = Options.parse(["--namespace", "app", "src/app"]).src
     with pytest.raises(OSError, match="git ls-tree"):
         BaseRescanner(GitRepo(workspace.root), workspace.root).rescan(base, source)
+
+
+def test_nested_namespace_history_keeps_repository_ruff_ignores(
+    workspace: GitSandbox,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repo = workspace
+    repo.write(
+        "pyproject.toml",
+        '[tool.ruff.lint.per-file-ignores]\n"nested/src/app/*.py" = ["F401"]\n',
+    )
+    repo.write("nested/pyproject.toml", CONFIG)
+    repo.write("nested/src/app/core.py", HEADER)
+    base = repo.commit("nested namespace with root Ruff configuration")
+    monkeypatch.chdir(repo.root / "nested")
+    source = Options.parse(["--namespace", "app", "src/app"]).src
+    current = Scanner(source, repo.root).report
+    before = BaseRescanner(GitRepo(repo.root), repo.root).rescan(base, source)
+    assert before is not None
+    assert before.total == current.total == 1

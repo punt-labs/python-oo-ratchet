@@ -41,8 +41,8 @@ class SourceArchive:
             for path in [".", *listing.split("\0")]
             if path and any(Path(path).full_match(pattern) for pattern in patterns)
         ]
-        config = (source.project or self._root) / "pyproject.toml"
-        relative = config.relative_to(self._root).as_posix()
-        if self._git._git(["cat-file", "-e", f"{ref}:{relative}"]) is not None:
-            paths.append(relative)
+        for project in {self._root, source.project or self._root}:
+            relative = (project / "pyproject.toml").relative_to(self._root).as_posix()
+            if self._git._git(["cat-file", "-e", f"{ref}:{relative}"]) is not None:
+                paths.append(relative)
         return paths

@@ -552,6 +552,13 @@
     "max_lcom": 0.0,
     "avg_lcom": 0.0
   },
+  "src/oo_ratchet/layers/adoption.py": {
+    "efferent_coupling": 3.0,
+    "public_names": 1.0,
+    "circular_imports": 0.0,
+    "max_lcom": 0.0,
+    "avg_lcom": 0.0
+  },
   "src/oo_ratchet/layers/audit.py": {
     "efferent_coupling": 1.0,
     "public_names": 2.0,
@@ -616,7 +623,7 @@
     "avg_lcom": 0.0
   },
   "src/oo_ratchet/layers/ratchet.py": {
-    "efferent_coupling": 8.0,
+    "efferent_coupling": 9.0,
     "public_names": 1.0,
     "circular_imports": 0.0,
     "max_lcom": 0.0,

@@ -19,13 +19,32 @@ class LayersGit(GitRepo):
         return self._show_file(ref, path)
 
     def package_at(self, ref: str, name: str) -> bool:
-        """Return whether ``ref`` has a package directory ``name`` anywhere."""
-        listing = self._git(["ls-tree", "-r", "--name-only", ref])
+        """Return whether ``ref`` has a top-level package directory ``name``.
+
+        A directory named ``name`` inside another package (``core/utils``) is a
+        different import name and does not count.
+        """
+        files = set(self._listing(ref))
+        for line in files:
+            folder = line.removesuffix("__init__.py").rstrip("/")
+            head, _, last = folder.rpartition("/")
+            if not line.endswith("__init__.py") or last != name:
+                continue
+            if (f"{head}/__init__.py" if head else "__init__.py") not in files:
+                return True
+        return False
+
+    def path_at(self, ref: str, path: str) -> bool:
+        """Return whether anything exists at repo-relative ``path`` in ``ref``."""
+        return bool(self._listing(ref, path))
+
+    def _listing(self, ref: str, path: str | None = None) -> list[str]:
+        args = ["ls-tree", "-r", "--name-only", ref]
+        listing = self._git([*args, "--", path] if path else args)
         if listing is None:
             msg = f"git ls-tree {ref} failed"
             raise GitError(msg)
-        marker = f"/{name}/__init__.py"
-        return any(("/" + line).endswith(marker) for line in listing.splitlines())
+        return listing.splitlines()
 
     def has_package(self, name: str) -> bool:
         """Return whether a package directory ``name`` exists in the working tree.

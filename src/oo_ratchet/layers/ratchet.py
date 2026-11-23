@@ -16,6 +16,7 @@ from typing import Self
 from oo_ratchet.coupling.outcome import Outcome
 from oo_ratchet.design.layer_edges import Edge
 
+from .adoption import Adoption
 from .base_config import BaseConfig
 from .baseline import LayersBaseline
 from .gitio import LayersGit
@@ -28,12 +29,14 @@ class LayersRatchet:
     """Enforce the layers gate against the baseline and the merge base."""
 
     _config: BaseConfig
+    _adoption: Adoption
     _baseline: LayersBaseline
     _git: LayersGit
 
     def __new__(cls, root: Path, git: LayersGit) -> Self:
         self = super().__new__(cls)
         self._config = BaseConfig(root, git)
+        self._adoption = Adoption(root, git)
         self._baseline = LayersBaseline(root)
         self._git = git
         return self
@@ -73,7 +76,7 @@ class LayersRatchet:
         label = f"{base}:{LayersBaseline.FILENAME}"
         parsed = LayersBaseline.parse(text, label)
         scoped = frozenset(e for e in parsed if e.within(scan.package))
-        adopting = not scoped and not self._git.package_at(base, scan.package)
+        adopting = self._adoption.is_new(scan, base, scoped)
         return self._verdict(
             scan,
             None if adopting else scoped,

@@ -30,6 +30,15 @@ read the section for the gate you are changing before changing it. The formal
 model is `docs/ratchet.tex`. The policy enforced is punt-kit's
 `lang-rules/python/python-oo-adoption.md`.
 
+## Workflow
+
+`docs/WORKFLOW.md` is how work moves here: Linear backlog, one PR per unit,
+local review, a demo through the `oo-ratchet` CLI, the merge gate, and the
+close-out with a beadle recap email, a vox notice and lux tables. Read it
+before writing code.
+
+@docs/WORKFLOW.md
+
 ## Commands
 
 Always use `make` targets; Python 3.13+, managed by `uv`.
@@ -148,7 +157,11 @@ name `loans`, which is why `make type` runs mypy once per variant.
 
 ## Release
 
-Bump `version` in `pyproject.toml`, add the `CHANGELOG.md` entry, and push a
-`v<version>` tag. `.github/workflows/release.yml` refuses a tag that does not
-match `pyproject.toml`, then builds, publishes to TestPyPI, verifies that
-wheel, and publishes to PyPI.
+On a `release/vX.Y.Z` branch, bump `version` in `pyproject.toml` and move the
+`CHANGELOG.md` entries under it; after that PR merges, push the `vX.Y.Z` tag.
+`.github/workflows/release.yml` refuses a tag that does not match
+`pyproject.toml`, then builds, publishes to TestPyPI, verifies that wheel, and
+publishes to PyPI.
+
+@.punt-labs/beadle/CLAUDE.md
+@.punt-labs/vox/CLAUDE.md

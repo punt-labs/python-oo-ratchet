@@ -1,19 +1,33 @@
 {
   "permissions": {
     "allow": [
-      "mcp__plugin_vox_mic__*",
+      "Bash",
+      "Read",
+      "Edit",
+      "Write",
+      "WebFetch",
+      "WebSearch",
+      "mcp__github",
+      "mcp__linear",
+      "mcp__context7",
+      "mcp__plugin_vox_mic",
+      "mcp__plugin_lux_lux",
+      "mcp__plugin_beadle_email",
+      "mcp__plugin_biff_tty",
+      "mcp__plugin_quarry_quarry",
       "Skill(vox:*)",
-      "mcp__plugin_lux_lux__*",
       "Skill(lux:*)",
-      "mcp__plugin_beadle_email__whoami",
-      "mcp__plugin_beadle_email__list_messages",
-      "mcp__plugin_beadle_email__read_message",
-      "mcp__plugin_beadle_email__list_folders",
-      "mcp__plugin_beadle_email__check_trust",
-      "mcp__plugin_beadle_email__verify_signature",
-      "mcp__plugin_beadle_email__find_contact",
-      "mcp__plugin_beadle_email__list_contacts",
-      "mcp__plugin_beadle_email__get_poll_status"
+      "Skill(beadle:*)",
+      "Skill(biff:*)",
+      "Skill(quarry:*)",
+      "Skill(commit-commands:*)",
+      "Skill(code-review:*)",
+      "Skill(pr-review-toolkit:*)"
+    ],
+    "deny": [
+      "Bash(rm -rf /:*)",
+      "Bash(rm -rf ~:*)",
+      "Bash(sudo:*)"
     ]
   }
 }

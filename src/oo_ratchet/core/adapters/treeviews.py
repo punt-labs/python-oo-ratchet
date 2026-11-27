@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Self
 
-from .package_tree import PackageTree
+from .packagetrees import PackageTree
 
 
 class BaseTree:

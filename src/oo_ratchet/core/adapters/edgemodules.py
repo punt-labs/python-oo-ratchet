@@ -6,13 +6,10 @@ from collections.abc import Iterable
 from pathlib import Path, PurePosixPath
 from typing import Self
 
-from oo_ratchet.coupling.gitio import GitError
+from oo_ratchet.layers.scan import LayersScanError
 from oo_ratchet.source_set import Source, SourceSet
 
-from .listing import NulListing
-from .scan import LayersScanError
-
-__all__ = ["BaseModules", "GitError"]
+from .nullisting import NulListing
 
 
 class BaseModules:
@@ -62,7 +59,11 @@ class BaseModules:
             if f.is_relative_to(prefix)
         )
         keys = map(SourceSet.parts_to_key, parts)
-        return {package if k == "__init__" else f"{package}.{k}" for k in keys}
+        return {BaseModules._name(key, package) for key in keys}
+
+    @staticmethod
+    def _name(key: str, package: str) -> str:
+        return package if key == "__init__" else f"{package}.{key}"
 
     def _prefix(self, files: list[PurePosixPath], package: str) -> PurePosixPath | None:
         here = PurePosixPath(
@@ -71,6 +72,11 @@ class BaseModules:
         if any(f.is_relative_to(here) for f in files):
             return here
         found = self._top_level(files, package)
+        self._refuse_several(found, package)
+        return found[0] if found else None
+
+    @staticmethod
+    def _refuse_several(found: list[PurePosixPath], package: str) -> None:
         if len(found) > 1:
             where = ", ".join(sorted(str(p) for p in found))
             msg = (
@@ -78,14 +84,13 @@ class BaseModules:
                 f"more than one directory holds it ({where})"
             )
             raise LayersScanError(msg)
-        return found[0] if found else None
 
     @staticmethod
     def _top_level(files: list[PurePosixPath], package: str) -> list[PurePosixPath]:
         """Return the directories named ``package`` that no regular package holds."""
-        inits = {f.parent for f in files if f.name == "__init__.py"}
-        return [
-            d
-            for d in inits
-            if d.name == package and not any(a in inits for a in d.parents)
-        ]
+        inits = BaseModules._initializers(files)
+        return [d for d in inits if d.name == package and inits.isdisjoint(d.parents)]
+
+    @staticmethod
+    def _initializers(files: list[PurePosixPath]) -> set[PurePosixPath]:
+        return {f.parent for f in files if f.name == "__init__.py"}

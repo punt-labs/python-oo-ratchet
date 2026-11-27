@@ -1,4 +1,4 @@
-"""Recognize top-level package names using every regular-package ancestor."""
+"""Classify paths of a commit or the working tree as packages."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Self
 
-from .listing import NulListing
+from .nullisting import NulListing
 
 
 class PackageTree:

@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import pytest
 
+from oo_ratchet.core.adapters.edgeformats import EdgeFormat
+from oo_ratchet.core.domain.errors import StateError
 from oo_ratchet.design.layer_edges import Edge
-from oo_ratchet.layers.baseline import LayersBaseline, LayersBaselineError
 
 
 def test_parse_reads_a_module_map() -> None:
-    parsed = LayersBaseline.parse('{"a.x": ["a.y", "a.z"]}', "test")
-    assert parsed == {Edge("a.x", "a.y"), Edge("a.x", "a.z")}
+    parsed = EdgeFormat.decode('{"a.x": ["a.y", "a.z"]}', "test")
+    assert parsed.edges == {Edge("a.x", "a.y"), Edge("a.x", "a.z")}
 
 
 @pytest.mark.parametrize(
@@ -18,5 +19,5 @@ def test_parse_reads_a_module_map() -> None:
     ["", "{", "[]", '"x"', '{"a": "b"}', '{"a": [1]}', '{"a": {"b": []}}', "null"],
 )
 def test_parse_refuses_malformed_or_wrong_shape(text: str) -> None:
-    with pytest.raises(LayersBaselineError):
-        LayersBaseline.parse(text, "test")
+    with pytest.raises(StateError):
+        EdgeFormat.decode(text, "test")

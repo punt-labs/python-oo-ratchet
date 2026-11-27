@@ -6,7 +6,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from oo_ratchet.coupling.gitio import GitError
+from oo_ratchet.core.domain.errors import GitError
 
 _TIMEOUT = 10
 

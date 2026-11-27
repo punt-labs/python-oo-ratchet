@@ -2,8 +2,19 @@
 
 from __future__ import annotations
 
-import json
 import unicodedata
+
+_SHORT = {
+    '"': '\\"',
+    "\\": "\\\\",
+    "\n": "\\n",
+    "\r": "\\r",
+    "\t": "\\t",
+    "\b": "\\b",
+    "\f": "\\f",
+}
+_DEL = 0x7F
+_BMP = 0xFFFF
 
 
 class SafeText:
@@ -23,10 +34,23 @@ class SafeText:
     def quoted(text: str) -> str:
         """Return ``text`` as a TOML basic string with every control escaped.
 
-        JSON escapes the C0 controls and, with ASCII output, every other
-        non-ASCII character as ``\\uXXXX``; only DEL needs escaping by hand.
+        Printable ASCII passes through except ``"`` and the backslash. Controls
+        (DEL included) and every non-ASCII character become ``\\uXXXX``, or
+        ``\\UXXXXXXXX`` above the BMP: TOML rejects the surrogate pairs that
+        JSON writes for those.
         """
-        return json.dumps(text).replace("\x7f", "\\u007f")
+        return '"' + "".join(SafeText._escaped(ch) for ch in text) + '"'
+
+    @staticmethod
+    def _escaped(ch: str) -> str:
+        code = ord(ch)
+        if ch in _SHORT:
+            return _SHORT[ch]
+        if 0x20 <= code < _DEL:
+            return ch
+        if code > _BMP:
+            return f"\\U{code:08x}"
+        return f"\\u{code:04x}"
 
     @staticmethod
     def _char(ch: str) -> str:

@@ -1267,7 +1267,7 @@
     "avg_params": 0.86,
     "max_complexity": 9.0,
     "avg_complexity": 3.57,
-    "module_size": 85.0,
+    "module_size": 88.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -1277,7 +1277,7 @@
     "avg_params": 1.21,
     "max_complexity": 8.0,
     "avg_complexity": 3.29,
-    "module_size": 152.0,
+    "module_size": 155.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -1305,9 +1305,9 @@
   "src/oo_ratchet/layers/suggest_text.py": {
     "encapsulation_ratio": 1.0,
     "avg_params": 1.0,
-    "max_complexity": 2.0,
-    "avg_complexity": 1.67,
-    "module_size": 15.0,
+    "max_complexity": 4.0,
+    "avg_complexity": 2.5,
+    "module_size": 35.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0

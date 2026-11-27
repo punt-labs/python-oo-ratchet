@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Self
 
-from oo_ratchet.source_set import Source, SourceSet
+from oo_ratchet.source_set import Source, SourceSelection
 
 from .graph import ImportGraph
 from .layout import PackageLayout
@@ -21,7 +21,7 @@ class CouplingTree:
 
     def __new__(cls, target: Source) -> Self:
         self = super().__new__(cls)
-        source = SourceSet(target)
+        source = SourceSelection(target)
         self._file = source.file
         self._layout = PackageLayout(self._file.parent if self._file else source)
         self._graph = ImportGraph({}) if self._file else ImportGraph.build(self._layout)

@@ -5,18 +5,18 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Self
 
-from oo_ratchet.source_set import Source, SourceSet
+from oo_ratchet.source_set import Source, SourceSelection
 
 
 class PackageLayout:
     """Keep import identity independent of source portions' physical paths."""
 
-    _source: SourceSet
+    _source: SourceSelection
     _modules: frozenset[str]
 
     def __new__(cls, directory: Source) -> Self:
         self = super().__new__(cls)
-        self._source = SourceSet(directory)
+        self._source = SourceSelection(directory)
         self._modules = frozenset(self.key_for(p) for p in self.root_files())
         return self
 
@@ -62,4 +62,4 @@ class PackageLayout:
 
     @staticmethod
     def _parts_to_key(parts: tuple[str, ...]) -> str:
-        return SourceSet.parts_to_key(parts)
+        return SourceSelection.parts_to_key(parts)

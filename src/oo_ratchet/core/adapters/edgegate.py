@@ -9,7 +9,7 @@ from oo_ratchet.core.application.edgeops import EdgeCheck, EdgeUpdate
 from oo_ratchet.core.application.edgeports import EdgePorts, Survey
 from oo_ratchet.core.domain.edges import EdgeVerdict
 from oo_ratchet.core.domain.errors import GitError
-from oo_ratchet.source_set import Source, SourceSet
+from oo_ratchet.source_set import Source, SourceSelection
 
 from .edgecli import EdgeCli
 from .edgefiles import EdgeAuditFile, JsonEdgeStore
@@ -52,7 +52,7 @@ class EdgeGate:
     @classmethod
     def repo(cls, src: Source) -> GitRepo:
         """Return the git adapter for the repository holding ``src``."""
-        start = SourceSet(src).start_dir or Path.cwd()
+        start = SourceSelection(src).start_dir or Path.cwd()
         return GitRepo(start, cls.BASELINE, cls.AUDIT)
 
     def check(

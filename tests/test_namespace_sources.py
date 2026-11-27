@@ -9,14 +9,16 @@ from pathlib import Path
 import pytest
 
 from oo_ratchet.__main__ import main
-from oo_ratchet.coupling.cli import CouplingOptions
+from oo_ratchet.coupling.cli import SPEC as COUPLING
 from oo_ratchet.coupling.graph import ImportGraph
 from oo_ratchet.coupling.layout import PackageLayout
 from oo_ratchet.coupling.scorer import CouplingScorer
 from oo_ratchet.design.scan import DesignScanner
+from oo_ratchet.gate_options import GateOptions
 from oo_ratchet.layers.scan import LayerScan
 from oo_ratchet.oo.scorer import Scorer
-from oo_ratchet.source_set import SourceSet
+from oo_ratchet.source_history import SourceHistory
+from oo_ratchet.source_set import SourceSelection
 from oo_ratchet.suppression.scanner import Scanner
 
 HEADER = "from __future__ import annotations\n"
@@ -37,7 +39,7 @@ def write(root: Path, name: str, code: str) -> Path:
 
 
 @pytest.fixture
-def trees(tmp_path: Path) -> tuple[Path, SourceSet]:
+def trees(tmp_path: Path) -> tuple[Path, SourceSelection]:
     source = tmp_path / "single/src/app"
     write(source, "a/__init__.py", HEADER)
     write(source, "b/__init__.py", HEADER)
@@ -59,11 +61,11 @@ def trees(tmp_path: Path) -> tuple[Path, SourceSet]:
         shutil.copytree(source / name, root / name)
     write(tmp_path / "single", "pyproject.toml", CONFIG)
     write(project, "pyproject.toml", CONFIG)
-    return source, SourceSet.from_roots(roots, "app", project)
+    return source, SourceSelection.from_roots(roots, "app", project)
 
 
 def test_split_matches_entire_graph_cycles_metrics_and_layers(
-    trees: tuple[Path, SourceSet],
+    trees: tuple[Path, SourceSelection],
 ) -> None:
     single, split = trees
     before, after = PackageLayout(single), PackageLayout(split)
@@ -85,7 +87,7 @@ def test_split_matches_entire_graph_cycles_metrics_and_layers(
     assert old.summary == new.summary
     assert old.packages == new.packages
     assert (
-        LayerScan(SourceSet.from_roots((single,), "app")).edges
+        LayerScan(SourceSelection.from_roots((single,), "app")).edges
         == LayerScan(split).edges
     )
     assert {str(e) for e in LayerScan(split).edges} == {
@@ -100,17 +102,17 @@ def test_split_matches_entire_graph_cycles_metrics_and_layers(
 
 
 def test_sources_are_deduplicated_and_keep_physical_baseline_keys(
-    trees: tuple[Path, SourceSet],
+    trees: tuple[Path, SourceSelection],
 ) -> None:
     _, source = trees
-    duplicate = SourceSet.from_roots(
+    duplicate = SourceSelection.from_roots(
         (*source.roots, source.roots[0]), "app", source.project
     )
     root = source.project
     assert root is not None
     assert Scorer(source, root).results == Scorer(duplicate, root).results
     assert CouplingScorer(source, root).files == frozenset(
-        str(p.relative_to(root)) for p in SourceSet.files(source)
+        str(p.relative_to(root)) for p in SourceSelection.files(source)
     )
     write(source.roots[0], "a/suppressed.py", HEADER + "x = 1  # noqa: F841\n")
     assert "packages/a/src/app/a/suppressed.py" in Scanner(source, root).report.by_file
@@ -121,13 +123,13 @@ def test_conflicting_namespace_portions_are_rejected(tmp_path: Path) -> None:
     for root in roots:
         write(root, "same.py", HEADER)
     with pytest.raises(ValueError, match=r"duplicate module app\.same"):
-        SourceSet.from_roots(roots, "app")
+        SourceSelection.from_roots(roots, "app")
 
 
 @pytest.mark.parametrize("namespace", ["", "a.b", "class", "a-b"])
 def test_invalid_namespace_is_rejected(tmp_path: Path, namespace: str) -> None:
     with pytest.raises(ValueError, match="identifier"):
-        SourceSet.from_roots((tmp_path,), namespace)
+        SourceSelection.from_roots((tmp_path,), namespace)
 
 
 @pytest.mark.parametrize("gate", ["oo", "coupling", "suppressions", "design", "layers"])
@@ -147,7 +149,7 @@ def test_bad_configured_root_fails_before_any_write(
 
 
 def test_config_globs_and_explicit_roots_give_identical_reports(
-    trees: tuple[Path, SourceSet],
+    trees: tuple[Path, SourceSelection],
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -187,7 +189,7 @@ def test_empty_namespace_has_no_silent_success(
     for name in roots:
         (tmp_path / name).mkdir()
     with pytest.raises(ValueError, match=r"at least one|no Python"):
-        SourceSet.from_roots(tuple(tmp_path / name for name in roots), "app")
+        SourceSelection.from_roots(tuple(tmp_path / name for name in roots), "app")
 
 
 def test_bad_config_table_is_a_cli_error(
@@ -201,27 +203,29 @@ def test_bad_config_table_is_a_cli_error(
 
 
 def test_absent_historical_root_does_not_select_unrelated_namespace(
-    trees: tuple[Path, SourceSet], tmp_path: Path
+    trees: tuple[Path, SourceSelection], tmp_path: Path
 ) -> None:
     _, source = trees
     assert source.project is not None
     tree = tmp_path / "base"
     write(tree, "app/unrelated.py", HEADER)
-    target = source.at_base(source.project, tree, {})
-    assert not SourceSet.path(target).exists()
+    target = SourceHistory(source.target).at_base(source.project, tree, {})
+    assert not SourceSelection(target).anchor.exists()
 
 
 def test_resolved_namespace_is_passed_through_unchanged(
-    trees: tuple[Path, SourceSet],
+    trees: tuple[Path, SourceSelection],
 ) -> None:
     _, source = trees
-    options = CouplingOptions.parse(["--namespace", "app", *map(str, source.roots)])
-    assert isinstance(options.src, SourceSet)
-    assert SourceSet(options.src) is options.src
+    options = GateOptions.parse(
+        COUPLING, ["--namespace", "app", *map(str, source.roots)]
+    )
+    assert isinstance(options.src, SourceSelection)
+    assert SourceSelection(options.src) is options.src
     assert PackageLayout(options.src)._source is options.src
 
 
 def test_resolved_legacy_file_preserves_single_file_metrics(tmp_path: Path) -> None:
     file = write(tmp_path, "app/a.py", HEADER + "from .b import Beta\n")
     write(tmp_path, "app/b.py", HEADER + "class Beta: pass\n")
-    assert CouplingScorer(file).results == CouplingScorer(SourceSet(file)).results
+    assert CouplingScorer(file).results == CouplingScorer(SourceSelection(file)).results

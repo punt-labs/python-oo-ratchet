@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Self
 
-from oo_ratchet.source_set import Source, SourceSet
+from oo_ratchet.source_set import Source, SourceSelection
 
 from .metrics import ModuleMetrics
 from .thresholds import OO_METRICS
@@ -38,7 +38,7 @@ class Scorer:
         self = super().__new__(cls)
         root = repo_root if repo_root is not None else Path.cwd()
         self._results = [
-            cls._score_or_error(p, root) for p in SourceSet(target).files()
+            cls._score_or_error(p, root) for p in SourceSelection(target).files()
         ]
         return self
 

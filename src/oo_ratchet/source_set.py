@@ -1,25 +1,21 @@
-"""The source-selection facade used by gates, independent of physical layout."""
+"""The set of source files a gate reads, independent of physical layout.
+
+The module keeps its name: the layers baseline holds its import edges by module.
+"""
 
 from __future__ import annotations
 
-import argparse
 import os.path
 from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Self
+from typing import Self
 
-from .source_history import SourceHistory
-from .source_options import SourceOptions
-from .source_rescan import NamespaceRescan
 from .sources import Sources
 
-if TYPE_CHECKING:
-    from oo_ratchet.core.application.ports import ArchiveRepo
-
-type Source = Path | SourceSet
+type Source = Path | SourceSelection
 
 
-class SourceSet:
+class SourceSelection:
     """Resolve one legacy target or the physical portions of one namespace."""
 
     _target: Path | Sources
@@ -28,7 +24,7 @@ class SourceSet:
         if isinstance(target, cls):
             return target
         self = super().__new__(cls)
-        self._target = target._target if isinstance(target, SourceSet) else target
+        self._target = target._target if isinstance(target, SourceSelection) else target
         return self
 
     @classmethod
@@ -39,24 +35,21 @@ class SourceSet:
         return cls(Sources(roots, namespace, project))
 
     @staticmethod
-    def add(parser: argparse.ArgumentParser) -> None:
-        """Add source-selection arguments without exposing their implementation."""
-        SourceOptions.add(parser)
-
-    @classmethod
-    def parse(
-        cls, parser: argparse.ArgumentParser, argv: list[str] | None
-    ) -> argparse.Namespace:
-        """Keep legacy Path options; pass a resolved namespace set down the pipeline."""
-        options = SourceOptions.parse(parser, argv)
-        if isinstance(options.src, Sources):
-            options.src = cls(options.src)
-        return options
-
-    @staticmethod
     def path(target: Source) -> Path:
         """Return the physical anchor without changing legacy Path spelling."""
-        return target.anchor if isinstance(target, SourceSet) else target
+        return target.anchor if isinstance(target, SourceSelection) else target
+
+    def select[T](
+        self, legacy: Callable[[Path], T], namespace: Callable[[Sources], T]
+    ) -> T:
+        """Apply ``legacy`` to a lone path or ``namespace`` to its portions."""
+        target = self._target
+        return namespace(target) if isinstance(target, Sources) else legacy(target)
+
+    @property
+    def target(self) -> Path | Sources:
+        """Return the legacy path or the namespace portions, as selected."""
+        return self._target
 
     @property
     def anchor(self) -> Path:
@@ -133,7 +126,9 @@ class SourceSet:
 
     def contains(self, component: str) -> bool:
         """Return whether any selected portion owns this component directory."""
-        return any((root / component).is_dir() for root in self.roots)
+        return any(
+            (root / component).is_dir() for root in Sources.portions(self._target)
+        )
 
     def package_dirs(self) -> list[Path]:
         """Return non-root regular packages from the selected portions."""
@@ -145,7 +140,11 @@ class SourceSet:
 
     def inside(self, root: Path) -> bool:
         """Require every portion, not just their lexical anchor, inside the repo."""
-        return all(path.resolve().is_relative_to(root.resolve()) for path in self.roots)
+        repo = root.resolve()
+        return all(
+            path.resolve().is_relative_to(repo)
+            for path in Sources.portions(self._target)
+        )
 
     def require_package(self, error: type[Exception]) -> None:
         """Require legacy initializers, but allow PEP 420 namespace portions."""
@@ -156,59 +155,6 @@ class SourceSet:
             raise error(
                 f"{self._target} is not a package: no __init__.py (pass src/<package>)"
             )
-
-    def at_base(self, repo: Path, tree: Path, renames: dict[str, str]) -> Source:
-        """Select historical physical portions using the same resolved namespace."""
-        if isinstance(self._target, Sources):
-            return SourceSet(SourceHistory.at(self._target, repo, tree, renames))
-        return tree / self._target.resolve().relative_to(repo)
-
-    @staticmethod
-    def remap_metrics(
-        base: dict[str, dict[str, float]], renames: dict[str, str]
-    ) -> dict[str, dict[str, float]]:
-        """Pair current physical paths with renamed historical metrics."""
-        return SourceHistory.metrics(base, renames)
-
-    def shadow[T](
-        self,
-        layers: Path | None,
-        ref: str,
-        legacy: Callable[[Path, Path | None, str], T],
-        namespace: Callable[[SourceSet, Path | None, str], T],
-    ) -> T:
-        """Choose a shadow scan strategy without exposing namespace dispatch."""
-        return (
-            namespace(self, layers, ref)
-            if isinstance(self._target, Sources)
-            else legacy(self._target, layers, ref)
-        )
-
-    def report_paths[T](
-        self, report: T, root: Path, rebase: Callable[[T, str, str], T]
-    ) -> T:
-        """Normalize namespace report keys, leaving legacy report spelling intact."""
-        return (
-            rebase(report, str(root.resolve()) + "/", "")
-            if isinstance(self._target, Sources)
-            else report
-        )
-
-    def rescan[T](
-        self,
-        ref: str,
-        git: ArchiveRepo,
-        legacy: Callable[[str, Path], T | None],
-        scan: Callable[[Source, Path], T],
-        rebase: Callable[[T, str, str], T],
-    ) -> T | None:
-        """Materialize and scan the matching base source selection."""
-        if isinstance(self._target, Path):
-            return legacy(ref, self._target)
-        pipeline = NamespaceRescan(
-            git, lambda target, root: scan(SourceSet(target), root), rebase
-        )
-        return pipeline.scan(ref, self._target)
 
     def __str__(self) -> str:
         return str(self._target)

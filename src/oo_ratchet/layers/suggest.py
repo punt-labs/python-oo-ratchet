@@ -7,7 +7,7 @@ from typing import Self
 from oo_ratchet.core.domain.exits import Outcome
 from oo_ratchet.core.domain.layer_table import LayerTable
 from oo_ratchet.core.domain.modules import ModuleIndex
-from oo_ratchet.source_set import Source, SourceSet
+from oo_ratchet.source_set import Source, SourceSelection
 
 from .ring_intent import RingIntent
 from .scan import LayersScanError
@@ -35,7 +35,7 @@ class Suggestion:
         self = super().__new__(cls)
         self._src = src
         index = cls._index(src)
-        anchor = SourceSet(src).config_anchor
+        anchor = SourceSelection(src).config_anchor
         nearest = LayerTable.nearest(anchor)
         scripts = ConsoleScripts(nearest)
         facts = PackageFacts(index, scripts).all()
@@ -50,8 +50,8 @@ class Suggestion:
 
     @staticmethod
     def _index(src: Source) -> ModuleIndex:
-        SourceSet(src).require_package(LayersScanError)
-        index = ModuleIndex(SourceSet(src))
+        SourceSelection(src).require_package(LayersScanError)
+        index = ModuleIndex(SourceSelection(src))
         if index.skipped:
             names = ", ".join(sorted(str(p) for p in index.skipped))
             raise LayersScanError(f"cannot read or parse: {names}")

@@ -1,4 +1,4 @@
-.PHONY: help lint type test check build clean check-oo update-oo check-coupling update-coupling check-suppressions update-suppressions check-layers update-layers
+.PHONY: help lint type test check build clean check-oo update-oo check-coupling update-coupling check-suppressions update-suppressions check-layers update-layers check-design
 
 SRC := src/oo_ratchet/
 OO_BASE ?=
@@ -6,6 +6,7 @@ COUPLING_BASE ?=
 SUPPRESSION_BASE ?=
 LAYERS_BASE ?=
 LAYERS_UPDATE ?=
+DESIGN_BASE ?= --shadow-check origin/main
 EVAL_VARIANTS := $(wildcard evals/design/*/bad evals/design/*/good)
 EVAL_TYPE_TARGETS := $(addprefix type-,$(EVAL_VARIANTS))
 
@@ -28,7 +29,7 @@ $(EVAL_TYPE_TARGETS): type-%:
 test: ## full suite, including the real-git slow tier
 	uv run pytest -m ""
 
-check: lint type test check-oo check-coupling check-suppressions check-layers ## all gates
+check: lint type test check-oo check-coupling check-suppressions check-layers check-design ## all gates
 
 check-oo: ## OO must-improve ratchet (dogfooded on this package)
 	uv run oo-ratchet oo $(SRC) --check $(OO_BASE)
@@ -53,6 +54,9 @@ check-layers: ## layer-import ratchet (the four-ring table in pyproject.toml)
 
 update-layers: ## drop retired layer edges from the baseline (extra flags: LAYERS_UPDATE)
 	uv run oo-ratchet layers $(SRC) --update $(LAYERS_UPDATE)
+
+check-design: ## design gate: no added layer-import/unlayered/thick-entry/size-cap/stateless finding (DESIGN_BASE)
+	uv run oo-ratchet design $(SRC) $(DESIGN_BASE) --enforce
 
 build: ## wheel + sdist
 	uv build

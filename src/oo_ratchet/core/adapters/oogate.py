@@ -14,7 +14,7 @@ from oo_ratchet.core.application.reconcile import Reconcile
 from oo_ratchet.core.application.update import Update
 from oo_ratchet.core.application.waive import Rebaseline, Relax
 from oo_ratchet.core.domain.errors import StateError
-from oo_ratchet.source_set import Source, SourceSet
+from oo_ratchet.source_set import Source, SourceSelection
 
 from .gatecli import GateCli
 from .gitrepo import GitRepo
@@ -68,7 +68,7 @@ class OoGate:
         if guard is not None:
             return guard
         req = self._req
-        if not SourceSet.path(req.src).exists():
+        if not SourceSelection.path(req.src).exists():
             return [f"Not found: {req.src}"], 1
         scorer = self._score(req.src, self._root)
         try:
@@ -103,7 +103,9 @@ class OoGate:
 
     def _unscorable(self, scorer: Scorer) -> bool:
         """Return whether a single-file target produced only an error row."""
-        return SourceSet.path(self._req.src).is_file() and bool(scorer.parse_errors)
+        return SourceSelection.path(self._req.src).is_file() and bool(
+            scorer.parse_errors
+        )
 
     def _action(self, ports: Ports, scorer: Scorer) -> Report | None:
         req = self._req

@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Self
 
 from oo_ratchet.core.adapters.oogate import OoGate
-from oo_ratchet.oo.cli import OoCommand
+from oo_ratchet.oo.cli import POLICY
 from oo_ratchet.oo.scorer import Scorer
 from oo_ratchet.source_set import Source
 
@@ -72,7 +72,7 @@ def run(root: Path, request: Request) -> Outcome:
     before = Path.cwd()
     os.chdir(root)
     try:
-        lines, code = OoGate(request, Scorer, OoCommand.POLICY).run()
+        lines, code = OoGate(request, Scorer, POLICY).run()
     finally:
         os.chdir(before)
     return Outcome(code, tuple(lines))

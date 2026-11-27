@@ -369,7 +369,7 @@ both state files are unchanged.
   name their classes `OoCommand` / `OoOptions`, `CouplingCommand` /
   `CouplingOptions`, `SuppressionCommand` / `SuppressionOptions` and
   `LayersCommand` / `LayersOptions`; one option set and one command class
-  for all four (`GateOptions`, `GateCli`) is still A4.
+  for all four are in the A4 section below.
   `tests/test_gate_boundaries.py` enforces it.
 - **The design `--shadow-check`** reads git through the core `GitRepo` and
   compares through `GatePolicy.review`. `ShadowMetrics` lives in
@@ -396,6 +396,26 @@ both state files are unchanged.
 - **Blessed (audited):** `design/scan.py` efferent coupling 7 to 8 (it builds
   the index from a `SourceSet`) and `suppression/report.py` efferent coupling
   1 to 2 (it imports `Tally`).
+
+### A4 decisions: source selection and the gate command line (PL-1722)
+
+- **`SourceSet` is three objects.** `SourceSelection` (in `source_set.py`)
+  answers what the selection is: anchor, roots, namespace, file list, module
+  keys. `SourceHistory` locates the same portions in a base tree.
+  `SourceArchive` exports them from git, scans them and keys the result as the
+  work tree. The module keeps the name `source_set` because the layers
+  baseline holds its import edges by module name, and a renamed target reads
+  as a new violation. The unused core `SourceSelection` data class is gone.
+- **Folded:** `SourceOptions` (into `Sources.select` and `GateOptions`),
+  `NamespaceRescan` (into `SourceArchive`) and `ImportArgs` (into
+  `DynamicImports`).
+- **One option set, one command.** `GateOptions` holds every flag any gate
+  offers; a flag a gate does not offer keeps its default. Each gate states its
+  command line as a `GateSpec` (flag table in the old order, so help text is
+  unchanged). `GateCommand` parses, runs the gate and prints; each gate keeps
+  one `*Run` class for its routing (`CouplingRun`, `SuppressionRun`,
+  `LayersRun`; the OO gate is `OoGate` itself). The command class is not named
+  `GateCli`: the core adapter `GateCli` renders verdicts.
 
 ## Order
 

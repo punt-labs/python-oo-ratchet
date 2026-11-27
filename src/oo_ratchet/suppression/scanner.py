@@ -6,7 +6,7 @@ import tokenize
 from pathlib import Path
 from typing import Self
 
-from oo_ratchet.source_set import Source, SourceSet
+from oo_ratchet.source_set import Source, SourceSelection
 
 from .patterns import FileSuppressions
 from .pyproject import PerFileIgnoresCounter
@@ -23,10 +23,11 @@ class Scanner:
         root = project_root if project_root is not None else Path.cwd()
         file_results = self._collect_files(target)
         pfi = PerFileIgnoresCounter(root / "pyproject.toml")
-        self._report = SourceSet(target).report_paths(
-            SuppressionReport.from_files(file_results, pfi.total, pfi.breakdown),
-            root,
-            SuppressionReport.rebased,
+        report = SuppressionReport.from_files(file_results, pfi.total, pfi.breakdown)
+        # A namespace report keys files relative to the project root.
+        self._report = SourceSelection(target).select(
+            lambda _: report,
+            lambda _: SuppressionReport.rebased(report, str(root.resolve()) + "/", ""),
         )
         return self
 
@@ -52,5 +53,5 @@ class Scanner:
     def _collect_files(target: Source) -> list[FileSuppressions]:
         return [
             FileSuppressions(str(p), Scanner._read(p))
-            for p in SourceSet(target).files()
+            for p in SourceSelection(target).files()
         ]

@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Self
 
 from oo_ratchet.core.domain.errors import GitError
-from oo_ratchet.source_set import Source, SourceSet
+from oo_ratchet.source_set import Source, SourceSelection
 
 from .enforcement.output import DesignRun
 
@@ -33,7 +33,7 @@ class DesignOutput:
 
     def run(self) -> int:
         """Return 2 for invalid input, 1 for an enforced finding, else 0."""
-        if not SourceSet.path(self._root).is_dir():
+        if not SourceSelection.path(self._root).is_dir():
             sys.stderr.write(f"oo-ratchet design: {self._root} is not a directory\n")
             return 2
         try:

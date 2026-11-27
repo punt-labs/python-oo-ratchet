@@ -7,15 +7,15 @@ from pathlib import Path
 
 import pytest
 
-from oo_ratchet.source_options import SourceOptions
+from oo_ratchet.gate_options import GateOptions
 
 OUTER_CONFIG = '[tool.oo-ratchet]\nnamespace = "app"\nroots = ["src/app"]\n'
 
 
 def _parse(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    SourceOptions.add(parser)
-    return SourceOptions.parse(parser, argv)
+    GateOptions.add_source(parser)
+    return GateOptions.namespace(parser, argv)
 
 
 def _outer_and_inner(tmp_path: Path) -> Path:

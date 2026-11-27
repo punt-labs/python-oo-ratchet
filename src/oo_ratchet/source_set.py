@@ -14,7 +14,7 @@ from .source_rescan import NamespaceRescan
 from .sources import Sources
 
 if TYPE_CHECKING:
-    from .source_rescan import ArchiveRepo
+    from oo_ratchet.core.application.ports import ArchiveRepo
 
 type Source = Path | SourceSet
 

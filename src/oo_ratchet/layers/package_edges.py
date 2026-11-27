@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import ast
 from typing import TYPE_CHECKING, Self
 
 from .module_violations import ModuleViolations
@@ -51,7 +50,7 @@ class PackageEdges:
             depth = len(parts) if module.is_package else len(parts) - 1
             found.extend(
                 f"{module.path}:{node.lineno}"
-                for node in ast.walk(module.tree)
-                if isinstance(node, ast.ImportFrom) and node.level > depth
+                for node in module.import_froms()
+                if node.level > depth
             )
         return sorted(found)

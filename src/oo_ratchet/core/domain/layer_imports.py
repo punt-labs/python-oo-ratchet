@@ -40,19 +40,18 @@ class LayerImports:
             if isinstance(node, ast.Import):
                 rows.extend((node, alias.name, alias.name) for alias in node.names)
             elif isinstance(node, ast.ImportFrom):
-                base = self._base(module, node, self.canonical_name(module))
+                base = self.base(module, node)
                 for alias in node.names:
                     child = f"{base}.{alias.name}"
                     target = child if child in self._names else base
                     rows.append((node, alias.name, target))
         return [row for row in rows if row[2] in self._names]
 
-    @staticmethod
-    def _base(module: Module, node: ast.ImportFrom, name: str) -> str:
+    def base(self, module: Module, node: ast.ImportFrom) -> str:
+        """Return the module an import statement names, resolved from ``module``."""
         if not node.level:
             return node.module or ""
-        parts = name.split(".")
-        package = parts if module.is_package else parts[:-1]
+        package = [*self._package.split("."), *module.package_parts()]
         if node.level > len(package):
             return ""
         base = package[: len(package) - node.level + 1]

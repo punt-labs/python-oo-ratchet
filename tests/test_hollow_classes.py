@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import contextlib
 import io
 import json
@@ -14,6 +15,7 @@ from oo_ratchet.__main__ import main as dispatch
 from oo_ratchet.core.domain.findings import Rules
 from oo_ratchet.core.domain.layer_config import LayerConfig
 from oo_ratchet.core.domain.layer_table import LayerTable
+from oo_ratchet.core.domain.modules import Module
 
 SOURCE = Path(__file__).resolve().parent.parent / "src" / "oo_ratchet"
 
@@ -40,6 +42,7 @@ def own_findings() -> frozenset[tuple[str, str]]:
         (Rules.MIDDLE_MAN, "PackageLayout"),
         (Rules.SPLIT_COHESION, "DataInventory"),
         (Rules.SPLIT_COHESION, "StrictViolations"),
+        (Rules.ENVIED_DATA, "Module"),
     ],
 )
 def test_hollow_class_is_not_reported(rule: str, symbol: str) -> None:
@@ -70,3 +73,49 @@ def test_layer_table_reads_the_nearest_pyproject(tmp_path: Path) -> None:
     assert config is not None
     assert config.layer("pkg.b") == "domain"
     assert LayerTable.read(tmp_path / "empty").config() is not None
+
+
+def _module(key: str, source: str, name: str = "a.py") -> Module:
+    path = Path("pkg") / name
+    return Module(key, path, ast.parse(source), {}, key)
+
+
+def test_module_builds_its_own_finding() -> None:
+    found = _module("a", "x = 1\n").finding(Rules.SIZE_CAP, 3, "sym", "why")
+    assert (found.rule, found.path, found.line, found.symbol, found.detail) == (
+        "size-cap",
+        str(Path("pkg") / "a.py"),
+        3,
+        "sym",
+        "why",
+    )
+
+
+def test_module_lists_its_from_imports() -> None:
+    source = "import os\nfrom . import b\nif True:\n    from c import d\n"
+    froms = _module("a", source).import_froms()
+    assert [node.lineno for node in froms] == [2, 4]
+
+
+@pytest.mark.parametrize(
+    ("key", "name", "parts"),
+    [
+        ("__init__", "__init__.py", []),
+        ("a", "__init__.py", ["a"]),
+        ("a.b", "b.py", ["a"]),
+        ("c", "c.py", []),
+    ],
+)
+def test_module_names_the_package_it_sits_in(
+    key: str, name: str, parts: list[str]
+) -> None:
+    assert _module(key, "", name).package_parts() == parts
+
+
+def test_module_finds_the_import_that_exports_a_name() -> None:
+    source = "from .core import Engine as Public\nfrom .x import Y\n"
+    module = _module("pkg", source, "__init__.py")
+    found = module.reexport("Public")
+    assert found is not None
+    assert (found[0].lineno, found[1]) == (1, "Engine")
+    assert module.reexport("Missing") is None

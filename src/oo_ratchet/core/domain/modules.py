@@ -6,6 +6,7 @@ import ast
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Self
 
+from .findings import Finding
 from .shape import ClassShape
 
 if TYPE_CHECKING:
@@ -29,6 +30,35 @@ class Module:
     def is_package(self) -> bool:
         """Return whether the file is a package ``__init__``."""
         return self.path.name == "__init__.py"
+
+    def finding(self, rule: str, line: int, symbol: str, detail: str) -> Finding:
+        """Return a ``rule`` finding at ``line`` of this file."""
+        return Finding(rule, str(self.path), line, symbol, detail)
+
+    def import_froms(self) -> list[ast.ImportFrom]:
+        """Return every ``from ... import`` statement, wherever it sits."""
+        return [n for n in ast.walk(self.tree) if isinstance(n, ast.ImportFrom)]
+
+    def package_parts(self) -> list[str]:
+        """Return the dotted parts of the package this file sits in, from its key."""
+        if self.import_key == "__init__":
+            return []
+        parts = self.import_key.split(".")
+        return parts if self.is_package else parts[:-1]
+
+    def reexport(self, name: str) -> tuple[ast.ImportFrom, str] | None:
+        """Return the top-level import that binds ``name``, with its source name.
+
+        The source name differs from ``name`` for ``from .core import Engine as
+        PublicEngine``.
+        """
+        for node in self.tree.body:
+            if not isinstance(node, ast.ImportFrom):
+                continue
+            for alias in node.names:
+                if (alias.asname or alias.name) == name:
+                    return node, alias.name
+        return None
 
 
 class ModuleIndex:

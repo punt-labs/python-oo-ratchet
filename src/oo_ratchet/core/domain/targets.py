@@ -42,11 +42,7 @@ class ImportTargets:
 
     @staticmethod
     def _relative(module: Module, node: ast.ImportFrom) -> list[str] | None:
-        if module.import_key == "__init__":
-            base: list[str] = []
-        else:
-            parts = module.import_key.split(".")
-            base = parts if module.is_package else parts[:-1]
+        base = module.package_parts()
         climb = node.level - 1
         if climb > len(base):
             return None

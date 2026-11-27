@@ -120,4 +120,4 @@ class LayerCheck:
     def _finding(
         module: Module, rule: str, line: int, symbol: str, detail: str
     ) -> Finding:
-        return Finding(rule, str(module.path), line, symbol, detail)
+        return module.finding(rule, line, symbol, detail)

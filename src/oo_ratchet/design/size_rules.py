@@ -46,13 +46,7 @@ class SizeRules:
         if count <= 400:
             return []
         return [
-            Finding(
-                Rules.SIZE_CAP,
-                str(module.path),
-                1,
-                "<module>",
-                f"module_size={count} > 400",
-            )
+            module.finding(Rules.SIZE_CAP, 1, "<module>", f"module_size={count} > 400")
         ]
 
     @classmethod

@@ -103,6 +103,6 @@ class ProjectTypes:
                 for a in node.names
             ]
         if isinstance(node, ast.ImportFrom):
-            base = LayerImports._base(module, node, self._names.canonical_name(module))
+            base = self._names.base(module, node)
             return [(a.asname or a.name, f"{base}.{a.name}") for a in node.names]
         return []

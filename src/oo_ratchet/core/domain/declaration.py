@@ -20,6 +20,4 @@ class Declaration:
 
     def finding(self, rule: str, detail: str) -> Finding:
         """Attach a rule result to this declaration."""
-        return Finding(
-            rule, str(self.module.path), self.node.lineno, self.symbol, detail
-        )
+        return self.module.finding(rule, self.node.lineno, self.symbol, detail)

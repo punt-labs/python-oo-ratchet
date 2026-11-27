@@ -75,6 +75,12 @@
 
 ### Fixed
 
+- `coupling --update` now drops the baseline row of every file that no longer
+  exists, as the OO gate does, and reports it under `removed` in the summary
+  and the audit entry (PL-1734). Before, a row for a file deleted before the
+  merge base stayed forever, and a new module at that path was compared with
+  the stale score instead of the new-file targets. A row of an existing file
+  that fails to parse is still kept.
 - `layers --check` now treats moving a module outward (toward `entry`) or out
   of `domain` in the fixed four-layer table as a policy widening, so
   promoting a domain module to `adapters` no longer escapes domain-purity

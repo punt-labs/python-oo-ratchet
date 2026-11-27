@@ -28,7 +28,10 @@ Record today's scores for a package as the first baseline:
 uv run oo-ratchet oo src/pkg/ --update
 ```
 
-Check a change against that baseline:
+Commit `.oo-baseline.json` and merge it to `main`. The check compares your
+branch with the merge base of `origin/main` and `HEAD`, so it needs that
+baseline on `origin/main` and a fetched `origin/main`. Without them it exits 1
+with `cannot resolve merge-base`. On a branch, check a change:
 
 ```bash
 uv run oo-ratchet oo src/pkg/ --check
@@ -66,8 +69,8 @@ and `layers`.
 ## Features
 
 - **OO metrics** --- scores each file on encapsulation, parameter counts,
-  complexity, module size and a few conventions, and requires at least one
-  score to improve on every touched file
+  complexity, module size and a few conventions, and fails when any score
+  gets worse on a touched file or when no score improves anywhere in the change
 - **Coupling and cohesion** --- counts imports between modules, import
   cycles and how little the methods of a class share their fields, and fails
   on any regression

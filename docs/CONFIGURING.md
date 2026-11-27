@@ -605,7 +605,7 @@ is the one this repository runs:
           make check-coupling COUPLING_BASE="--base-ref ${BASE} --require-base"
           make check-suppressions SUPPRESSION_BASE="--base-ref ${BASE} --require-base"
           make check-layers LAYERS_BASE="--base-ref ${BASE} --require-base"
-          make check-design DESIGN_BASE="--shadow-check ${BASE}"
+          make check-design DESIGN_BASE="--shadow-check ${BASE}" DESIGN_ENFORCE=
       - name: Ratchets (main)
         if: github.event_name == 'push'
         run: |
@@ -613,8 +613,13 @@ is the one this repository runs:
           make check-coupling COUPLING_BASE="--base-ref HEAD~1 --require-base --tripwire"
           make check-suppressions SUPPRESSION_BASE="--base-ref HEAD~1 --require-base --tripwire"
           make check-layers LAYERS_BASE="--base-ref HEAD~1 --require-base --tripwire"
-          make check-design DESIGN_BASE="--shadow-check HEAD~1"
+          make check-design DESIGN_BASE="--shadow-check HEAD~1" DESIGN_ENFORCE=
 ```
+
+`DESIGN_ENFORCE=` (empty) turns `--enforce` off, so the design step only
+reports. Use it in the adoption change and its `main` run, as step 5 explains.
+In the next change delete `DESIGN_ENFORCE=` from both lines, so the Makefile
+default `--enforce` applies and added gate-capable findings fail the check.
 
 On `main` the `oo` gate also takes `--allow-no-improvement`, which waives the
 must-improve rule but still rejects regressions. On a pull request this

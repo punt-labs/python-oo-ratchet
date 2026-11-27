@@ -45,7 +45,7 @@ class PolicyWidening:
 
 
 class _ModuleMoves:
-    """Modules assigned to an outer ring (or out of ``domain``) than at the base.
+    """Modules assigned to an outer ring, or to no layer, than at the base.
 
     Only the fixed four-ring form has a ring order; with a declared config on
     either side nothing is compared.
@@ -69,12 +69,14 @@ class _ModuleMoves:
     def _line(self, module: str) -> str:
         """Return the description of a move, or ``""`` when ``module`` stayed."""
         was, now = self._base.layer(module), self._current.layer(module)
-        if not self._outward(was, now):
+        if self._rank(now) >= self._rank(was):
             return ""
-        return f"module {module!r} moved from layer {was!r} to {now!r}"
+        return f"module {module!r} moved from layer {was!r} to {self._label(now)}"
 
-    def _outward(self, was: str | None, now: str | None) -> bool:
-        if None in (was, now):
-            return False
-        order = self._current.ORDER
-        return order.index(now) < order.index(was)
+    def _rank(self, layer: str | None) -> int:
+        """Return the ring index of ``layer``; no layer ranks outside every ring."""
+        return -1 if layer is None else self._current.ORDER.index(layer)
+
+    @staticmethod
+    def _label(layer: str | None) -> str:
+        return "no layer" if layer is None else repr(layer)

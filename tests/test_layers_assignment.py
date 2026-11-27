@@ -56,3 +56,77 @@ class TestModuleAssignment:
         _setup(repo, DEMOTED)
         repo.write("pyproject.toml", BASE)
         assert repo.run("--check")[0] == 0
+
+
+CATCH_ALL = """\
+[tool.oo-ratchet.layers]
+entry = ["app.cli"]
+adapters = ["app.store"]
+domain = ["app", "app.*"]
+"""
+WITH_ROOT = BASE.replace('domain = ["app.domain"', 'domain = ["app", "app.domain"')
+
+
+class TestNewModules:
+    """A module absent at the base cannot have moved; only shared modules can."""
+
+    def test_new_adapter_matching_the_base_catch_all_passes(
+        self, repo: LayersRepo
+    ) -> None:
+        _setup(repo, CATCH_ALL)
+        repo.write("src/app/fresh.py", "W = 1\n")
+        repo.write(
+            "pyproject.toml",
+            CATCH_ALL.replace(
+                'adapters = ["app.store"]', 'adapters = ["app.store", "app.fresh"]'
+            ),
+        )
+        code, out = repo.run("--check")
+        assert (code, "moved" in out) == (0, False), out
+
+    def test_new_adapter_importing_an_adapter_passes(self, repo: LayersRepo) -> None:
+        _setup(repo, CATCH_ALL)
+        repo.write("src/app/fresh.py", "import app.store\n")
+        repo.write(
+            "pyproject.toml",
+            CATCH_ALL.replace(
+                'adapters = ["app.store"]', 'adapters = ["app.store", "app.fresh"]'
+            ),
+        )
+        code, out = repo.run("--check")
+        assert code == 0, out
+
+    def test_existing_module_matching_the_catch_all_still_fails(
+        self, repo: LayersRepo
+    ) -> None:
+        _setup(repo, CATCH_ALL)
+        repo.write(
+            "pyproject.toml",
+            CATCH_ALL.replace(
+                'adapters = ["app.store"]', 'adapters = ["app.store", "app.thing"]'
+            ),
+        )
+        code, out = repo.run("--check")
+        assert code == 1
+        assert "app.thing" in out
+
+
+class TestPackageRootAssignment:
+    """Dropping a clean initializer's domain assignment needs the waiver."""
+
+    def test_removing_the_roots_domain_assignment_fails(self, repo: LayersRepo) -> None:
+        _setup(repo, WITH_ROOT)
+        repo.write("pyproject.toml", BASE)
+        code, out = repo.run("--check")
+        assert code == 1
+        assert "'app'" in out
+        assert "--allow-config-change" in out
+
+    def test_removal_passes_with_the_flag(self, repo: LayersRepo) -> None:
+        _setup(repo, WITH_ROOT)
+        repo.write("pyproject.toml", BASE)
+        assert repo.run("--check", "--allow-config-change")[0] == 0
+
+    def test_a_root_never_classified_passes(self, repo: LayersRepo) -> None:
+        _setup(repo, BASE)
+        assert repo.run("--check")[0] == 0

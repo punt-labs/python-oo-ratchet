@@ -10,8 +10,9 @@ of a repository; each check reads and compares only the scanned package's rows.
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable
 from pathlib import Path
-from typing import Self
+from typing import TYPE_CHECKING, Self
 
 from oo_ratchet.coupling.outcome import Outcome
 from oo_ratchet.design.layer_edges import Edge
@@ -19,10 +20,15 @@ from oo_ratchet.design.layer_edges import Edge
 from .adoption import Adoption
 from .base_config import BaseConfig
 from .baseline import LayersBaseline
+from .comparison import BaseComparison
 from .gitio import LayersGit
 from .scan import LayerScan
 from .verdict import LayersVerdict
-from .widening import PolicyWidening
+
+if TYPE_CHECKING:
+    from oo_ratchet.design.layer_config import LayerConfig
+
+type SharedModules = Callable[[Iterable[str], str, LayerConfig], list[str]]
 
 
 class LayersRatchet:
@@ -32,13 +38,15 @@ class LayersRatchet:
     _adoption: Adoption
     _baseline: LayersBaseline
     _git: LayersGit
+    _shared: SharedModules
 
-    def __new__(cls, root: Path, git: LayersGit) -> Self:
+    def __new__(cls, root: Path, git: LayersGit, shared: SharedModules) -> Self:
         self = super().__new__(cls)
         self._config = BaseConfig(root, git)
         self._adoption = Adoption(root)
         self._baseline = LayersBaseline(root)
         self._git = git
+        self._shared = shared
         return self
 
     def check(
@@ -100,10 +108,11 @@ class LayersRatchet:
         widened: list[str] = []
         accepted = scan.io_edges if allow_config_change else frozenset()
         if config is not None:
-            if base_edges is not None:
-                under_base = sorted(scan.under(config).edges - base_edges - accepted)
-            if not allow_config_change:
-                widened = PolicyWidening.found(scan.config, config, scan.modules)
+            same = BaseComparison(
+                scan, config, self._shared(scan.modules, base, config)
+            )
+            under_base = same.under_base(base_edges, accepted)
+            widened = [] if allow_config_change else same.widened()
         return LayersVerdict(
             scan,
             self._baseline.scoped(scan.package),

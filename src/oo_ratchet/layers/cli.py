@@ -8,11 +8,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Self
 
-from oo_ratchet.coupling.gitio import GitError
 from oo_ratchet.coupling.outcome import Outcome
 from oo_ratchet.design.layer_config import LayerConfigError
 from oo_ratchet.source_set import Source, SourceSet
 
+from .base_modules import BaseModules, GitError
 from .baseline import LayersBaselineError
 from .gitio import LayersGit
 from .ratchet import LayersRatchet
@@ -137,7 +137,9 @@ class Cli:
     def _dispatch(self, scan: LayerScan, root: Path) -> Outcome:
         opts = self._opts
         if opts.check:
-            return LayersRatchet(root, self._git).check(
+            return LayersRatchet(
+                root, self._git, BaseModules(root, opts.src).shared
+            ).check(
                 scan,
                 base_ref=opts.base_ref,
                 require_base=opts.require_base,

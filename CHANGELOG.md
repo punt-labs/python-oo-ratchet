@@ -52,7 +52,11 @@
   of `domain` in the fixed four-layer table as a policy widening, so
   promoting a domain module to `adapters` no longer escapes domain-purity
   enforcement. It needs `--allow-config-change`, like a widened `imports`.
-  Moves toward `domain` and declared layers are unchanged.
+  Moves toward `domain` and declared layers are unchanged. Only modules that
+  exist at both the base and the current tree can move: a new module listed in
+  an outer layer is not a promotion, and its edges are not judged under the
+  base config. A module that loses its layer (for example a clean package
+  initializer dropped from `domain`) is a widening too.
 - Reading `[tool.oo-ratchet]` stops at the checkout root. A repository with no
   `pyproject.toml` inside a directory tree that has one adopted the outer
   file's namespace and roots.

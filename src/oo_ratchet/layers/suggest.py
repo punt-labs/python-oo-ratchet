@@ -10,7 +10,7 @@ from oo_ratchet.design.modules import ModuleIndex
 from oo_ratchet.source_set import Source, SourceSet
 
 from .scan import LayersScanError
-from .suggest_facts import ConsoleScripts, PackageFacts
+from .suggest_facts import ConsoleScripts, ModuleFacts, PackageFacts
 from .suggest_rules import RingRules, Verdict
 from .suggest_table import RingTable
 
@@ -45,20 +45,30 @@ class Suggestion:
     def __new__(cls, src: Source) -> Self:
         self = super().__new__(cls)
         self._src = src
-        SourceSet(src).require_package(LayersScanError)
-        index = ModuleIndex(src)
-        if index.skipped:
-            names = ", ".join(sorted(str(p) for p in index.skipped))
-            raise LayersScanError(f"cannot read or parse: {names}")
+        index = cls._index(src)
         scripts = ConsoleScripts(LayerTable.nearest(src))
         facts = PackageFacts(index, scripts).all()
-        if len(facts) < 2:
-            raise LayersScanError(f"no modules to check under {src}")
+        cls._require_modules(facts, src)
         self._verdicts = RingRules(facts).verdicts()
         self._modules = tuple(sorted(self._verdicts))
         self._package = index.package_name
         self._scripts = scripts.found
         return self
+
+    @staticmethod
+    def _index(src: Source) -> ModuleIndex:
+        SourceSet(src).require_package(LayersScanError)
+        index = ModuleIndex(src)
+        if index.skipped:
+            names = ", ".join(sorted(str(p) for p in index.skipped))
+            raise LayersScanError(f"cannot read or parse: {names}")
+        return index
+
+    @staticmethod
+    def _require_modules(facts: list[ModuleFacts], src: Source) -> None:
+        """Reject a package with no module below the root, as the gate does."""
+        if not any("." in fact.name for fact in facts):
+            raise LayersScanError(f"no modules to check under {src}")
 
     def outcome(self) -> Outcome:
         """Return the table and the reasons; the exit code is always 0."""

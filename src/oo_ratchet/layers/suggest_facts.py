@@ -125,7 +125,7 @@ class PackageFacts:
     @staticmethod
     def _as_root(facts: ModuleFacts) -> ModuleFacts:
         """Mark the package root; adopters place it in ``entry``."""
-        return replace(facts, entry=(ROOT_EVIDENCE,), root=True)
+        return replace(facts, entry=(ROOT_EVIDENCE, *facts.entry), root=True)
 
     def _shadowed(self, name: str, mods: list[Module]) -> ModuleFacts:
         files = ", ".join(

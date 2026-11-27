@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import glob
 import json
 from typing import ClassVar, Self
 
@@ -9,6 +10,8 @@ from typing import ClassVar, Self
 class RingTable:
     """The fixed four-layer table for modules already given a ring.
 
+    The gate matches every entry with ``fnmatchcase``, so ``[``, ``*`` and ``?``
+    in a module name are escaped (``glob.escape``) and match only themselves.
     Names are explicit except where a prefix is exact: ``pkg.sub`` and
     ``pkg.sub.*`` are emitted only when every scanned module equal to or under
     ``pkg.sub`` is in the same ring, so the glob claims nothing it should not.
@@ -46,13 +49,13 @@ class RingTable:
                 continue
             prefix = self._exact_prefix(name, ring)
             if prefix is None:
-                out.add(name)
+                out.add(glob.escape(name))
                 continue
             under = self._under(prefix)
             covered.update(under)
-            out.add(f"{prefix}.*")
+            out.add(f"{glob.escape(prefix)}.*")
             if prefix in under:
-                out.add(prefix)
+                out.add(glob.escape(prefix))
         return sorted(out)
 
     def _exact_prefix(self, name: str, ring: str) -> str | None:

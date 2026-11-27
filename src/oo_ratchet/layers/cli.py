@@ -117,15 +117,10 @@ class Cli:
     """Scan the package and route the request to the ratchet, writer or report."""
 
     _opts: Options
-    _git: LayersGit
-    _root: Path | None
 
     def __new__(cls, options: Options) -> Self:
         self = super().__new__(cls)
         self._opts = options
-        src = options.src
-        self._git = LayersGit(SourceSet(src).start_dir)
-        self._root = self._git.root
         return self
 
     def run(self) -> int:
@@ -134,12 +129,13 @@ class Cli:
             return self._emit(Outcome.failed(f"Not found: {self._opts.src}"))
         if self._opts.suggest:
             return self._emit(self._suggest())
-        root = self._root
+        git = LayersGit(SourceSet(self._opts.src).start_dir)
+        root = git.root
         if root is None or not SourceSet(self._opts.src).inside(root):
             msg = f"FAIL: {self._opts.src} is not inside a git repository"
             return self._emit(Outcome.failed(msg))
         try:
-            outcome = self._dispatch(LayerScan(self._opts.src), root)
+            outcome = self._dispatch(LayerScan(self._opts.src), root, git)
         except FAILURES as exc:
             outcome = Outcome.failed(f"FAIL: {exc}")
         return self._emit(outcome)
@@ -151,10 +147,10 @@ class Cli:
         except FAILURES as exc:
             return Outcome.failed(f"FAIL: {exc}")
 
-    def _dispatch(self, scan: LayerScan, root: Path) -> Outcome:
+    def _dispatch(self, scan: LayerScan, root: Path, git: LayersGit) -> Outcome:
         opts = self._opts
         if opts.check:
-            return LayersRatchet(root, self._git).check(
+            return LayersRatchet(root, git).check(
                 scan,
                 base_ref=opts.base_ref,
                 require_base=opts.require_base,
@@ -162,7 +158,7 @@ class Cli:
                 allow_config_change=opts.allow_config_change,
             )
         if opts.update:
-            return LayersWriter(root, self._git).update(
+            return LayersWriter(root, git).update(
                 scan,
                 allow_ci_write=opts.allow_ci_write,
                 source=opts.source,

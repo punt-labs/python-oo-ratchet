@@ -15,7 +15,8 @@
   Imports come from the gate's own edge extractor. It needs no git repository.
   The package root goes in `entry` (unclassified if a non-entry module imports
   it), Protocol bases resolve through the module's imports, and every script
-  name targeting a module is kept.
+  name targeting a module is kept. Names with glob characters are escaped, and
+  a namespace root with one module and no `__init__.py` is accepted.
 
 ### Changed
 

@@ -10,6 +10,8 @@ from pathlib import Path
 import pytest
 
 from oo_ratchet.design.layer_table import LayerTable
+from oo_ratchet.layers.cli import main
+from tests.conftest import GitSandbox
 from tests.layers_repo import LayersRepo
 from tests.test_layers_suggest import PROJECT, PROTOCOL, rings, start
 
@@ -356,3 +358,116 @@ def design(repo: LayersRepo) -> tuple[int, str]:
     repo._out.readouterr()
     code = main([str(repo.root / "src" / "app"), "--json"])
     return code, repo._out.readouterr().out
+
+
+class TestSingleModulePackage:
+    """A namespace root with one module and no initializer is a package."""
+
+    @staticmethod
+    def package(tmp_path: Path) -> Path:
+        pkg = tmp_path / "src" / "pkg"
+        pkg.mkdir(parents=True)
+        (pkg / "one.py").write_text("X = 1\n")
+        (tmp_path / "pyproject.toml").write_text(PROJECT)
+        GitSandbox(tmp_path).commit("one")
+        return pkg
+
+    def test_one_module_without_a_root_initializer(self, tmp_path: Path) -> None:
+        assert (
+            main([str(self.package(tmp_path)), "--namespace", "pkg", "--suggest"]) == 0
+        )
+
+    def test_round_trips_through_the_gate(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        pkg = self.package(tmp_path)
+        assert main([str(pkg), "--namespace", "pkg", "--suggest"]) == 0
+        out = capsys.readouterr().out
+        (tmp_path / "pyproject.toml").write_text(PROJECT + "\n" + out)
+        assert main([str(pkg), "--namespace", "pkg", "--json"]) == 0
+        data = json.loads(capsys.readouterr().out)
+        assert (data["violations"], data["unassigned"]) == ([], [])
+
+
+class TestGlobMetacharacters:
+    """A module name is matched literally by the gate's fnmatch, so escape it."""
+
+    def test_bracket_name_and_its_lookalike_keep_their_own_rings(
+        self, repo: LayersRepo
+    ) -> None:
+        start(repo)
+        repo.write("src/app/plugin[old].py", "import json\n")
+        repo.write("src/app/plugino.py", "X = 1\n")
+        repo.write("src/app/a*b.py", "import json\n")
+        repo.write("src/app/x?.py", "import json\n")
+        out, data = roundtrip(repo)
+        assert data["violations"] == []
+        assert data["unassigned"] == []
+        config = LayerTable.from_text(PROJECT + "\n" + out, "t")
+        assert config is not None
+        assert config.layer("app.plugin[old]") == "adapters"
+        assert config.layer("app.plugino") == "domain"
+        assert config.layer("app.a*b") == "adapters"
+        assert config.layer("app.x?") == "adapters"
+
+    def test_prefix_glob_escapes_the_prefix(self, repo: LayersRepo) -> None:
+        start(repo)
+        repo.write("src/app/p[1]/__init__.py", "")
+        repo.write("src/app/p[1]/a.py", "import json\n")
+        repo.write("src/app/p[1]/b.py", "import json\n")
+        repo.write("src/app/p1/__init__.py", "")
+        repo.write("src/app/p1/a.py", "X = 1\n")
+        _, data = roundtrip(repo)
+        assert data["violations"] == []
+        assert data["unassigned"] == []
+
+
+class TestNoGitNeeded:
+    """``--suggest`` never runs git: not even to find the repository."""
+
+    @staticmethod
+    def package(tmp_path: Path) -> Path:
+        pkg = tmp_path / "src" / "app"
+        pkg.mkdir(parents=True)
+        (pkg / "__init__.py").write_text("")
+        (pkg / "a.py").write_text("import json\n")
+        return pkg
+
+    def test_no_subprocess_is_started(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        pkg = self.package(tmp_path)
+
+        def boom(*_args: object, **_kwargs: object) -> None:
+            raise AssertionError("--suggest started a subprocess")
+
+        monkeypatch.setattr(subprocess, "run", boom)
+        monkeypatch.setattr(subprocess, "Popen", boom)
+        assert main([str(pkg), "--suggest"]) == 0
+
+    def test_runs_with_git_off_the_path(self, tmp_path: Path) -> None:
+        pkg = self.package(tmp_path)
+        empty = tmp_path / "empty"
+        empty.mkdir()
+        env = {"PATH": str(empty), "HOME": str(tmp_path)}
+        done = subprocess.run(
+            [sys.executable, "-m", "oo_ratchet", "layers", str(pkg), "--suggest"],
+            capture_output=True,
+            text=True,
+            env=env,
+            check=False,
+        )
+        assert done.returncode == 0, done.stdout + done.stderr
+        assert "app.a" in done.stdout
+
+
+class TestRootScripts:
+    """A script that targets the package initializer stays in the root's reason."""
+
+    def test_root_reason_names_the_script(self, repo: LayersRepo) -> None:
+        start(repo)
+        text = '[project]\nname = "app"\n[project.scripts]\ntool = "app:main"\n'
+        repo.write("pyproject.toml", text)
+        out = repo.run("--suggest")[1]
+        assert "# app: entry (" in out
+        assert "console script tool" in out

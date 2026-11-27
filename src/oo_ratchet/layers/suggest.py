@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Self
 
 from oo_ratchet.coupling.outcome import Outcome
@@ -9,9 +10,11 @@ from oo_ratchet.design.layer_table import LayerTable
 from oo_ratchet.design.modules import ModuleIndex
 from oo_ratchet.source_set import Source, SourceSet
 
+from .ring_intent import NameConvention, RingIntent
 from .scan import LayersScanError
-from .suggest_facts import ConsoleScripts, ModuleFacts, PackageFacts
-from .suggest_rules import RingRules, Verdict
+from .suggest_facts import ConsoleScripts, PackageFacts, SuggestNames
+from .suggest_model import ModuleFacts, Verdict
+from .suggest_rules import RingRules
 from .suggest_table import RingTable
 from .suggest_text import SafeText
 
@@ -19,26 +22,29 @@ HEADER = (
     "# oo-ratchet layers --suggest {package}: a starting point, never applied.",
     "# Nothing was written. A wrong ring lets forbidden imports pass: review each",
     "# reason below, then copy the table into pyproject.toml yourself.",
-    "# Rule order, first match wins: entry (argparse, typer, console script),",
-    "# adapters (imports IO), application (defines a Protocol, no IO, imported by",
-    "# an adapter), domain (no IO, no adapter or entry imports). A module that fits",
-    "# none is listed as unclassified instead of guessed. The gate lets domain import",
-    "# only domain and application import only application and domain, so a module",
-    "# that imports a ring it may not (or an unclassified module) is unclassified too.",
-    "# A glob such as pkg.sub.* also claims any module added later under that prefix.",
-    "# Exception: the package root goes in entry whatever it imports, as vox, lux and",
-    "# z-spec place theirs. It is unclassified instead when a non-entry module imports",
-    "# it (only entry may import entry) or when it has a relative import that climbs",
-    "# above the package.",
+    "# A ring comes from intent, never from a guess: a declaration (a module-level",
+    '# __ring__ = "domain" string, or an existing fixed-form [tool.oo-ratchet.layers]',
+    "# table), then a package name (domain, model, core suggest domain; adapters,",
+    "# infra suggest adapters; [tool.oo-ratchet.suggest] replaces the names). The",
+    "# one ring taken from evidence is entry: argparse, typer or a console script.",
+    "# A module that reaches IO, directly or through imports, is never domain: that",
+    "# is a CONFLICT, printed with the import path. A module with no intent stays",
+    "# unclassified, with its evidence. The gate lets domain import only domain and",
+    "# application import only application and domain, so a module importing a ring",
+    "# it may not is a conflict too. A glob such as pkg.sub.* also claims any module",
+    "# added later under that prefix. The package root goes in entry whatever it",
+    "# imports, as vox, lux and z-spec place theirs; it is unclassified instead when",
+    "# a non-entry module imports it or it has a relative import above the package.",
 )
 NO_PYPROJECT = "# No pyproject.toml was found: console scripts were not read."
 
 
 class Suggestion:
-    """Propose a ring for each module of a package from what it imports.
+    """Propose a ring for each module of a package from declared or named intent.
 
-    Reads the package and the nearest pyproject's ``[project.scripts]``; it
-    needs no layers table. It returns text only and writes no file.
+    Reads the package and the nearest pyproject's ``[project.scripts]``,
+    ``[tool.oo-ratchet.suggest]`` and fixed-form layers table, if any. It
+    returns text only and writes no file.
     """
 
     _src: Source
@@ -51,10 +57,13 @@ class Suggestion:
         self = super().__new__(cls)
         self._src = src
         index = cls._index(src)
-        scripts = ConsoleScripts(LayerTable.nearest(src))
+        nearest = LayerTable.nearest(src)
+        scripts = ConsoleScripts(nearest)
         facts = PackageFacts(index, scripts).all()
         cls._require_modules(facts, src)
-        self._verdicts = RingRules(facts).verdicts()
+        names = NameConvention(SuggestNames(nearest).table)
+        intent = RingIntent(LayerTable.ordered(LayerTable.load(src)), names)
+        self._verdicts = RingRules(facts, intent, index.package_name).verdicts()
         self._modules = tuple(sorted(self._verdicts))
         self._package = index.package_name
         self._scripts = scripts.found
@@ -86,27 +95,31 @@ class Suggestion:
         return Outcome.passed(*header, *missing, *table, *self._notes())
 
     def _notes(self) -> list[str]:
-        lines = ["", "# Unclassified (assign by hand, then add to the table):"]
-        unknown = [n for n in self._modules if self._verdicts[n].ring is None]
-        lines.extend(self._unclassified(n) for n in unknown)
-        if not unknown:
-            lines.append("#   none")
-        lines.extend(("", "# Reasons:"))
-        placed = [n for n in self._modules if n not in unknown]
-        lines.extend(self._reason(n) for n in placed)
-        if not placed:
-            lines.append("#   none")
+        ringed = [n for n in self._modules if self._verdicts[n].ring]
+        clash = [n for n in self._modules if self._verdicts[n].conflict]
+        free = [n for n in self._modules if n not in ringed and n not in clash]
+        lines = ["", "# Ring from declaration, name or entry evidence:"]
+        lines.extend(self._lines(ringed, lambda v: v.ring or ""))
+        lines.extend(("", "# Conflicts:"))
+        lines.extend(self._lines(clash, lambda _: "CONFLICT"))
+        lines.extend(("", "# Unclassified:"))
+        lines.extend(self._lines(free, lambda _: "unclassified"))
+        lines.extend(("", self._summary(ringed, clash, free)))
         return lines
 
-    def _unclassified(self, name: str) -> str:
-        why = SafeText.comment(self._verdicts[name].why)
-        return f"# {SafeText.comment(name)}: unclassified ({why})"
+    def _lines(self, names: list[str], label: Callable[[Verdict], str]) -> list[str]:
+        if not names:
+            return ["#   none"]
+        return [
+            f"#   {SafeText.comment(n)}: {label(self._verdicts[n])} "
+            f"({SafeText.comment(self._verdicts[n].why)})"
+            for n in names
+        ]
 
-    def _reason(self, name: str) -> str:
-        verdict = self._verdicts[name]
-        text = f"# {SafeText.comment(name)}: {verdict.ring} "
-        text += f"({SafeText.comment(verdict.why)})"
-        if verdict.also:
-            also = ", ".join(SafeText.comment(a) for a in verdict.also)
-            text += f"; rings it also matched: {also}"
-        return text
+    def _summary(self, ringed: list[str], clash: list[str], free: list[str]) -> str:
+        named = sum(1 for n in ringed if self._verdicts[n].intended)
+        return (
+            f"# Summary: {named} of {len(self._modules)} modules ring-assigned from "
+            f"a declaration or name, {len(ringed) - named} from entry evidence, "
+            f"{len(clash)} conflicts, {len(free)} unclassified."
+        )

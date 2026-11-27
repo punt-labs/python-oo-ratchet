@@ -163,7 +163,14 @@ Three measurement scripts sit beside them:
 | `adopter_shape.py <src>` | module size distribution, classes per module, and design finding counts (run with `uv run --directory <repo> python ...`) |
 | `compare_checks.py <repo>` | the OO gate and the design check on each `evals/design` bad/good pair |
 
-Each script writes one lux `draw` element as JSON. Pass it as the single
-entry in `scene_show`'s `elements` list. Run `class_diagram.py` with
-`uv run --directory <repo> python ...`, because it calls `oo-ratchet`.
+Each script writes one lux `draw` element as JSON. To show it:
+
+1. Wrap it in a lux render request:
+   `{"scene_id": "<id>", "elements": [<element>], "title": "<title>",
+   "frame": {"size": [1500, 840]}}`.
+2. Run `lux display start`, then `lux scene show <id> --from request.json`.
+3. Capture the image with lux's `display_screenshot` tool.
+
+Run `class_diagram.py` with `uv run --directory <repo> python ...`, because
+it calls `oo-ratchet`.
 B6 (PL-1714) replaces the current-state script with `layers --json`.

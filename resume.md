@@ -71,9 +71,10 @@ make update-oo update-coupling OO_BASE="--base-ref $BASE" COUPLING_BASE="--base-
 - **A justified average or stale-row regression:** use
   `uv run oo-ratchet oo src/oo_ratchet/ --relax <file> --justify "<why>" --source <PL-id>`.
   The coupling gate has the same command.
-- **Diagrams:** start lux with `lux display start`, generate the JSON with a
-  script in `docs/architecture/tools/`, and pass it to lux's `scene_show` as
-  the single element.
+- **Diagrams:** generate the JSON with a script in
+  `docs/architecture/tools/`, then show it with
+  `lux scene show <id> --from request.json`. The plan's Diagrams section
+  gives the request format.
 
 ## Lessons from the planning machine
 

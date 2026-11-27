@@ -125,8 +125,9 @@ text(X0, 54, "Adapters implement the application's ports (orange bracket: "
      "GitRepo implements History). The domain imports no git, files, json or os.", FG)
 text(X0, 72, "Enforced on itself by the clean layers ratchet: inward-only imports plus "
      "domain purity, a violation baseline that may only shrink.", GREY)
-text(X0, y + 4, "gone vs today: 4 GitRepo copies, 4 Outcome, 5 Options, 5 Cli, 3 audit logs "
-     "-> one each in the shared column; layers no longer imports design.", GREY)
+text(X0, y + 4, "gone vs today: 3 GitRepo, 3 GitError, 3 Outcome, 4 Options, 4 Cli, 2 Diff, "
+     "2 Row, 3 audit logs -> one each in the shared column; layers no longer imports design.",
+     GREY)
 
 element = {"kind": "draw", "id": "clean", "width": 1460, "height": int(y + 30),
            "bg_color": "#21252b", "commands": cmds}

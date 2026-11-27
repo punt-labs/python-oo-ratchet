@@ -8,19 +8,6 @@ import sys
 from pathlib import Path
 
 REPO = Path(sys.argv[1])
-TARGETS = {
-    "method_ratio": (">=", 0.80),
-    "encapsulation_ratio": (">=", 1.0),
-    "avg_params": ("<=", 4.0),
-    "max_complexity": ("<=", 10),
-    "avg_complexity": ("<=", 5.0),
-    "module_size": ("<=", 300),
-    "classes_per_module": ("<=", 3),
-    "class_to_func_ratio": (">=", 0.5),
-    "init_violations": ("==", 0),
-    "public_attr_violations": ("==", 0),
-    "future_annotations": ("==", 1),
-}
 
 
 def meets(op: str, target: float, value: float) -> bool:
@@ -32,20 +19,28 @@ def meets(op: str, target: float, value: float) -> bool:
 
 
 def run(*args: str) -> dict:
+    """Run oo-ratchet with --json. Exit 1 is normal (a target failed); no JSON is not."""
     out = subprocess.run(
         ["oo-ratchet", *args, "--json"], cwd=REPO, capture_output=True, text=True
     )
-    return json.loads(out.stdout)
+    try:
+        return json.loads(out.stdout)
+    except json.JSONDecodeError:
+        sys.exit(f"oo-ratchet {' '.join(args)} produced no JSON (exit {out.returncode}): "
+                 f"{(out.stderr or out.stdout).strip()}")
 
 
 def primary_fails(src: str) -> list[str]:
+    """Per-file target failures, using the gate's own thresholds from its output."""
+    data = run("oo", src)
+    targets = {m: rule.split() for m, rule in data["thresholds"].items()}
     fails = []
-    for row in run("oo", src)["per_file"]:
+    for row in data["per_file"]:
         name = Path(row["file"]).name
         if name == "__init__.py":
             continue  # identical empty package markers on both sides
-        for metric, (op, target) in TARGETS.items():
-            if not meets(op, target, row[metric]):
+        for metric, (op, target) in targets.items():
+            if not meets(op, float(target), row[metric]):
                 fails.append(f"{name}:{metric}={row[metric]}")
     return fails
 

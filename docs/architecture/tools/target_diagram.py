@@ -23,7 +23,7 @@ BOXES: dict[str, tuple[str, int, int, int, list[tuple[str, str]], bool]] = {
         ("LayersRatchet, LayersWriter, LayersBaseline", FG),
         ("LayerScan  - decides its own verdicts (was getter-heavy)", FG),
         ("gone: BaseTree (middle-man), ImportArgs (function bag)", GREY),
-        ("gone: own Cli, Options, Outcome, GitRepo -> core", GREY),
+        ("gone: own Cli, Options; coupling's GitRepo, Outcome -> core", GREY),
     ], False),
     "design": ("design  (advisory rules, shadow check)", 740, 110, 1440, [
         ("ClassRules, DataRules, EnvyRules, SizeRules, ShadowCheck", FG),
@@ -56,10 +56,10 @@ BOXES: dict[str, tuple[str, int, int, int, list[tuple[str, str]], bool]] = {
         ("gone: own GitRepo, Cli, Options, Outcome", GREY),
     ], False),
     "core": ("core  (shared ratchet core)", 20, 600, 1440, [
-        ("GitRepo, GitError, Diff  - one copy (were 4 GitRepo copies)", GREEN),
-        ("Outcome  - one copy (was 4)", GREEN),
+        ("GitRepo, GitError, Diff  - one copy (were 3, 3 and 2)", GREEN),
+        ("Outcome  - one copy (was 3)", GREEN),
         ("AuditLog + AuditRecord  - one log, append(record) (were 3 logs, 9-param append)", GREEN),
-        ("GateOptions, GateCli  - one option set (were 5 Options, 5 Cli)", GREEN),
+        ("GateOptions, GateCli  - one option set (were 4 Options, 4 Cli)", GREEN),
         ("SourceSelection, SourceHistory, SourceArchive  (was SourceSet, 28 methods)", GREEN),
         ("Sources, Backfill, Usage, DiagnosticLog", FG),
     ], False),

@@ -283,8 +283,9 @@ Additional advisory shape checks run with the same syntactic project-class index
   A symbol has one finding with all exceeded measures in `detail`; module overflow
   is keyed on `<module>`. These caps apply regardless of layer.
 
-All design findings remain advisory and exit 0. These ceilings are design signals,
-not new adopter ratchet gates or changes to existing OO/coupling thresholds.
+All design findings remain advisory and exit 0, unless `--shadow-check` runs with
+`--enforce` (below). These ceilings are design signals, not new adopter ratchet
+gates or changes to existing OO/coupling thresholds.
 
 ### Shadow design ratchet
 
@@ -329,10 +330,38 @@ per-file OO metric deltas; JSON includes the same content, improved/regressed
 lists and accepted regressions. Both formats have deterministic ordering and
 are byte-identical on repeat runs against unchanged inputs.
 
-**Shadow mode never gates a build.** All findings and verdicts exit **0**, even
-`would-fail`. Invalid paths, refs, layer configuration, unreadable Python or parse
-errors exit **2** rather than presenting an incomplete scan as an improvement.
-Existing adopter gates, thresholds and release behavior are unchanged.
+**Shadow mode does not gate a build unless asked.** All findings and verdicts
+exit **0**, even `would-fail`. Invalid paths, refs, layer configuration,
+unreadable Python or parse errors exit **2** rather than presenting an incomplete
+scan as an improvement. Existing adopter gates, thresholds and release behavior
+are unchanged.
+
+`--shadow-check REF --enforce` is the opt-in gate. It exits **1**, after printing
+the report, when the comparison adds a finding of a **gate-capable** rule, and
+writes the added keys to stderr. `--enforce` without `--shadow-check` exits 2.
+Added findings of every other rule still exit 0.
+
+Gate-capable rules are the ones measured right at least 90% of the time on vox,
+quarry, lux and z-spec (`docs/architecture/b4-design-precision.md` holds the
+method, the raw labels and the table):
+
+| Rule | Precision | Measured on |
+|------|-----------|-------------|
+| `layer-import` | 100% | all 608 findings |
+| `unlayered-module` | 100% | all 168 findings |
+| `thick-entry` | 100% | all 58 findings |
+| `size-cap` | 100% | all 82 findings |
+| `stateless-single-method` | 96% | 24 of 51 findings |
+
+The first four state a fact about the code, rechecked by an independent count.
+Their precision is relative to the declared layer table and the stated ceilings.
+
+The other rules stay advisory, with the measured precision (true findings over
+findings read): `misplaced-function` 2 of 2 (too few findings to rely on),
+`stateless-function-bag` 67%, `concrete-cross-package-import` 67%, `data-clump`
+57%, `middle-man` 50%, `tag-switch` 44%, `feature-envy` 41%, `envied-data` 38%,
+`domain-io` 36%, `getter-heavy` 29%, `split-cohesion` 13%, `primitive-params`
+10%.
 
 **Design evals.** `evals/design/` seeds eleven library-loan bad/good pairs with
 shared behavior checks and stable `(rule, path, symbol)` keys in `expected.toml`.
@@ -425,8 +454,9 @@ few classes per module pushed code into one-class modules and functions
 wrapped in stateless classes. The advisory `design` check reports those shapes
 directly (`stateless-single-method`, `stateless-function-bag`), along with
 responsibility problems such as `envied-data` and `feature-envy`. Those
-findings measure design better than module size or shape does; they remain
-advisory until their precision on adopter repositories is measured (PL-1685).
+findings measure design better than module size or shape does. Their precision
+on adopter repositories is measured (see "Shadow design ratchet"): only
+`stateless-single-method` is gate-capable; `stateless-function-bag` is 67%.
 
 Parameter counts include positional-only, ordinary and keyword-only arguments,
 exclude `*args` / `**kwargs`, and subtract a leading `self` or `cls`; no

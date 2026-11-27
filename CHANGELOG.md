@@ -4,6 +4,12 @@
 
 ### Added
 
+- `oo-ratchet design --shadow-check REF --enforce` exits 1 when the comparison
+  adds a finding of a gate-capable rule: `layer-import`, `unlayered-module`,
+  `thick-entry`, `size-cap` or `stateless-single-method` (PL-1716). These were
+  at least 90% precise on vox, quarry, lux and z-spec; the README gives each
+  rule's measured precision and `docs/architecture/b4-design-precision.md` the
+  raw labels. Off by default: without `--enforce` the exit status is unchanged.
 - `oo-ratchet layers src/pkg/ --suggest` prints a starter `[tool.oo-ratchet.layers]`
   table and three lists, and never guesses a ring (PL-1713, PL-1730). A ring
   comes from a declaration (a module-level `__ring__ = "domain"` string, read
@@ -89,6 +95,10 @@
 
 ### Fixed
 
+- `design` no longer reports `split-cohesion` for a class whose methods touch no
+  field and call no other method (a port or gateway with no state): LCOM4 has
+  no edges to measure there. On vox, quarry, lux and z-spec the findings fall
+  from 180 to 136 (PL-1716).
 - `coupling --update` now drops the baseline row of every file that no longer
   exists, as the OO gate does, and reports it under `removed` in the summary
   and the audit entry (PL-1734). Before, a row for a file deleted before the

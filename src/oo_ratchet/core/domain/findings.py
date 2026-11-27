@@ -70,6 +70,13 @@ class Rules:
         SIZE_CAP: "symbol exceeds a Tier 0 size or complexity ceiling",
     }
 
+    # Rules measured right at least 90% of the time on vox, quarry, lux and
+    # z-spec (docs/architecture/b4-design-precision.md). ``--enforce`` blocks on
+    # an added key of these rules and no others.
+    GATE_CAPABLE: ClassVar[frozenset[str]] = frozenset(
+        {LAYER_IMPORT, SIZE_CAP, THICK_ENTRY, UNLAYERED_MODULE, STATELESS_SINGLE}
+    )
+
     @classmethod
     def ordered(cls) -> tuple[str, ...]:
         """Return the rule ids in report order."""

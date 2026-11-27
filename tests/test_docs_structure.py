@@ -20,8 +20,10 @@ REQUIRED = [
     "Documentation",
     "License",
 ]
-SMALL_WORDS = {"a", "an", "and", "as", "at", "for", "in", "it", "of", "on", "or"}
-SMALL_WORDS |= {"the", "to", "with"}
+SMALL_WORDS = frozenset(
+    {"a", "an", "and", "as", "at", "for", "in", "it", "of", "on", "or", "the", "to"}
+    | {"with"}
+)
 LINK = re.compile(r"(?<!!)\[[^\]]*\]\(([^)\s]+)\)")
 FENCE = re.compile(r"```\w*\n(.*?)```", re.DOTALL)
 

@@ -1,4 +1,4 @@
-"""The guide in docs/CONFIGURING.md, "Adopting Clean Architecture with oo-ratchet" stays true.
+"""docs/CONFIGURING.md, "Adopting Clean Architecture with oo-ratchet", stays true.
 
 Every `oo-ratchet` command in the guide's ```bash blocks names a real gate and
 only flags that gate's parser knows, and the guide covers the adoption path.

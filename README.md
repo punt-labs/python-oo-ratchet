@@ -341,6 +341,12 @@ the report, when the comparison adds a finding of a **gate-capable** rule, and
 writes the added keys to stderr. `--enforce` without `--shadow-check` exits 2.
 Added findings of every other rule still exit 0.
 
+Limits of the comparison: it matches findings by key (rule, module, symbol), so
+moving a file that already has a finding reads as one removed and one added key
+(exit 1), and swapping one forbidden import for another with the same exported
+name reads as unchanged (exit 0). For an exact edge-by-edge check of forbidden
+imports use the `layers` gate, which baselines module-pair edges.
+
 Gate-capable rules are the ones measured right at least 90% of the time on vox,
 quarry, lux and z-spec (`docs/architecture/b4-design-precision.md` holds the
 method, the raw labels and the table):

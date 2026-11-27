@@ -52,19 +52,8 @@ class ShadowMetrics:
     def mapping(self, *, trade: bool) -> dict[str, object]:
         """Return deltas and make accepted trade regressions explicit."""
         return {
-            "deltas": [self._delta(row) for row in self.rows],
+            "deltas": [row.as_delta() for row in self.rows],
             "improved": self.improved,
             "regressed": self.regressed,
             "accepted": self.regressed if trade else (),
-        }
-
-    @staticmethod
-    def _delta(row: MetricRow) -> dict[str, str]:
-        return {
-            "file": row.path,
-            "metric": row.metric,
-            "baseline": row.baseline,
-            "current": row.current,
-            "delta": row.delta,
-            "status": row.status,
         }

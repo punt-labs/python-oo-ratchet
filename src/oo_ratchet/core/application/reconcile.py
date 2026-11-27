@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from oo_ratchet.core.domain.scores import Measurement
 from oo_ratchet.core.domain.verdicts import Verdict
 
 from .operation import Operation
@@ -24,7 +23,7 @@ class Reconcile(Operation):
         renames = self._renames()
         if renames is None:
             return Verdict.refused("reconcile-no-base")
-        plan = self._plan(measured, renames)
+        plan = UpdatePlan.reconciling(measured, self._store.rows(), renames)
         return PlanApplier(self._policy, self._ports).apply(plan, source)
 
     def _renames(self) -> dict[str, str] | None:
@@ -33,14 +32,3 @@ class Reconcile(Operation):
         if base is None:
             return None if self._store.exists() else {}
         return self._history.changes_since(base).renames
-
-    def _plan(self, measured: Measurement, renames: dict[str, str]) -> UpdatePlan:
-        present = measured.paths | measured.parse_errors
-        kept = present | {old for new, old in renames.items() if new in present}
-        stale = {path for path in self._store.rows() if path not in kept}
-        return UpdatePlan(
-            measured.metrics(),
-            measured.paths | stale,
-            renames,
-            parse_errors=measured.parse_errors,
-        )

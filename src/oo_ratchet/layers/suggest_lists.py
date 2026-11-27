@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Self
 
 from .suggest_model import Verdict
@@ -50,13 +51,13 @@ class RingLists:
 
     def header(self) -> tuple[str, ...]:
         """Return the comment header, with the package name escaped."""
-        safe = SafeText.comment(self._package)
+        safe = SafeText(self._package).comment()
         return tuple(line.format(package=safe) for line in HEADER)
 
     def notes(self) -> list[str]:
-        ringed = [n for n in self.modules if self._verdicts[n].ring]
-        clash = [n for n in self.modules if self._verdicts[n].conflict]
-        free = [n for n in self.modules if n not in ringed and n not in clash]
+        ringed = self._named(lambda v: bool(v.ring))
+        clash = self._named(lambda v: v.conflict)
+        free = self._named(lambda v: not v.ring and not v.conflict)
         lines = ["", "# Ring from declaration, name or entry evidence:"]
         lines.extend(self._lines(ringed, None))
         lines.extend(("", "# Conflicts:"))
@@ -66,12 +67,15 @@ class RingLists:
         lines.extend(("", self._summary(ringed, clash, free)))
         return lines
 
+    def _named(self, wanted: Callable[[Verdict], bool]) -> list[str]:
+        return [n for n in self.modules if wanted(self._verdicts[n])]
+
     def _lines(self, names: list[str], label: str | None) -> list[str]:
         if not names:
             return ["#   none"]
         return [
-            f"#   {SafeText.comment(n)}: {label or self._verdicts[n].ring} "
-            f"({SafeText.comment(self._verdicts[n].why)})"
+            f"#   {SafeText(n).comment()}: {label or self._verdicts[n].ring} "
+            f"({SafeText(self._verdicts[n].why).comment()})"
             for n in names
         ]
 

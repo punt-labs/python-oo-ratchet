@@ -37,7 +37,7 @@ class RingTable:
                 lines.append(f"{ring} = []")
                 continue
             lines.append(f"{ring} = [")
-            lines.extend(f"    {SafeText.quoted(e)}," for e in entries)
+            lines.extend(f"    {SafeText(e).quoted()}," for e in entries)
             lines.append("]")
         return lines
 

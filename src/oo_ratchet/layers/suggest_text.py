@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import unicodedata
+from typing import Self
 
 _SHORT = {
     '"': '\\"',
@@ -25,21 +26,26 @@ class SafeText:
     what follows into active TOML.
     """
 
-    @staticmethod
-    def comment(text: str) -> str:
-        """Return ``text`` with control characters and line breaks shown escaped."""
-        return "".join(SafeText._char(ch) for ch in text)
+    _text: str
 
-    @staticmethod
-    def quoted(text: str) -> str:
-        """Return ``text`` as a TOML basic string with every control escaped.
+    def __new__(cls, text: str) -> Self:
+        self = super().__new__(cls)
+        self._text = text
+        return self
+
+    def comment(self) -> str:
+        """Return the text with control characters and line breaks shown escaped."""
+        return "".join(self._char(ch) for ch in self._text)
+
+    def quoted(self) -> str:
+        """Return the text as a TOML basic string with every control escaped.
 
         Printable ASCII passes through except ``"`` and the backslash. Controls
         (DEL included) and every non-ASCII character become ``\\uXXXX``, or
         ``\\UXXXXXXXX`` above the BMP: TOML rejects the surrogate pairs that
         JSON writes for those.
         """
-        return '"' + "".join(SafeText._escaped(ch) for ch in text) + '"'
+        return '"' + "".join(self._escaped(ch) for ch in self._text) + '"'
 
     @staticmethod
     def _escaped(ch: str) -> str:

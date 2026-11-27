@@ -44,6 +44,28 @@ class FileReview:
     base_present: bool = False
     new_passes: bool = False
 
+    @property
+    def tracked(self) -> bool:
+        """Return whether the file has a base row."""
+        return self.base_present
+
+    @property
+    def has_waiver(self) -> bool:
+        """Return whether a regression on this file was waived."""
+        return bool(self.waived)
+
+    def regressions(self) -> tuple[tuple[str, str], ...]:
+        """Return this file's unwaived ``(path, metric)`` regressions."""
+        return tuple((self.path, m) for m in self.regressed)
+
+    def credits(self, *, tracked_present: bool) -> bool:
+        """Return whether this file earns the must-improve credit.
+
+        When any touched file is tracked, only an improvement on a tracked file
+        counts; otherwise a new file that clears every target does.
+        """
+        return self.improved if tracked_present else self.new_passes
+
 
 @dataclass(frozen=True, slots=True)
 class Review:
@@ -59,7 +81,7 @@ class Review:
     @property
     def regressions(self) -> tuple[tuple[str, str], ...]:
         """Return the unwaived (path, metric) regressions."""
-        return tuple((r.path, m) for r in self.files for m in r.regressed)
+        return tuple(pair for r in self.files for pair in r.regressions())
 
     @property
     def has_regression(self) -> bool:
@@ -69,7 +91,7 @@ class Review:
     @property
     def has_waiver(self) -> bool:
         """Return whether any regression was waived."""
-        return any(r.waived for r in self.files)
+        return any(r.has_waiver for r in self.files)
 
     @property
     def improvement_satisfied(self) -> bool:
@@ -81,10 +103,8 @@ class Review:
         """
         if self.has_waiver:
             return True
-        existing = [r for r in self.files if r.base_present]
-        if existing:
-            return any(r.improved for r in existing)
-        return any(r.new_passes for r in self.files)
+        present = any(r.tracked for r in self.files)
+        return any(r.credits(tracked_present=present) for r in self.files)
 
 
 @dataclass(frozen=True, slots=True)

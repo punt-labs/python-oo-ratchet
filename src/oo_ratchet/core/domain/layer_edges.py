@@ -30,3 +30,12 @@ class Violation:
 
     def __str__(self) -> str:
         return f"{self.edge}  ({self.source_layer} -> {self.target_layer})"
+
+    def as_dict(self) -> dict[str, str]:
+        """Return the violation as the JSON report shows it."""
+        return {
+            "source": self.edge.source,
+            "target": self.edge.target,
+            "source_layer": self.source_layer,
+            "target_layer": self.target_layer,
+        }

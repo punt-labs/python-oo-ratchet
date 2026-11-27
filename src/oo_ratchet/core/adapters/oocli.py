@@ -97,7 +97,7 @@ class OoCli:
         lines: list[str] = []
         review = verdict.review
         if review is not None:
-            rows = [self._row(r) for f in review.files for r in f.rows]
+            rows = [self._row(r) for r in review.rows]
             lines += [HEADER, "-" * 108, *rows]
             if not rows:
                 lines.append("  (all metrics unchanged)")

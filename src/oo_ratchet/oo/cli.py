@@ -7,9 +7,9 @@ from oo_ratchet.core.application.policy import GatePolicy
 from oo_ratchet.gate_options import Flag, GateCommand, GateOptions, GateSpec, Kind
 
 from .scorer import Scorer
-from .thresholds import Thresholds
+from .thresholds import OO_METRICS
 
-POLICY = GatePolicy.from_table(Thresholds.TABLE, Thresholds.CEILINGS)
+POLICY = GatePolicy(OO_METRICS.items)
 
 SPEC = GateSpec(
     prog="oo-ratchet oo",

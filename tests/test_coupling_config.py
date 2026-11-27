@@ -13,7 +13,7 @@ from oo_ratchet.coupling.imports import ImportResolver
 from oo_ratchet.coupling.metrics import ModuleCouplingMetrics
 from oo_ratchet.coupling.report import CouplingReport
 from oo_ratchet.coupling.scorer import CouplingScorer
-from oo_ratchet.coupling.thresholds import CouplingThresholds
+from oo_ratchet.coupling.thresholds import CouplingTargets
 
 from .test_coupling_ratchet import GitFixture
 
@@ -108,24 +108,20 @@ class TestPathCaps:
     """An exact-path cap overrides the default target for that file only."""
 
     def test_cap_applies_to_exact_path_only(self) -> None:
-        assert CouplingThresholds.meets(
-            "efferent_coupling", 12, "pkg/hub.py", _HUB_CAPS
-        )
-        assert not CouplingThresholds.meets(
-            "efferent_coupling", 12, "other/pkg/hub.py", _HUB_CAPS
-        )
-        assert not CouplingThresholds.meets(
-            "efferent_coupling", 21, "pkg/hub.py", _HUB_CAPS
-        )
-        assert CouplingThresholds.target_for(
-            "efferent_coupling", "pkg/hub.py", _HUB_CAPS
-        ) == ("<=", 20.0)
+        targets = CouplingTargets(_HUB_CAPS)
+        assert targets.metric("efferent_coupling", "pkg/hub.py").meets(12)
+        assert not targets.metric("efferent_coupling", "other/pkg/hub.py").meets(12)
+        assert not targets.metric("efferent_coupling", "pkg/hub.py").meets(21)
+        capped = targets.metric("efferent_coupling", "pkg/hub.py")
+        assert (capped.op, capped.target) == ("<=", 20.0)
 
     def test_equality_metric_cap_is_an_upper_bound(self) -> None:
         caps = {"pkg/hub.py": {"circular_imports": 1.0}}
-        assert CouplingThresholds.meets("circular_imports", 0, "pkg/hub.py", caps)
-        assert CouplingThresholds.meets("circular_imports", 1, "pkg/hub.py", caps)
-        assert not CouplingThresholds.meets("circular_imports", 2, "pkg/hub.py", caps)
+        assert CouplingTargets(caps).metric("circular_imports", "pkg/hub.py").meets(0)
+        assert CouplingTargets(caps).metric("circular_imports", "pkg/hub.py").meets(1)
+        assert (
+            not CouplingTargets(caps).metric("circular_imports", "pkg/hub.py").meets(2)
+        )
 
     def test_per_file_report_honors_cap(self, fx: GitFixture) -> None:
         _hub(fx, 12)

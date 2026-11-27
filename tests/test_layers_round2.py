@@ -11,7 +11,7 @@ import pytest
 from oo_ratchet.core.domain.declared_layers import DeclaredLayers
 from oo_ratchet.core.domain.layer_config import LayerConfig
 from oo_ratchet.core.domain.layer_edges import Edge
-from oo_ratchet.core.domain.policies import PolicyWidening
+from oo_ratchet.core.domain.layer_widening import LayerWidening
 from oo_ratchet.layers.scan import LayerScan
 from tests.layers_repo import OK_SERVICE, LayersRepo
 
@@ -220,7 +220,7 @@ class TestWideningCompareActiveLayers:
 
     def test_equivalent_migration_to_the_fixed_form_is_not_widening(self) -> None:
         fixed = LayerConfig({"entry": ["app.entry"], "domain": ["app.domain"]})
-        assert PolicyWidening.found(fixed, self._declared()) == []
+        assert LayerWidening(fixed, self._declared()).lines() == []
 
     def test_activating_an_empty_layer_is_widening(self) -> None:
         fixed = LayerConfig(
@@ -230,4 +230,4 @@ class TestWideningCompareActiveLayers:
                 "domain": ["app.domain"],
             }
         )
-        assert PolicyWidening.found(fixed, self._declared())
+        assert LayerWidening(fixed, self._declared()).lines()

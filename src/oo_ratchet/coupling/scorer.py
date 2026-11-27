@@ -11,7 +11,7 @@ from .imports import ImportResolver
 from .layout import PackageLayout
 from .metrics import ModuleCouplingMetrics
 from .packages import PackageMetrics
-from .thresholds import CouplingThresholds
+from .thresholds import COUPLING_METRICS, MAX_AGGREGATED, CouplingTargets
 from .tree import CouplingTree
 
 if TYPE_CHECKING:
@@ -91,15 +91,15 @@ class CouplingScorer:
         }
 
     def _passes(self, metric: str, value: float) -> bool:
-        caps = self._config.caps
+        targets = CouplingTargets(self._config.caps)
         capped, rest = self._split_capped(metric)
-        if not all(CouplingThresholds.meets(metric, v, f, caps) for f, v in capped):
+        if not all(targets.metric(metric, f).meets(v) for f, v in capped):
             return False
-        if metric in CouplingThresholds.MAX_AGGREGATED:
-            return all(CouplingThresholds.meets(metric, v, f) for f, v in rest)
+        if metric in MAX_AGGREGATED:
+            return all(targets.metric(metric, f).meets(v) for f, v in rest)
         if capped and rest:
             value = round(sum(v for _, v in rest) / len(rest), 3)
-        return not rest or CouplingThresholds.meets(metric, value)
+        return not rest or targets.metric(metric).meets(value)
 
     def _split_capped(
         self, metric: str
@@ -157,18 +157,18 @@ class CouplingScorer:
             return path.as_posix()
 
     def _aggregate(self) -> dict[str, float]:
-        agg: dict[str, list[float]] = {k: [] for k in CouplingThresholds.names()}
+        agg: dict[str, list[float]] = {k: [] for k in COUPLING_METRICS.names}
         for r in self._results:
             if "error" in r:
                 continue
-            for k in CouplingThresholds.names():
+            for k in COUPLING_METRICS.names:
                 if k in r:
                     agg[k].append(float(r[k]))
         summary: dict[str, float] = {}
         for k, values in agg.items():
             if not values:
                 continue
-            if k in CouplingThresholds.MAX_AGGREGATED:
+            if k in MAX_AGGREGATED:
                 summary[k] = max(values)
             else:
                 summary[k] = round(sum(values) / len(values), 3)

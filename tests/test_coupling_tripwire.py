@@ -17,7 +17,8 @@ import pytest
 import oo_ratchet.coupling
 from oo_ratchet.core.adapters.gitrepo import GitRepo
 from oo_ratchet.core.domain.errors import StateError
-from oo_ratchet.coupling import CouplingScorer, CouplingThresholds
+from oo_ratchet.coupling import CouplingScorer, CouplingTargets
+from oo_ratchet.coupling.thresholds import COUPLING_METRICS
 
 if TYPE_CHECKING:
     from tests.conftest import GitSandbox
@@ -32,25 +33,37 @@ class TestThresholds:
     """Strict table for most files; relaxed MAIN_TABLE for ``__main__.py``."""
 
     def test_efferent_strict_for_regular_module(self) -> None:
-        assert CouplingThresholds.meets("efferent_coupling", 10, "src/pkg/core.py")
-        assert not CouplingThresholds.meets("efferent_coupling", 11, "src/pkg/core.py")
+        assert (
+            CouplingTargets().metric("efferent_coupling", "src/pkg/core.py").meets(10)
+        )
+        assert (
+            not CouplingTargets()
+            .metric("efferent_coupling", "src/pkg/core.py")
+            .meets(11)
+        )
 
     def test_efferent_relaxed_for_main(self) -> None:
         # __main__.py legitimately wires many modules — relaxed to <= 15.
-        assert CouplingThresholds.meets("efferent_coupling", 12, "src/pkg/__main__.py")
-        assert not CouplingThresholds.meets(
-            "efferent_coupling", 16, "src/pkg/__main__.py"
+        assert (
+            CouplingTargets()
+            .metric("efferent_coupling", "src/pkg/__main__.py")
+            .meets(12)
+        )
+        assert (
+            not CouplingTargets()
+            .metric("efferent_coupling", "src/pkg/__main__.py")
+            .meets(16)
         )
 
     def test_public_names_relaxed_for_main(self) -> None:
-        assert CouplingThresholds.meets("public_names", 90, "src/pkg/__main__.py")
-        assert not CouplingThresholds.meets("public_names", 90, "src/pkg/core.py")
+        assert CouplingTargets().metric("public_names", "src/pkg/__main__.py").meets(90)
+        assert not CouplingTargets().metric("public_names", "src/pkg/core.py").meets(90)
 
     def test_better_or_equal_and_strictly_better(self) -> None:
-        assert CouplingThresholds.better_or_equal("efferent_coupling", 3, 3)
-        assert not CouplingThresholds.better_or_equal("efferent_coupling", 4, 3)
-        assert CouplingThresholds.strictly_better("efferent_coupling", 2, 3)
-        assert not CouplingThresholds.strictly_better("efferent_coupling", 3, 3)
+        assert COUPLING_METRICS.metric("efferent_coupling").better_or_equal(3, 3)
+        assert not COUPLING_METRICS.metric("efferent_coupling").better_or_equal(4, 3)
+        assert COUPLING_METRICS.metric("efferent_coupling").strictly_better(2, 3)
+        assert not COUPLING_METRICS.metric("efferent_coupling").strictly_better(3, 3)
 
 
 def _seat_package(sandbox: GitSandbox, hub_imports: str) -> None:

@@ -10,15 +10,15 @@ from oo_ratchet.core.application.policy import GatePolicy
 from oo_ratchet.core.domain.changes import Diff
 from oo_ratchet.core.domain.records import AuditRecord
 from oo_ratchet.core.domain.scores import Measurement, Rows, Score
-from oo_ratchet.oo.thresholds import Thresholds
+from oo_ratchet.oo.thresholds import OO_METRICS
 
 BASE = "base0"
 TIP = "tip0"
 
 
-def oo_policy(**flags: bool) -> GatePolicy:
+def oo_policy() -> GatePolicy:
     """The OO gate's policy, built from the existing threshold table."""
-    return GatePolicy.from_table(Thresholds.TABLE, Thresholds.CEILINGS, **flags)
+    return GatePolicy(OO_METRICS.items)
 
 
 def coupling_policy() -> GatePolicy:

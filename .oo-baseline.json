@@ -1037,11 +1037,14 @@
     "future_annotations": 1.0
   },
   "src/oo_ratchet/layers/adoption.py": {
+    "method_ratio": 1.0,
     "encapsulation_ratio": 1.0,
     "avg_params": 2.0,
     "max_complexity": 3.0,
     "avg_complexity": 2.0,
     "module_size": 18.0,
+    "classes_per_module": 1.0,
+    "class_to_func_ratio": 1.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -1075,9 +1078,9 @@
   "src/oo_ratchet/layers/base_modules.py": {
     "encapsulation_ratio": 1.0,
     "avg_params": 2.67,
-    "max_complexity": 4.0,
-    "avg_complexity": 2.33,
-    "module_size": 39.0,
+    "max_complexity": 5.0,
+    "avg_complexity": 2.67,
+    "module_size": 45.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -1155,11 +1158,14 @@
     "future_annotations": 1.0
   },
   "src/oo_ratchet/layers/gitio.py": {
+    "method_ratio": 1.0,
     "encapsulation_ratio": 1.0,
     "avg_params": 2.0,
     "max_complexity": 1.0,
     "avg_complexity": 1.0,
     "module_size": 5.0,
+    "classes_per_module": 1.0,
+    "class_to_func_ratio": 1.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0

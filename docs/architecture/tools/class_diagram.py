@@ -80,12 +80,15 @@ for grp, names in names_by_group.items():
 duplicated = {n for n, c in seen.items() if c > 1}
 
 # --- classes the design check flags ------------------------------------------
-design = json.loads(
-    subprocess.run(
-        ["uv", "run", "oo-ratchet", "design", "src/oo_ratchet/", "--json"],
-        cwd=REPO, capture_output=True, text=True, check=False,
-    ).stdout
+_run = subprocess.run(
+    ["uv", "run", "oo-ratchet", "design", "src/oo_ratchet/", "--json"],
+    cwd=REPO, capture_output=True, text=True, check=False,
 )
+try:
+    design = json.loads(_run.stdout)
+except json.JSONDecodeError:
+    sys.exit(f"oo-ratchet design produced no JSON (exit {_run.returncode}): "
+             f"{(_run.stderr or _run.stdout).strip()}")
 CLASS_RULES = {
     "stateless-function-bag", "stateless-single-method", "middle-man",
     "getter-heavy", "split-cohesion", "envied-data", "size-cap",
@@ -158,7 +161,7 @@ def anchor(grp: str, toward: str) -> tuple[float, float]:
     x0, y0, x1, y1 = boxes[grp]
     tx0, ty0, tx1, ty1 = boxes[toward]
     cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
-    tcx, tcy = (tx0 + tx1) / 2, (ty0 + ty1) / 2
+    tcx = (tx0 + tx1) / 2
     if ty0 >= y1:  # target below
         return (min(max(tcx, x0 + 30), x1 - 30), y1)
     if ty1 <= y0:  # target above

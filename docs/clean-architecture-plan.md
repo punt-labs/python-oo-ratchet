@@ -163,7 +163,9 @@ Three measurement scripts sit beside them:
 | `adopter_shape.py <src>` | module size distribution, classes per module, and design finding counts (run with `uv run --directory <repo> python ...`) |
 | `compare_checks.py <repo>` | the OO gate and the design check on each `evals/design` bad/good pair |
 
-Each script writes one lux `draw` element as JSON. To show it:
+The three diagram scripts each write one lux `draw` element as JSON;
+`package_graph.py` and the measurement scripts above print plain text. To
+show a diagram:
 
 1. Wrap it in a lux render request:
    `{"scene_id": "<id>", "elements": [<element>], "title": "<title>",

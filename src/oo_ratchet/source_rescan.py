@@ -5,11 +5,13 @@ from __future__ import annotations
 import tempfile
 from collections.abc import Callable
 from pathlib import Path
-from typing import Self
+from typing import TYPE_CHECKING, Self
 
-from oo_ratchet.core.application.ports import ArchiveRepo
 from oo_ratchet.source_archive import SourceArchive
 from oo_ratchet.sources import Sources
+
+if TYPE_CHECKING:
+    from oo_ratchet.core.application.ports import ArchiveRepo
 
 
 class NamespaceRescan[T]:

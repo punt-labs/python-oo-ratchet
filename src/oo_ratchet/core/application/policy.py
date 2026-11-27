@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Collection, Iterable, Mapping
+from collections.abc import Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 
 from oo_ratchet.core.domain.metrics import Metric
@@ -72,6 +72,41 @@ class GatePolicy:
         if base is None:
             return []
         return [m for m in entry if self._worse(m, entry[m], base)]
+
+    def refusals(self, entry: Row, rows: Sequence[Row]) -> list[str]:
+        """Return the metrics worse than every comparison row.
+
+        The merge-base row is what Check enforces; the in-tree row may hold an
+        audited relaxation made earlier on the branch. A metric no worse than
+        either is accepted.
+        """
+        worse = [set(self.regressed(entry, row)) for row in rows]
+        return [m for m in entry if worse and all(m in w for w in worse)]
+
+    def loosened(self, entry: Row, recorded: Row) -> list[str]:
+        """Return the recorded metrics ``entry`` is worse on: the waivable ones."""
+        return [m for m in self.regressed(entry, recorded) if m in recorded]
+
+    @staticmethod
+    def deltas(entry: Row, base: Row | None) -> dict[str, list[float]]:
+        """Return the changed metrics as ``{metric: [old, new]}``; all if new."""
+        if base is None:
+            return {m: [0.0, v] for m, v in entry.items()}
+        return {m: [base[m], v] for m, v in entry.items() if m in base and v != base[m]}
+
+    def changes(
+        self, entry: Row, old: Row
+    ) -> tuple[dict[str, list[float]], dict[str, list[float]]]:
+        """Split the changed metrics into (worse, strictly better) deltas."""
+        worse: dict[str, list[float]] = {}
+        better: dict[str, list[float]] = {}
+        for m, pair in self.deltas(entry, old).items():
+            metric = self.metric(m)
+            if not metric.better_or_equal(pair[1], pair[0]):
+                worse[m] = pair
+            elif metric.strictly_better(pair[1], pair[0]):
+                better[m] = pair
+        return worse, better
 
     def over_cap_and_regressed(self, entry: Row, base: Row | None) -> list[str]:
         """Return the metrics that refuse a scoped bless.
@@ -147,7 +182,9 @@ class GatePolicy:
             ):
                 continue
             cur = current[m.name]
-            status = self._classify(path, m, cur, base, intree, waivers)
+            locked = intree is not None and intree.get(m.name) == cur
+            waived = locked and Waiver(path, m.name) in waivers
+            status = self._classify(m, cur, base, waived=waived)
             by_status.setdefault(status, []).append(m.name)
             base_val = base.get(m.name, cur)
             delta = cur - base_val
@@ -171,15 +208,8 @@ class GatePolicy:
             base_present=True,
         )
 
-    def _classify(
-        self,
-        path: str,
-        m: Metric,
-        cur: float,
-        base: Row,
-        intree: Row | None,
-        waivers: Collection[Waiver],
-    ) -> str:
+    @staticmethod
+    def _classify(m: Metric, cur: float, base: Row, *, waived: bool) -> str:
         if m.name not in base:
             # Judged by its target: a hand-edited row cannot hide a regression
             # or earn must-improve credit.
@@ -188,8 +218,7 @@ class GatePolicy:
             return "IMPROVED"
         if m.better_or_equal(cur, base[m.name]):
             return "PASS"
-        locked = intree is not None and intree.get(m.name) == cur
-        return "RELAXED" if locked and Waiver(path, m.name) in waivers else "REGRESSED"
+        return "RELAXED" if waived else "REGRESSED"
 
     def _worse(self, name: str, value: float, base: Row) -> bool:
         m = self.metric(name)

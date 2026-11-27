@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 from dataclasses import dataclass, field
 
+from oo_ratchet.core.application.operation import Ports
 from oo_ratchet.core.application.policy import GatePolicy
 from oo_ratchet.core.domain.changes import Diff
 from oo_ratchet.core.domain.records import AuditRecord
@@ -126,8 +127,6 @@ class World:
     audit: MemoryAudit = field(default_factory=MemoryAudit)
     source: FakeSource = field(default_factory=FakeSource)
 
-    def args(
-        self, policy: GatePolicy
-    ) -> tuple[GatePolicy, FakeHistory, MemoryStore, MemoryAudit, FakeSource]:
+    def args(self, policy: GatePolicy) -> tuple[GatePolicy, Ports]:
         """Return the constructor arguments every operation takes."""
-        return policy, self.history, self.store, self.audit, self.source
+        return policy, Ports(self.history, self.store, self.audit, self.source)

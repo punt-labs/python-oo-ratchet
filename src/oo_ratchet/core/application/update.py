@@ -55,10 +55,7 @@ class Update(Operation):
             )
         else:
             plan = self._scoped(base, measured)
-        applier = PlanApplier(
-            self._policy, self._history, self._store, self._audit, self._source
-        )
-        return applier.apply(plan, source)
+        return PlanApplier(self._policy, self._ports).apply(plan, source)
 
     def _scoped(self, base: str, measured: Measurement) -> UpdatePlan:
         current = measured.metrics()
@@ -88,6 +85,16 @@ class Update(Operation):
         return {p for p in stored if p not in carried and not self._source.exists(p)}
 
 
+@dataclass(slots=True)
+class Tally:
+    """What one update run has done so far: rows, refusals, deltas, removals."""
+
+    rows: Rows
+    refused: list[str] = field(default_factory=list)
+    deltas: Deltas = field(default_factory=dict)
+    removed: list[str] = field(default_factory=list)
+
+
 class PlanApplier(Operation):
     """Write an ``UpdatePlan``, refusing per-metric regressions.
 
@@ -99,82 +106,81 @@ class PlanApplier(Operation):
     def apply(self, plan: UpdatePlan, source: str | None) -> Verdict:
         """Write the plan, append the audit record, and report."""
         stored = self._store.rows()
-        rows = dict(stored)
+        tally = Tally(dict(stored))
         backfilled = sorted(
             plan.current.keys() - stored.keys() - plan.touched - plan.renames.keys()
         )
-        rows.update({p: plan.current[p] for p in backfilled})
-        refused: list[str] = []
-        deltas: Deltas = {}
-        removed: list[str] = []
+        tally.rows.update({p: plan.current[p] for p in backfilled})
         for path in sorted(plan.touched - plan.parse_errors):
             if path in plan.current:
-                removed += self._write(rows, stored, plan, path, refused, deltas)
+                self._write(plan, stored, tally, path)
             else:
-                removed += self._drop(rows, path)
+                tally.removed += self._drop(tally.rows, path)
         broken = sorted(plan.parse_errors)
-        improved = self._improved(plan, stored, deltas)
-        self._store.save(rows)
-        self._audit.append(
-            AuditRecord(
-                verdict="pass" if not refused and not broken else "fail",
-                deltas=deltas,
-                files_scored=len(plan.current),
-                files_improved=improved,
-                files_regressed=len({r.split(": ")[0] for r in refused}) + len(broken),
-                removed=tuple(sorted(removed)),
-                source=source,
-                commit=self._history.head(),
-                extra={"backfilled": backfilled} if backfilled else {},
-            )
-        )
+        improved = self._improved(plan, stored, tally.deltas)
+        self._store.save(tally.rows)
+        record = self._record(plan, tally, (improved, broken, backfilled), source)
+        self._audit.append(record)
         failures = tuple(
             Failure(kind, tuple(subjects))
-            for kind, subjects in (("parse-refused", broken), ("regression", refused))
+            for kind, subjects in (
+                ("parse-refused", broken),
+                ("regression", tally.refused),
+            )
             if subjects
         )
         return Verdict(
             failures=failures,
             improved=improved,
-            removed=tuple(removed),
+            removed=tuple(tally.removed),
             written=tuple(backfilled) if not failures else (),
         )
 
-    def _write(
+    def _record(
         self,
-        rows: Rows,
-        stored: Rows,
         plan: UpdatePlan,
-        path: str,
-        refused: list[str],
-        deltas: Deltas,
-    ) -> list[str]:
+        tally: Tally,
+        found: tuple[int, list[str], list[str]],
+        source: str | None,
+    ) -> AuditRecord:
+        improved, broken, backfilled = found
+        refused_files = {r.split(": ")[0] for r in tally.refused}
+        return AuditRecord(
+            verdict="pass" if not tally.refused and not broken else "fail",
+            deltas=tally.deltas,
+            files_scored=len(plan.current),
+            files_improved=improved,
+            files_regressed=len(refused_files) + len(broken),
+            removed=tuple(sorted(tally.removed)),
+            source=source,
+            commit=self._history.head(),
+            extra={"backfilled": backfilled} if backfilled else {},
+        )
+
+    def _write(self, plan: UpdatePlan, stored: Rows, tally: Tally, path: str) -> None:
         entry = plan.current[path]
-        old = plan.renames.get(path, path)
-        candidates = [
-            r
-            for r in ((plan.base_rows or {}), stored)
-            if (r.get(path) or r.get(old)) is not None
-        ]
-        compared = [r.get(path) or r.get(old) or {} for r in candidates]
-        worse = [set(self._policy.regressed(entry, row)) for row in compared]
-        regressed = [m for m in entry if worse and all(m in w for w in worse)]
+        compared = self._comparison_rows(plan, stored, path)
+        regressed = self._policy.refusals(entry, compared)
         if regressed:
-            refused.extend(f"{path}: {m}" for m in regressed)
-            return []
-        rows[path] = entry
-        changes = self._deltas(entry, compared[-1] if compared else None)
+            # Keep the rename source's row so the carry survives to the next run.
+            tally.refused.extend(f"{path}: {m}" for m in regressed)
+            return
+        tally.rows[path] = entry
+        changes = self._policy.deltas(entry, compared[-1] if compared else None)
         if changes:
-            deltas[path] = changes
-        return self._drop(rows, plan.renames[path]) if path in plan.renames else []
+            tally.deltas[path] = changes
+        if path in plan.renames:
+            tally.removed += self._drop(tally.rows, plan.renames[path])
 
     @staticmethod
-    def _deltas(
-        entry: dict[str, float], base: dict[str, float] | None
-    ) -> dict[str, list[float]]:
-        if base is None:
-            return {m: [0.0, v] for m, v in entry.items()}
-        return {m: [base[m], v] for m, v in entry.items() if m in base and v != base[m]}
+    def _comparison_rows(
+        plan: UpdatePlan, stored: Rows, path: str
+    ) -> list[dict[str, float]]:
+        """Return the merge-base row, then the in-tree row; a rename uses its source."""
+        old = plan.renames.get(path, path)
+        sources = (plan.base_rows or {}, stored)
+        found = ((rows.get(path) or rows.get(old)) for rows in sources)
+        return [row for row in found if row is not None]
 
     @staticmethod
     def _drop(rows: Rows, path: str) -> list[str]:

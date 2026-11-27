@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+from collections.abc import Set
 from pathlib import Path
-from typing import Self
-
-from oo_ratchet.core.application.ports import ArchiveRepo
+from typing import TYPE_CHECKING, Self
 
 from .source_history import SourceHistory
 from .sources import Sources
+
+if TYPE_CHECKING:
+    from oo_ratchet.core.application.ports import ArchiveRepo
 
 
 class SourceArchive:
@@ -33,14 +35,17 @@ class SourceArchive:
         listing = self._git._git(["ls-tree", "-r", "-t", "--name-only", "-z", ref])
         if listing is None:
             raise OSError(f"git ls-tree at {ref} failed")
+        tracked = listing.split("\0")
         patterns = SourceHistory.patterns(source, self._root, renames)
-        configs = {
+        selected = {p for p in [".", *tracked] if self._matches(p, patterns)}
+        return sorted(selected | self._configs(source).intersection(tracked))
+
+    @staticmethod
+    def _matches(path: str, patterns: Set[str]) -> bool:
+        return bool(path) and any(Path(path).full_match(p) for p in patterns)
+
+    def _configs(self, source: Sources) -> set[str]:
+        return {
             (p / "pyproject.toml").relative_to(self._root).as_posix()
             for p in {self._root, source.project or self._root}
         }
-        paths = {
-            path
-            for path in [".", *listing.split("\0")]
-            if path and any(Path(path).full_match(p) for p in patterns)
-        }
-        return sorted(paths | configs.intersection(listing.split("\0")))

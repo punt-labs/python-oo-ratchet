@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
+
 from oo_ratchet.core.domain.records import AuditRecord
 from oo_ratchet.core.domain.scores import Rows
 from oo_ratchet.core.domain.verdicts import Failure, Verdict
@@ -9,6 +11,16 @@ from oo_ratchet.core.domain.verdicts import Failure, Verdict
 from .operation import Operation
 
 Deltas = dict[str, dict[str, list[float]]]
+
+
+@dataclass(slots=True)
+class Bless:
+    """What a scoped bless granted: waived loosenings, gains, file classes."""
+
+    waived: Deltas = field(default_factory=dict)
+    gains: Deltas = field(default_factory=dict)
+    regressed: set[str] = field(default_factory=set)
+    improved: set[str] = field(default_factory=set)
 
 
 class Relax(Operation):
@@ -26,7 +38,7 @@ class Relax(Operation):
         recorded = self._store.rows().get(path)
         if recorded is None:
             return Verdict.refused("no-row", path)
-        loosened = [m for m in self._policy.regressed(entry, recorded) if m in recorded]
+        loosened = self._policy.loosened(entry, recorded)
         if not loosened:
             return Verdict.refused("nothing-to-relax", path)
         rows = dict(self._store.rows())
@@ -80,74 +92,70 @@ class RebaselineFiles(Operation):
             return Verdict.refused("blank-reason")
         current = self._source.measure().metrics()
         stored = self._store.rows()
+        accepted, refused = self._partition(paths, current, stored)
+        if accepted:
+            self._write(accepted, current, stored, (reason, source))
+        failures = (Failure("refused", tuple(refused)),) if refused else ()
+        return Verdict(failures=failures, written=tuple(accepted))
+
+    def _partition(
+        self, paths: list[str], current: Rows, stored: Rows
+    ) -> tuple[list[str], list[str]]:
+        """Split ``paths`` into those that clear the gate and refusal messages."""
         accepted: list[str] = []
         refused: list[str] = []
         for requested in paths:
             path = self._source.key(requested)
+            gated = self._policy.over_cap_and_regressed(
+                current.get(path, {}), stored.get(path)
+            )
             if path not in current:
                 refused.append(f"{requested}: not found in scored tree")
-                continue
-            gated = self._policy.over_cap_and_regressed(current[path], stored.get(path))
-            if gated:
+            elif gated:
                 refused.append(
                     f"{requested}: {', '.join(gated)} over cap and regressed"
                 )
-                continue
-            accepted.append(path)
-        if accepted:
-            self._write(accepted, current, stored, reason, source)
-        failures = (Failure("refused", tuple(refused)),) if refused else ()
-        return Verdict(failures=failures, written=tuple(accepted))
+            else:
+                accepted.append(path)
+        return accepted, refused
 
     def _write(
         self,
         accepted: list[str],
         current: Rows,
         stored: Rows,
-        reason: str,
-        source: str | None,
+        meta: tuple[str, str | None],
     ) -> None:
         rows = dict(stored)
-        waived: Deltas = {}
-        gains: Deltas = {}
-        regressed: set[str] = set()
-        improved: set[str] = set()
+        bless = Bless()
         for path in accepted:
             entry, old = current[path], stored.get(path)
             if old is not None:
-                self._classify(path, entry, old, waived, gains, regressed, improved)
+                self._classify(path, entry, old, bless)
             rows[path] = entry
+        reason, source = meta
         self._audit.append(
             AuditRecord(
                 verdict="rebaseline-files",
-                deltas=waived,
+                deltas=bless.waived,
                 files_scored=len(accepted),
-                files_improved=len(improved - regressed),
-                files_regressed=len(regressed),
+                files_improved=len(bless.improved - bless.regressed),
+                files_regressed=len(bless.regressed),
                 reason=reason,
                 source=source,
                 commit=self._history.head(),
-                extra={"improved": gains},
+                extra={"improved": bless.gains},
             )
         )
         self._store.save(rows)
 
     def _classify(
-        self,
-        path: str,
-        entry: dict[str, float],
-        old: dict[str, float],
-        waived: Deltas,
-        gains: Deltas,
-        regressed: set[str],
-        improved: set[str],
+        self, path: str, entry: dict[str, float], old: dict[str, float], bless: Bless
     ) -> None:
-        changed = [m for m in entry if m in old and entry[m] != old[m]]
-        worse = {m for m in self._policy.regressed(entry, old) if m in old}
-        for m in changed:
-            if m in worse:
-                waived.setdefault(path, {})[m] = [old[m], entry[m]]
-                regressed.add(path)
-            elif self._policy.strictly_better(m, entry[m], old[m]):
-                gains.setdefault(path, {})[m] = [old[m], entry[m]]
-                improved.add(path)
+        waived, gains = self._policy.changes(entry, old)
+        if waived:
+            bless.waived[path] = waived
+            bless.regressed.add(path)
+        if gains:
+            bless.gains[path] = gains
+            bless.improved.add(path)

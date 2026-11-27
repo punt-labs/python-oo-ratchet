@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from oo_ratchet.core.adapters.nullisting import NulListing
+from oo_ratchet.core.adapters import nullisting
 from oo_ratchet.core.domain.errors import GitError
 from oo_ratchet.core.domain.layer_edges import Edge
 from oo_ratchet.layers.scan import LayerScan
@@ -87,14 +87,14 @@ class TestGitFailsClosed:
     ) -> None:
         repo.edit("kernel", "")
         repo.write(".oo-layers-baseline.json", '{"other.kernel": ["other.service"]}')
-        real = NulListing.run
+        real = nullisting.nul_listing
 
         def flaky(root: Path, args: list[str]) -> list[str]:
             if "ls-files" in args:
                 raise GitError("boom")
             return real(root, args)
 
-        monkeypatch.setattr(NulListing, "run", staticmethod(flaky))
+        monkeypatch.setattr(nullisting, "nul_listing", flaky)
         code, out = repo.run("--update")
         assert code == 1
         assert "FAIL" in out

@@ -151,7 +151,7 @@ class LayerScan:
 
     @staticmethod
     def _load(src: Source) -> LayerConfig:
-        config = LayerTable.load(SourceSet(src).config_anchor)
+        config = LayerTable.read(SourceSet(src).config_anchor).config()
         if config is None:
             msg = f"no [tool.oo-ratchet.layers] table above {src}"
             raise LayerConfigError(msg)

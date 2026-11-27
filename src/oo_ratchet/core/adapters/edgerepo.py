@@ -86,7 +86,7 @@ class EdgeRepo:
             raise LayerConfigError(msg) from exc
         path = rel.as_posix()
         text = self._git.show(ref, path)
-        config = LayerTable.from_text(text, f"{ref}:{path}") if text else None
+        config = LayerTable.from_text(text, f"{ref}:{path}").config() if text else None
         if config is None and strict:
             where = f"{ref[:10]}:{path}"
             msg = f"no layer config at the base ({where}) but a baseline exists"

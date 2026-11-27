@@ -6,7 +6,7 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Self
 
-from .nullisting import NulListing
+from . import nullisting
 
 
 class PackageTree:
@@ -22,13 +22,17 @@ class PackageTree:
     @classmethod
     def base(cls, ref: str, root: Path) -> Self:
         """Read the committed files, preserving unusual path bytes."""
-        return cls(NulListing.run(root, ["ls-tree", "-r", "--name-only", "-z", ref]))
+        return cls(
+            nullisting.nul_listing(root, ["ls-tree", "-r", "--name-only", "-z", ref])
+        )
 
     @classmethod
     def working(cls, root: Path) -> Self:
         """Read tracked and untracked files that still exist."""
         args = ["ls-files", "-z", "--cached", "--others", "--exclude-standard"]
-        return cls(p for p in NulListing.run(root, args) if (root / p).is_file())
+        return cls(
+            p for p in nullisting.nul_listing(root, args) if (root / p).is_file()
+        )
 
     def package_at(self, name: str) -> bool:
         """Recognize regular or namespace roots, never nested namesakes."""

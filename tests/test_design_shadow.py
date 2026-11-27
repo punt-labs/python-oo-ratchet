@@ -198,7 +198,11 @@ def test_existing_clump_key_multiplicity_changes(
         ("def _f(): return 1\n", "x=0\n" * 401, "would-fail: tier0"),
         ("def f(a: V,b: V): return a\n", "def f(a,b): return a\n", "would-fail: tier1"),
         ("def f(a,b): return a\n", "def f(a: V,b: V): return a\n", "good-deed: trade"),
-        ("def _f(): return 1\n", "def _f():\n x=1\n return x\n", "would-fail: tier2"),
+        (
+            "def _f(): return 1\n",
+            "def _f():\n x=1\n if x:\n  return x\n return 0\n",
+            "would-fail: tier2",
+        ),
         ("def _f(a,b): return a\n", "def _f(a): return a\n", "good-deed"),
         ("def _f(): return 1\n", "def _f(): return 1\n", "neutral"),
         ("", "", "neutral"),
@@ -234,7 +238,7 @@ def test_trade_is_repo_wide_and_accepts_oo_regressions(
         repo,
         {
             "debt.py": "def f(a: V,b: V): return a\n",
-            "other.py": "def _f():\n x=1\n return x\n",
+            "other.py": "def _f():\n x=1\n if x:\n  return x\n return 0\n",
         },
     )
     payload = json.loads(scan(repo, capsys, "--json"))
@@ -264,7 +268,7 @@ def test_oo_improvement_does_not_cancel_oo_regression(
     repo: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     seed(repo, {"model.py": "def _f(a,b): return a\n"})
-    write(repo, {"model.py": "def _f(a):\n x=1\n return a\n"})
+    write(repo, {"model.py": "def _f(a):\n if a:\n  return a\n return 0\n"})
     payload = json.loads(scan(repo, capsys, "--json"))
     assert payload["tier2"]["improved"] and payload["tier2"]["regressed"]
     assert payload["verdict"] == "would-fail: tier2"
@@ -394,8 +398,13 @@ def test_input_errors_exit_two(
 
 
 def test_non_git_input_exits_two(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    # pytest's temp root may itself sit inside a git checkout; stop git from
+    # discovering a repository above the test directory.
+    monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(tmp_path.parent))
     assert main(["design", str(tmp_path), "--shadow-check", "HEAD"]) == 2
     assert "requires a git repository" in capsys.readouterr().err
 

@@ -567,14 +567,14 @@ class TestRelaxWaiver:
         assert set(entry["deltas"]["sub/w.py"]) == {"max_complexity"}
 
     def test_relaxing_one_metric_does_not_waive_another(self, fx: GitFixture) -> None:
-        # Relax M1 (max_complexity); a fresh regression of M2 (module_size) on the
+        # Relax M1 (max_complexity); a fresh regression of M2 (avg_complexity) on the
         # same file, though locked in-tree, must NOT be waived.
         fx.write("sub/w.py", WORSE)
         current = Baseline.metrics_by_file(fx.scorer().results)["sub/w.py"]
         base_metrics = {
             **current,
             "max_complexity": current["max_complexity"] - 1,
-            "module_size": current["module_size"] - 1,
+            "avg_complexity": current["avg_complexity"] - 1,
         }
         # base commit carries a different file body so w.py lands in the diff;
         # its baseline blob is the hand-built stricter metrics.
@@ -599,7 +599,7 @@ class TestRelaxWaiver:
         fx.commit("lock and relax cc only")
         outcome = fx.ratchet().check(fx.scorer(), base_ref=base, require_base=True)
         assert outcome.exit_code == 1
-        assert any("module_size" in line for line in outcome.lines)
+        assert any("avg_complexity" in line for line in outcome.lines)
 
 
 class TestRenameCarry:

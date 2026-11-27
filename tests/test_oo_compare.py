@@ -18,8 +18,8 @@ class TestThresholds:
         assert not Thresholds.strictly_better("max_complexity", 3.0, 1.0)
 
     def test_ge_metric_higher_is_better(self) -> None:
-        assert Thresholds.strictly_better("method_ratio", 0.9, 0.8)
-        assert Thresholds.better_or_equal("method_ratio", 0.8, 0.8)
+        assert Thresholds.strictly_better("encapsulation_ratio", 0.9, 0.8)
+        assert Thresholds.better_or_equal("encapsulation_ratio", 0.8, 0.8)
 
     def test_eq_metric_closer_to_target_is_better(self) -> None:
         # target is 1 for future_annotations; 1 is better than 0.
@@ -27,8 +27,8 @@ class TestThresholds:
         assert not Thresholds.strictly_better("future_annotations", 0.0, 1.0)
 
     def test_meets_absolute_threshold(self) -> None:
-        assert Thresholds.meets("module_size", 300.0)
-        assert not Thresholds.meets("module_size", 301.0)
+        assert Thresholds.meets("module_size", 400.0)
+        assert not Thresholds.meets("module_size", 401.0)
 
 
 class TestFileReviewTracked:

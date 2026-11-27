@@ -19,7 +19,9 @@ class Thresholds:
     growing a small module is neither a regression nor shrinking it an
     improvement; over the ceiling, smaller is better. Module size is a
     ceiling: comparing it file by file rewarded splitting cohesive code into
-    many tiny modules (PL-1685).
+    many tiny modules (PL-1685). The two averages, parameters and complexity,
+    are ceilings too: deleting a trivial function raises a mean while it stays
+    under target, and that is a good move, not a regression (PL-1712).
     """
 
     TABLE: ClassVar[dict[str, tuple[str, float]]] = {
@@ -32,7 +34,9 @@ class Thresholds:
         "public_attr_violations": ("==", 0),
         "future_annotations": ("==", 1),
     }
-    CEILINGS: ClassVar[frozenset[str]] = frozenset({"module_size"})
+    CEILINGS: ClassVar[frozenset[str]] = frozenset(
+        {"module_size", "avg_params", "avg_complexity"}
+    )
     _MEETS: ClassVar[dict[str, Callable[[float, float], bool]]] = {
         ">=": operator.ge,
         "<=": operator.le,

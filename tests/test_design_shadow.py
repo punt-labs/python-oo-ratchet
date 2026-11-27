@@ -203,7 +203,11 @@ def test_existing_clump_key_multiplicity_changes(
             "def _f():\n x=1\n if x:\n  return x\n return 0\n",
             "would-fail: tier2",
         ),
-        ("def _f(a,b): return a\n", "def _f(a): return a\n", "good-deed"),
+        (
+            "def _f(a):\n if a:\n  return a\n return 0\n",
+            "def _f(a): return a\n",
+            "good-deed",
+        ),
         ("def _f(): return 1\n", "def _f(): return 1\n", "neutral"),
         ("", "", "neutral"),
     ],
@@ -267,8 +271,9 @@ def test_new_design_keys_cannot_be_paid_for_by_removals(
 def test_oo_improvement_does_not_cancel_oo_regression(
     repo: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    seed(repo, {"model.py": "def _f(a,b): return a\n"})
-    write(repo, {"model.py": "def _f(a):\n if a:\n  return a\n return 0\n"})
+    branchy = "def _f(a):\n if a:\n  return a\n return 0\n"
+    seed(repo, {"model.py": "def _f(a): return a\n", "other.py": branchy})
+    write(repo, {"model.py": branchy, "other.py": "def _f(a): return a\n"})
     payload = json.loads(scan(repo, capsys, "--json"))
     assert payload["tier2"]["improved"] and payload["tier2"]["regressed"]
     assert payload["verdict"] == "would-fail: tier2"

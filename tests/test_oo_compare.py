@@ -30,6 +30,23 @@ class TestThresholds:
         assert Thresholds.meets("module_size", 400.0)
         assert not Thresholds.meets("module_size", 401.0)
 
+    def test_avg_complexity_under_target_is_a_ceiling(self) -> None:
+        # Deleting a trivial function raises the mean (2.0 -> 3.0) while it
+        # stays under the 5.0 target: not a regression, not an improvement.
+        assert Thresholds.better_or_equal("avg_complexity", 3.0, 2.0)
+        assert not Thresholds.strictly_better("avg_complexity", 2.0, 3.0)
+        assert not Thresholds.strictly_better("avg_complexity", 3.0, 2.0)
+
+    def test_avg_complexity_over_target_still_ratchets(self) -> None:
+        assert not Thresholds.better_or_equal("avg_complexity", 6.5, 6.0)
+        assert Thresholds.strictly_better("avg_complexity", 5.5, 6.0)
+        assert not Thresholds.better_or_equal("avg_complexity", 5.5, 4.0)
+
+    def test_avg_params_under_target_is_a_ceiling(self) -> None:
+        assert Thresholds.better_or_equal("avg_params", 3.5, 1.0)
+        assert not Thresholds.strictly_better("avg_params", 1.0, 3.5)
+        assert not Thresholds.better_or_equal("avg_params", 4.5, 4.2)
+
 
 class TestFileReviewTracked:
     """A file present in the base baseline compares metric-by-metric."""

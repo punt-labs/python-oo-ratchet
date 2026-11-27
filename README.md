@@ -356,23 +356,25 @@ The OO targets are fixed in
 These are absolute targets for new files, not permission to regress an
 existing file that is already below a cap. Existing debt may remain unchanged
 or improve; `--update` never loosens a recorded metric, even within a cap,
-except `module_size` under its 400-line ceiling (below).
+except the ceiling metrics `module_size`, `avg_params` and `avg_complexity` under their targets (below).
 
 | OO baseline field | Target | Computation |
 |-------------------|--------|-------------|
 | `encapsulation_ratio` | >= 1.0 | Private `self` attribute assignments / all such assignments; 1 if none |
-| `avg_params` | <= 4.0 | Mean parameter count over every `def` / `async def` |
+| `avg_params` | <= 4.0, ceiling | Mean parameter count over every `def` / `async def` |
 | `max_complexity` | <= 10 | Maximum function cyclomatic complexity; 0 if no functions |
-| `avg_complexity` | <= 5.0 | Mean function cyclomatic complexity; 0 if no functions |
+| `avg_complexity` | <= 5.0, ceiling | Mean function cyclomatic complexity; 0 if no functions |
 | `module_size` | <= 400, ceiling | Physical lines carrying code tokens, excluding docstrings |
 | `init_violations` | == 0 | Explicit synchronous `__init__` methods on non-dataclass classes |
 | `public_attr_violations` | == 0 | Assignments to `self` attributes not starting with `_` |
 | `future_annotations` | == 1 | Presence of `from __future__ import annotations` |
 
-`module_size` is a ceiling, not a ratcheted value. Under 400 code lines,
-growing a file is not a regression and shrinking it is not an improvement;
-over 400, any growth regresses and any shrinkage improves. Comparing module
-size file by file rewarded splitting cohesive code into tiny modules.
+`module_size`, `avg_params` and `avg_complexity` are ceilings, not ratcheted
+values. Under its target (400 code lines, 4.0 parameters, 5.0 complexity), a
+metric may rise without a regression and falling is not an improvement; over
+its target, any rise regresses and any fall improves. Comparing module size
+file by file rewarded splitting cohesive code into tiny modules; comparing the
+averages punished deleting trivial functions or adding real decisions.
 
 Module shape is not gated. `--json` still reports `method_ratio`,
 `class_to_func_ratio` and `classes_per_module` per file, but no target applies

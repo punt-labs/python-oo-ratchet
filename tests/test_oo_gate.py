@@ -78,8 +78,8 @@ class TestThresholds:
         assert Thresholds.better_or_equal("encapsulation_ratio", 0.7, 0.8) is False
 
     def test_better_or_equal_le(self) -> None:
-        assert Thresholds.better_or_equal("avg_params", 3.0, 3.0) is True
-        assert Thresholds.better_or_equal("avg_params", 3.5, 3.0) is False
+        assert Thresholds.better_or_equal("max_complexity", 3.0, 3.0) is True
+        assert Thresholds.better_or_equal("max_complexity", 3.5, 3.0) is False
 
     def test_module_size_is_a_ceiling(self) -> None:
         # Under 400 code lines, growth is not a regression (PL-1685);

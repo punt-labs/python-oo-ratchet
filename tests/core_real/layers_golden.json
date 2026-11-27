@@ -717,19 +717,6 @@
    }
   }
  ],
- "TestRefusals::test_source_outside_a_repository": [
-  {
-   "argv": [
-    "--check"
-   ],
-   "code": 1,
-   "out": "FAIL: no [tool.oo-ratchet.layers] table above <SRC>\n",
-   "state": {
-    ".oo-layers-audit.jsonl": null,
-    ".oo-layers-baseline.json": null
-   }
-  }
- ],
  "TestRefusals::test_unassigned_module_is_refused": [
   {
    "argv": [

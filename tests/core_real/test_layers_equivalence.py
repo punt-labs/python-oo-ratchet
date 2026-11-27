@@ -304,13 +304,20 @@ class TestRefusals:
         bench.step("--check", code=1, on=bench.repo.root / "nowhere")
 
     def test_source_outside_a_repository(
-        self, bench: Bench, tmp_path_factory: pytest.TempPathFactory
+        self,
+        tmp_path_factory: pytest.TempPathFactory,
+        capsys: pytest.CaptureFixture[str],
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        pkg = tmp_path_factory.mktemp("loose") / "app"
+        loose = tmp_path_factory.mktemp("loose")
+        pkg = loose / "app"
         pkg.mkdir()
         (pkg / "__init__.py").write_text("")
         (pkg / "a.py").write_text("")
-        bench.step("--check", code=1, on=pkg)
+        # The scratch directory may sit inside a checkout; stop git above it.
+        monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(loose))
+        assert main([str(pkg), "--check"]) == 1
+        assert "is not inside a git repository" in capsys.readouterr().out
 
     def test_missing_config(self, bench: Bench) -> None:
         bench.repo.write("pyproject.toml", "[tool.other]\n")

@@ -146,8 +146,10 @@ adapters = [
   "oo_ratchet.source_rescan",
   "oo_ratchet.source_set",
   "oo_ratchet.sources",
+  "oo_ratchet.core.adapters.*",
 ]
 application = [
+  "oo_ratchet.core.application.*",
   "oo_ratchet.backfill",
   "oo_ratchet.*.ratchet",
   "oo_ratchet.*.compare",
@@ -168,5 +170,6 @@ application = [
   "oo_ratchet.*.shadow_report",
 ]
 domain = [
+  "oo_ratchet.core.domain.*",
   "oo_ratchet.*",
 ]

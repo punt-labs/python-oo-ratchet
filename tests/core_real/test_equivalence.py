@@ -105,6 +105,7 @@ def assert_same_check(
 @pytest.fixture
 def fx(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> GitFixture:
     monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)  # the gate refuses writes in CI
     return GitFixture(tmp_path)
 
 

@@ -24,6 +24,13 @@ class MetricRow:
     delta: str
     status: str
 
+    def render(self) -> str:
+        """Return the row formatted for the comparison table."""
+        return (
+            f"{self.path:<40} {self.metric:<26} {self.baseline:>10} "
+            f"{self.current:>10} {self.delta:>8} {self.status:>10}"
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class FileReview:
@@ -43,6 +50,11 @@ class Review:
     """The per-file reviews of one change and the whole-change gates on them."""
 
     files: tuple[FileReview, ...]
+
+    @property
+    def rows(self) -> tuple[MetricRow, ...]:
+        """Return every reportable row across all reviewed files."""
+        return tuple(row for review in self.files for row in review.rows)
 
     @property
     def regressions(self) -> tuple[tuple[str, str], ...]:

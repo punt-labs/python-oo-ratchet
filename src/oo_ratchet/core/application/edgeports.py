@@ -8,8 +8,8 @@ from pathlib import Path
 from typing import Protocol
 
 from oo_ratchet.core.domain.edges import EdgeBook, EdgeRecord
-from oo_ratchet.design.layer_config import LayerConfig
-from oo_ratchet.design.layer_edges import Edge, Violation
+from oo_ratchet.core.domain.layer_config import LayerConfig
+from oo_ratchet.core.domain.layer_edges import Edge, Violation
 
 
 class Survey(Protocol):

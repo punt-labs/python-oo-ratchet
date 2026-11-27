@@ -5,14 +5,14 @@ from __future__ import annotations
 import ast
 from typing import ClassVar, Self
 
+from oo_ratchet.core.domain.declaration import Declaration
+from oo_ratchet.core.domain.findings import Finding, Rules
+from oo_ratchet.core.domain.modules import Module, ModuleIndex
+from oo_ratchet.core.domain.shape import ClassShape
 from oo_ratchet.oo.code_lines import CodeLines
 from oo_ratchet.oo.metrics import ModuleMetrics
 
 from .data_inventory import DataInventory
-from .declaration import Declaration
-from .findings import Finding, Rules
-from .modules import Module, ModuleIndex
-from .shape import ClassShape
 from .signature_rules import SignatureRules
 
 

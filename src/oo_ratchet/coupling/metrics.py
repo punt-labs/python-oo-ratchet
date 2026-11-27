@@ -174,24 +174,29 @@ class ModuleCouplingMetrics:
             return True
         return self._stateless_values == "any" and PrivateState.stores_none(node)
 
-    @staticmethod
-    def _declares_value_shape(node: ast.ClassDef) -> bool:
+    @classmethod
+    def _declares_value_shape(cls, node: ast.ClassDef) -> bool:
         """Return True for a ``@dataclass`` or an empty-``__slots__`` marker class."""
-        for deco in node.decorator_list:
-            target = deco.func if isinstance(deco, ast.Call) else deco
-            name = target.attr if isinstance(target, ast.Attribute) else None
-            if isinstance(target, ast.Name):
-                name = target.id
-            if name == "dataclass":
-                return True
-        return any(
+        return any(map(cls._is_dataclass, node.decorator_list)) or any(
+            map(cls._is_empty_slots, node.body)
+        )
+
+    @staticmethod
+    def _is_dataclass(deco: ast.expr) -> bool:
+        target = deco.func if isinstance(deco, ast.Call) else deco
+        if isinstance(target, ast.Name):
+            return target.id == "dataclass"
+        return isinstance(target, ast.Attribute) and target.attr == "dataclass"
+
+    @staticmethod
+    def _is_empty_slots(item: ast.stmt) -> bool:
+        return (
             isinstance(item, ast.Assign)
             and any(
                 isinstance(t, ast.Name) and t.id == "__slots__" for t in item.targets
             )
             and isinstance(item.value, ast.Tuple)
             and not item.value.elts
-            for item in node.body
         )
 
     @staticmethod

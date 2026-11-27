@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from typing import Self
 
+from oo_ratchet.core.domain.findings import Finding, Rules
+from oo_ratchet.core.domain.project_types import ProjectTypes
+
 from .data_inventory import DataInventory
-from .findings import Finding, Rules
 from .method_graph import MethodGraph
 from .middle_man import MiddleMan
-from .project_types import ProjectTypes
 
 
 class ClassShapeRules:

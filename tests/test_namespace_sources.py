@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from oo_ratchet.__main__ import main
-from oo_ratchet.coupling.cli import Options
+from oo_ratchet.coupling.cli import CouplingOptions
 from oo_ratchet.coupling.graph import ImportGraph
 from oo_ratchet.coupling.layout import PackageLayout
 from oo_ratchet.coupling.scorer import CouplingScorer
@@ -215,7 +215,7 @@ def test_resolved_namespace_is_passed_through_unchanged(
     trees: tuple[Path, SourceSet],
 ) -> None:
     _, source = trees
-    options = Options.parse(["--namespace", "app", *map(str, source.roots)])
+    options = CouplingOptions.parse(["--namespace", "app", *map(str, source.roots)])
     assert isinstance(options.src, SourceSet)
     assert SourceSet(options.src) is options.src
     assert PackageLayout(options.src)._source is options.src

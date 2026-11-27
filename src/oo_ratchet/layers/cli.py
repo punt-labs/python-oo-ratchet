@@ -10,7 +10,7 @@ from typing import Self
 from oo_ratchet.core.adapters.edgegate import EdgeGate
 from oo_ratchet.core.adapters.gitrepo import GitRepo
 from oo_ratchet.core.domain.errors import StateError
-from oo_ratchet.coupling.outcome import Outcome
+from oo_ratchet.core.domain.exits import Outcome
 from oo_ratchet.source_set import Source, SourceSet
 
 from .failures import FAILURES
@@ -20,7 +20,7 @@ from .suggest import Suggestion
 
 
 @dataclass(frozen=True, slots=True)
-class Options:
+class LayersOptions:
     """Parsed command-line options for one layers ratchet invocation."""
 
     src: Source
@@ -111,12 +111,12 @@ class Options:
         return parser
 
 
-class Cli:
+class LayersCommand:
     """Scan the package and route the request to the gate or a report."""
 
-    _opts: Options
+    _opts: LayersOptions
 
-    def __new__(cls, options: Options) -> Self:
+    def __new__(cls, options: LayersOptions) -> Self:
         self = super().__new__(cls)
         self._opts = options
         return self
@@ -179,7 +179,7 @@ class Cli:
 def main(argv: list[str] | None = None) -> int:
     """Parse arguments and run the layers ratchet CLI, returning an exit code."""
     try:
-        return Cli(Options.parse(argv)).run()
+        return LayersCommand(LayersOptions.parse(argv)).run()
     except StateError as exc:  # raised while locating the repository root
         sys.stdout.write(f"FAIL: {exc}\n")
         return 1

@@ -6,7 +6,7 @@ from collections.abc import Collection, Iterable
 from dataclasses import dataclass, field
 from typing import Self
 
-from oo_ratchet.design.layer_edges import Edge, Violation
+from oo_ratchet.core.domain.layer_edges import Edge, Violation
 
 from .verdicts import Failure, Verdict
 

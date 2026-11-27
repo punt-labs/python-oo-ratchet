@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from typing import Self
 
+from oo_ratchet.core.domain.findings import Finding, Rules
+
 from .clump_owners import ClumpOwners
 from .clump_sets import ClumpSets
 from .data_inventory import DataInventory
-from .findings import Finding, Rules
 
 
 class ClumpRules:

@@ -24,7 +24,7 @@ _GUARDS = {
 
 
 @dataclass(frozen=True, slots=True)
-class Options:
+class CouplingOptions:
     """Parsed command-line options for one coupling ratchet invocation."""
 
     src: Source
@@ -122,13 +122,13 @@ class Options:
 _Report = tuple[list[str], int]
 
 
-class Cli:
+class CouplingCommand:
     """Score the target and route the request to the gate or a view."""
 
-    _opts: Options
+    _opts: CouplingOptions
     _gate: MetricGate
 
-    def __new__(cls, options: Options) -> Self:
+    def __new__(cls, options: CouplingOptions) -> Self:
         self = super().__new__(cls)
         self._opts = options
         self._gate = MetricGate(_FILES)
@@ -234,7 +234,7 @@ class Cli:
 def main(argv: list[str] | None = None) -> int:
     """Parse arguments and run the coupling ratchet CLI, returning an exit code."""
     try:
-        return Cli(Options.parse(argv)).run()
+        return CouplingCommand(CouplingOptions.parse(argv)).run()
     except StateError as exc:  # raised while locating the repository root
         sys.stdout.write(f"FAIL: {exc}\n")
         return 1

@@ -5,11 +5,11 @@ from __future__ import annotations
 import ast
 from typing import Self, cast
 
-from .declaration import Declaration
-from .function_shape import FunctionShape
-from .shape import ClassShape
-from .state import StateProbe
-from .wrapper import ValueWrapper
+from oo_ratchet.core.domain.declaration import Declaration
+from oo_ratchet.core.domain.function_shape import FunctionShape
+from oo_ratchet.core.domain.shape import ClassShape
+from oo_ratchet.core.domain.state import StateProbe
+from oo_ratchet.core.domain.wrapper import ValueWrapper
 
 
 class DataFields:

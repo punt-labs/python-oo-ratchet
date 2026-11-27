@@ -16,15 +16,6 @@
     "oo_ratchet.source_set",
     "pathlib"
   ],
-  "oo_ratchet.design.layer_table": [
-    "oo_ratchet.source_set",
-    "pathlib"
-  ],
-  "oo_ratchet.design.modules": [
-    "oo_ratchet.coupling.layout",
-    "oo_ratchet.source_set",
-    "pathlib"
-  ],
   "oo_ratchet.design.scan": [
     "oo_ratchet.design.report",
     "oo_ratchet.source_set"
@@ -37,11 +28,7 @@
     "oo_ratchet.design.namespace_shadow",
     "oo_ratchet.source_set"
   ],
-  "oo_ratchet.design.shadow_metrics": [
-    "oo_ratchet.oo.compare"
-  ],
   "oo_ratchet.design.shadow_scan": [
-    "oo_ratchet.oo.baseline",
     "oo_ratchet.source_set"
   ],
   "oo_ratchet.layers": [
@@ -55,9 +42,7 @@
     "oo_ratchet.layers.chain"
   ],
   "oo_ratchet.oo": [
-    "oo_ratchet.oo.cli",
-    "oo_ratchet.oo.compare",
-    "oo_ratchet.oo.gitio"
+    "oo_ratchet.oo.cli"
   ],
   "oo_ratchet.oo.code_lines": [
     "io"

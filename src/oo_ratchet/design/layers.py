@@ -6,13 +6,12 @@ import ast
 from collections.abc import Callable
 from typing import ClassVar, Self
 
+from oo_ratchet.core.domain.domain_io import DomainIO
+from oo_ratchet.core.domain.findings import Finding, Rules
+from oo_ratchet.core.domain.layer_config import LayerConfig
+from oo_ratchet.core.domain.layer_violations import LayerViolations
+from oo_ratchet.core.domain.modules import Module, ModuleIndex
 from oo_ratchet.oo.metrics import ModuleMetrics
-
-from .domain_io import DomainIO
-from .findings import Finding, Rules
-from .layer_config import LayerConfig
-from .layer_violations import LayerViolations
-from .modules import Module, ModuleIndex
 
 
 class LayerCheck:

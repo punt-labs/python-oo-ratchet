@@ -17,7 +17,7 @@ from .thresholds import Thresholds
 
 
 @dataclass(frozen=True, slots=True)
-class Options:
+class OoOptions:
     """Parsed command-line options for one ratchet invocation."""
 
     src: Source
@@ -129,16 +129,16 @@ class Options:
         return parser
 
 
-class Cli:
+class OoCommand:
     """Run one OO command line on the shared core and print its report."""
 
     POLICY: ClassVar[GatePolicy] = GatePolicy.from_table(
         Thresholds.TABLE, Thresholds.CEILINGS
     )
 
-    _opts: Options
+    _opts: OoOptions
 
-    def __new__(cls, options: Options) -> Self:
+    def __new__(cls, options: OoOptions) -> Self:
         self = super().__new__(cls)
         self._opts = options
         return self
@@ -155,4 +155,4 @@ class Cli:
 
 def main(argv: list[str] | None = None) -> int:
     """Parse arguments and run the ratchet CLI, returning an exit code."""
-    return Cli(Options.parse(argv)).run()
+    return OoCommand(OoOptions.parse(argv)).run()

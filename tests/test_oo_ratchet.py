@@ -18,7 +18,6 @@ import pytest
 import oo_ratchet.oo.cli as cli_module
 from oo_ratchet.core.adapters.gitrepo import GitRepo
 from oo_ratchet.core.domain.errors import GitError, StateError
-from oo_ratchet.oo.baseline import Baseline
 from oo_ratchet.oo.cli import main
 from tests.gate_runs import Ratchet, Scored, Writer
 
@@ -119,7 +118,7 @@ class GitFixture:
 
     def snapshot(self, subdir: str) -> None:
         scorer = self.scorer(subdir)
-        self.write_baseline(Baseline.metrics_by_file(scorer.results))
+        self.write_baseline(scorer.rows)
 
     def commit(self, msg: str) -> str:
         subprocess.run(["git", "add", "-A"], cwd=self._root, check=True)
@@ -295,7 +294,7 @@ class TestAllowNoImprovement:
         fx.snapshot("sub")
         base = fx.commit("base")
         fx.write("sub/w.py", GOOD_VARIANT)
-        current = Baseline.metrics_by_file(fx.scorer().results)["sub/w.py"]
+        current = fx.scorer().rows["sub/w.py"]
         fx.write_baseline(
             {"sub/w.py": {**current, "module_size": current["module_size"] + 5}}
         )
@@ -573,7 +572,7 @@ class TestRelaxWaiver:
         fx.write("sub/w.py", GOOD)
         fx.snapshot("sub")
         fx.commit("base")
-        current = Baseline.metrics_by_file(fx.scorer().results)["sub/w.py"]
+        current = fx.scorer().rows["sub/w.py"]
         # In-tree baseline == current except max_complexity is stricter, so only
         # max_complexity loosens when we relax back to the current values.
         fx.write_baseline({"sub/w.py": {**current, "max_complexity": 0.0}})
@@ -592,7 +591,7 @@ class TestRelaxWaiver:
         # Relax M1 (max_complexity); a fresh regression of M2 (encapsulation_ratio)
         # on the same file, though locked in-tree, must NOT be waived.
         fx.write("sub/w.py", WORSE)
-        current = Baseline.metrics_by_file(fx.scorer().results)["sub/w.py"]
+        current = fx.scorer().rows["sub/w.py"]
         base_metrics = {
             **current,
             "max_complexity": current["max_complexity"] - 1,
@@ -636,7 +635,7 @@ class TestRenameCarry:
         # Lock the in-tree baseline to the current (worse) value so the only
         # possible failure is the vs-base regression carried from old.py.
         scorer = fx.scorer()
-        fx.write_baseline(Baseline.metrics_by_file(scorer.results))
+        fx.write_baseline(scorer.rows)
         fx.commit("rename and worsen")
         outcome = fx.ratchet().check(fx.scorer(), base_ref=base, require_base=True)
         assert outcome.exit_code == 1
@@ -1336,10 +1335,7 @@ class TestRebaselineFilesBless:
         assert recorded is not None
         assert recorded["max_complexity"] == 12.0
         assert recorded["module_size"] != old_size  # the edit was written
-        assert (
-            recorded["module_size"]
-            == Baseline.metrics_by_file(fx.scorer().results)["sub/w.py"]["module_size"]
-        )
+        assert recorded["module_size"] == fx.scorer().rows["sub/w.py"]["module_size"]
         audit_lines = (fx.root / ".oo-audit.jsonl").read_text().splitlines()
         assert json.loads(audit_lines[-1])["verdict"] == "rebaseline-files"
 

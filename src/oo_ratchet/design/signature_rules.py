@@ -5,13 +5,14 @@ from __future__ import annotations
 import ast
 from typing import Self
 
+from oo_ratchet.core.domain.declaration import Declaration
+from oo_ratchet.core.domain.findings import Finding, Rules
+from oo_ratchet.core.domain.function_shape import FunctionShape
+from oo_ratchet.core.domain.shape import ClassShape
+from oo_ratchet.core.domain.type_reference import TypeReference
+
 from .data_inventory import DataInventory
-from .declaration import Declaration
-from .findings import Finding, Rules
-from .function_shape import FunctionShape
-from .shape import ClassShape
 from .tag_switch import TagSwitch
-from .type_reference import TypeReference
 
 
 class SignatureRules:

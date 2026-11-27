@@ -5,16 +5,16 @@ from __future__ import annotations
 import ast
 from typing import TYPE_CHECKING, Self
 
-from oo_ratchet.design.layer_violations import LayerViolations, Site
-from oo_ratchet.design.modules import Module, ModuleIndex
+from oo_ratchet.core.domain.layer_violations import LayerViolations, Site
+from oo_ratchet.core.domain.modules import Module, ModuleIndex
 
 from .chain import ExportChain
 from .dynamic import DynamicImports
 from .module_violations import ModuleViolations
 
 if TYPE_CHECKING:
-    from oo_ratchet.design.layer_config import LayerConfig
-    from oo_ratchet.design.layer_edges import Violation
+    from oo_ratchet.core.domain.layer_config import LayerConfig
+    from oo_ratchet.core.domain.layer_edges import Violation
 
 
 class StrictViolations(LayerViolations):

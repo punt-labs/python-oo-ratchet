@@ -16,9 +16,7 @@ from typing import ClassVar
 import pytest
 
 from oo_ratchet.core.application.update import PlanApplier, UpdatePlan
-from oo_ratchet.oo.baseline import Baseline
-from oo_ratchet.oo.cli import Cli
-from oo_ratchet.oo.compare import FileReview
+from oo_ratchet.oo.cli import OoCommand
 from oo_ratchet.oo.thresholds import Thresholds
 from tests.core.doubles import World
 from tests.test_oo_ratchet import GOOD, WORSE, GitFixture
@@ -107,29 +105,29 @@ class TestThresholdTable:
 class TestUpdateRecords:
     def test_growth_under_ceiling_is_not_counted_as_an_improvement(self) -> None:
         deltas = {"sub/w.py": {"module_size": [9.0, 10.0]}}
-        assert Cli.POLICY.improved_count(deltas) == 0
+        assert OoCommand.POLICY.improved_count(deltas) == 0
 
     def test_metric_missing_from_base_row_is_judged_by_target(self) -> None:
         entry = {"module_size": 5000.0, "avg_params": 1.0}
-        assert Cli.POLICY.regressed(entry, {"avg_params": 2.0}) == ["module_size"]
+        assert OoCommand.POLICY.regressed(entry, {"avg_params": 2.0}) == ["module_size"]
         small = {"module_size": 50.0, "avg_params": 1.0}
-        assert Cli.POLICY.regressed(small, {"avg_params": 2.0}) == []
+        assert OoCommand.POLICY.regressed(small, {"avg_params": 2.0}) == []
 
     def test_refused_only_when_worse_than_every_comparison_row(self) -> None:
         entry = {"max_complexity": 2.0}
-        assert Cli.POLICY.refusals(entry, [{"max_complexity": 1.0}]) == [
+        assert OoCommand.POLICY.refusals(entry, [{"max_complexity": 1.0}]) == [
             "max_complexity"
         ]
         # Worse than the merge base but no worse than the in-tree (relaxed) row.
         rows = [{"max_complexity": 1.0}, {"max_complexity": 3.0}]
-        assert Cli.POLICY.refusals(entry, rows) == []
-        assert Cli.POLICY.refusals(entry, []) == []
+        assert OoCommand.POLICY.refusals(entry, rows) == []
+        assert OoCommand.POLICY.refusals(entry, []) == []
 
     def test_a_renamed_file_already_moved_keeps_its_credit(self) -> None:
         # A prior run already moved the row to the new path and dropped the old.
         world = World()
         world.store.data = {"sub/new.py": {"max_complexity": 3.0}}
-        applier = PlanApplier(*world.args(Cli.POLICY))
+        applier = PlanApplier(*world.args(OoCommand.POLICY))
         plan = UpdatePlan({}, frozenset(), renames={"sub/new.py": "sub/old.py"})
         deltas = {"sub/new.py": {"max_complexity": [3.0, 2.0]}}
         assert applier._improved(plan, world.store.rows(), deltas) == 1
@@ -138,7 +136,7 @@ class TestUpdateRecords:
         deltas = {
             "sub/w.py": {"module_size": [9.0, 10.0], "max_complexity": [3.0, 2.0]}
         }
-        assert Cli.POLICY.improved_count(deltas) == 1
+        assert OoCommand.POLICY.improved_count(deltas) == 1
 
 
 class TestGateEndToEnd:
@@ -204,7 +202,7 @@ class TestMissingBaseMetricFailsClosed:
     """A gated metric absent from a file's base row is judged by its target."""
 
     def test_missing_base_metric_over_target_regresses(self) -> None:
-        review = FileReview(
+        review = OoCommand.POLICY.review(
             "sub/w.py",
             {"module_size": 5000.0, "avg_params": 1.0},
             {"avg_params": 2.0},
@@ -214,7 +212,7 @@ class TestMissingBaseMetricFailsClosed:
         assert "module_size" in review.regressed
 
     def test_missing_base_metric_within_target_is_no_improvement(self) -> None:
-        review = FileReview(
+        review = OoCommand.POLICY.review(
             "sub/w.py",
             {"module_size": 50.0, "avg_params": 2.0},
             {"avg_params": 2.0},
@@ -239,7 +237,7 @@ class TestLegacyBaselineFields:
     ) -> None:
         fx.write("sub/w.py", GOOD)
         fx.write("sub/other.py", GOOD)
-        rows = Baseline.metrics_by_file(fx.scorer().results)
+        rows = fx.scorer().rows
         fx.write_baseline({path: {**row, **self.LEGACY} for path, row in rows.items()})
         base = fx.commit("base with legacy fields")
         fx.write("sub/w.py", GROWN)

@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import Self
 
-from oo_ratchet.coupling.outcome import Outcome
-from oo_ratchet.design.layer_table import LayerTable
-from oo_ratchet.design.modules import ModuleIndex
+from oo_ratchet.core.domain.exits import Outcome
+from oo_ratchet.core.domain.layer_table import LayerTable
+from oo_ratchet.core.domain.modules import ModuleIndex
 from oo_ratchet.source_set import Source, SourceSet
 
 from .ring_intent import RingIntent
@@ -35,12 +35,13 @@ class Suggestion:
         self = super().__new__(cls)
         self._src = src
         index = cls._index(src)
-        nearest = LayerTable.nearest(src)
+        anchor = SourceSet(src).config_anchor
+        nearest = LayerTable.nearest(anchor)
         scripts = ConsoleScripts(nearest)
         facts = PackageFacts(index, scripts).all()
         if not any("." in fact.name for fact in facts):
             raise LayersScanError(f"no modules to check under {src}")
-        table = LayerTable.ordered(LayerTable.load(src))
+        table = LayerTable.ordered(LayerTable.load(anchor))
         intent = RingIntent(table, SuggestNames(nearest).table)
         verdicts = RingRules(facts, intent, index.package_name).verdicts()
         self._lists = RingLists(verdicts, index.package_name)
@@ -50,7 +51,7 @@ class Suggestion:
     @staticmethod
     def _index(src: Source) -> ModuleIndex:
         SourceSet(src).require_package(LayersScanError)
-        index = ModuleIndex(src)
+        index = ModuleIndex(SourceSet(src))
         if index.skipped:
             names = ", ".join(sorted(str(p) for p in index.skipped))
             raise LayersScanError(f"cannot read or parse: {names}")

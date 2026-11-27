@@ -267,9 +267,10 @@ text and the three state files are unchanged.
   runs an operation). `GitRepo` gained `exists_at` and `archive_paths`; the
   suppression `GitRepo`, `BaseRescanner`, `SuppressionBaseline`,
   `BaselineFile`, `SuppressionRelax` and `Outcome` are deleted.
-- **Not moved yet:** `SuppressionReport` and `Scanner` keep their own
-  by-category and by-file dicts and their own `rebased`; `Cli` converts a
-  report to a `Tally`. They move with the scanner.
+- **Report and scanner:** `SuppressionReport` wraps a `Tally`
+  (`SuppressionReport.from_files` builds one from the scan) and delegates
+  `rebased` to `Tally.rebased`. `Scanner` passes the report through
+  `SourceSet.report_paths`; `SuppressionCommand` uses `report.tally`.
 - **Proof:** `tests/core_real/test_suppression_gate.py` pins stdout, exit codes
   and state files. Its expected values were checked against the old gate: the
   same 18 scenarios ran through both implementations before the old one was
@@ -311,8 +312,8 @@ the two state files are unchanged, except the wording of a state error (below).
   into the core's `Measurement` and `GatePolicy`.
 - **Deleted:** coupling `audit`, `baseline`, `bless`, `compare`, `delta`,
   `ratchet`, `writer`, and `GitRepo.show_baseline` / `show_audit`.
-  `coupling/gitio.py` and `outcome.py` stay: `layers` and `design` still use
-  them, and the `layers` port deletes them.
+  `coupling/gitio.py` and `outcome.py` are gone too (see the closing A3
+  section).
 - **Proof:** `tests/core_real/test_coupling_gate.py` plays 68 scripted
   scenarios (`coupling_scenarios.py`) through the CLI on real git repositories
   and compares exit code, report lines, baseline text and audit lines with
@@ -342,10 +343,9 @@ both state files are unchanged.
   `GatePolicy` from `oo/cli.py`, so no core module imports `oo`.
 - **Application:** `Reconcile` (the whole-tree sweep, built on `PlanApplier`)
   and `OoRebaselineFiles` (a refusal names each metric's value and target).
-- **Deleted:** `oo/ratchet`, `writer`, `apply`, `bless`, `audit`, `outcome`;
-  `oo/baseline` and `oo/gitio` shrink to what the design `--shadow-check`
-  still imports (`metrics_by_file`; refs, merge base, diff). `oo/compare` and
-  `oo/diffmodel` stay for the same reason. They go with the design port.
+- **Deleted:** `oo/ratchet`, `writer`, `apply`, `bless`, `audit`, `outcome`,
+  `baseline`, `gitio`, `compare` and `diffmodel` (the last four with the
+  closing A3 section).
 - **Differences found and handled:** an audit entry whose `deltas` is not
   `{path: {metric: ...}}` waived nothing in the old gate; the core read a list
   as waiving. `AuditFormat` now drops such entries. A bless refusal, bless path
@@ -357,6 +357,45 @@ both state files are unchanged.
 - **Proof:** `tests/core_real/test_oo_gate.py` runs 75 invocations against
   `oo_gate_golden.json`, the old gate's recorded exit codes, stdout and state
   files. Commit b3fd2f7 ran 74 of them through both implementations.
+
+### A3 decisions: closing (PL-1721)
+
+- **One name, one owner.** `GitRepo`, `GitError`, `Diff`, `Outcome` and `Row`
+  are defined once or not at all: `GitRepo` in `core/adapters/gitrepo.py`,
+  `GitError` in `core/domain/errors.py`, `Diff` in `core/domain/changes.py`,
+  `Outcome` in `core/domain/exits.py`; `Row` is gone (`MetricRow` is the
+  core's). Before: `GitRepo`, `GitError` and `Diff` three each, `Cli` and
+  `Options` four each, `Outcome` and `Row` one each in a gate. The four gates
+  name their classes `OoCommand` / `OoOptions`, `CouplingCommand` /
+  `CouplingOptions`, `SuppressionCommand` / `SuppressionOptions` and
+  `LayersCommand` / `LayersOptions`; one option set and one command class
+  for all four (`GateOptions`, `GateCli`) is still A4.
+  `tests/test_gate_boundaries.py` enforces it.
+- **The design `--shadow-check`** reads git through the core `GitRepo` and
+  compares through `GatePolicy.review`. `ShadowMetrics` lives in
+  `design/comparison.py`, a name the application ring owns, so the module
+  adds no violating edge. `Scorer.rows` replaces `Baseline.metrics_by_file`.
+- **The layer model is in the core.** Twenty modules moved from `design/` to
+  `core/domain/` under their own names: the layer config, table and edges
+  (`layer_config`, `declared_layers`, `layer_table`, `layer_edges`), the
+  module index and what the scans read from it (`modules`, `shape`, `state`,
+  `wrapper`, `layer_imports`, `layer_violations`, `targets`), and the rules
+  `layers` still asks of the design analysis (`domain_io`, `protocol_imports`,
+  `project_types`, `receiver_bindings`, `declaration`, `function_shape`,
+  `type_reference`, `findings`, `builtin_open`). `layers` and the core import
+  nothing from `design`; `design` imports the core. Before: 27 import lines in
+  `layers` and 9 in the core named `oo_ratchet.design`.
+- **Two modules changed shape to move.** The layers baseline refuses a
+  violating edge it does not hold, and a renamed module's edges are new
+  edges. `ModuleIndex` took `PackageLayout` and `Source`; it now takes a
+  `ModuleSource` protocol (`core/domain/modulesource.py`) that `SourceSet`
+  satisfies, and `Module` carries its `import_key`. `LayerTable.load` and
+  `nearest` take the config anchor directory instead of a `Source`.
+  `ModuleIndex.layout` is `ModuleIndex.source`.
+- **Layers baseline:** 42 violations before, 33 after.
+- **Blessed (audited):** `design/scan.py` efferent coupling 7 to 8 (it builds
+  the index from a `SourceSet`) and `suppression/report.py` efferent coupling
+  1 to 2 (it imports `Tally`).
 
 ## Order
 

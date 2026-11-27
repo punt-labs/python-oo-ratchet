@@ -4,15 +4,14 @@ from __future__ import annotations
 
 import ast
 from dataclasses import dataclass
-from pathlib import Path
 from typing import TYPE_CHECKING, Self
-
-from oo_ratchet.coupling.layout import PackageLayout
 
 from .shape import ClassShape
 
 if TYPE_CHECKING:
-    from oo_ratchet.source_set import Source
+    from pathlib import Path
+
+    from .modulesource import ModuleSource
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,19 +22,13 @@ class Module:
     path: Path
     tree: ast.Module
     classes: dict[str, ClassShape]
+    import_key: str
+    """The logical import spelling, even for a shadowed file."""
 
     @property
     def is_package(self) -> bool:
         """Return whether the file is a package ``__init__``."""
         return self.path.name == "__init__.py"
-
-    @property
-    def import_key(self) -> str:
-        """Return the logical import spelling, even for a shadowed file."""
-        if not self.key.startswith("/"):
-            return self.key
-        parts = Path(self.key[1:]).with_suffix("").parts
-        return PackageLayout._parts_to_key(parts)
 
 
 class ModuleIndex:
@@ -45,26 +38,26 @@ class ModuleIndex:
     design check is advisory and reports on what it can read.
     """
 
-    _layout: PackageLayout
+    _source: ModuleSource
     _modules: dict[str, Module]
     _skipped: list[Path]
     _package_name: str
 
-    def __new__(cls, root: Source, *, package_name: str | None = None) -> Self:
+    def __new__(cls, source: ModuleSource, *, package_name: str | None = None) -> Self:
         self = super().__new__(cls)
-        self._layout = PackageLayout(root)
-        self._package_name = package_name or self._layout.package_name
+        self._source = source
+        self._package_name = package_name or source.package_name
         self._modules = {}
         self._skipped = []
-        paths = self._layout.root_files()
+        paths = source.files()
         for path in sorted(paths, key=lambda p: (p.name != "__init__.py", p)):
             self._add(path)
         return self
 
     @property
-    def layout(self) -> PackageLayout:
-        """Return the package layout the keys come from."""
-        return self._layout
+    def source(self) -> ModuleSource:
+        """Return the source files the keys come from."""
+        return self._source
 
     @property
     def package_name(self) -> str:
@@ -82,7 +75,7 @@ class ModuleIndex:
 
     def key_for(self, path: Path) -> str:
         """Return a parsed file's unique identity, retaining shadowed paths."""
-        key = self._layout.key_for(path)
+        key = self._source.key_for(path)
         module = self._modules.get(key)
         return (
             key if module is not None and module.path == path else self._path_key(path)
@@ -95,10 +88,10 @@ class ModuleIndex:
     def component(self, key: str) -> str:
         """Return the top-level sub-package a key belongs to ('' for the root)."""
         if key.startswith("/"):
-            parts = Path(key[1:]).parts
+            parts = key[1:].split("/")
             return parts[0] if len(parts) > 1 else ""
         head = key.split(".")[0]
-        return head if self._layout.contains(head) else ""
+        return head if self._source.contains(head) else ""
 
     def interface_methods(self) -> tuple[frozenset[str], ...]:
         """Return the method names of each abstract class in the tree."""
@@ -120,10 +113,9 @@ class ModuleIndex:
             for node in tree.body
             if isinstance(node, ast.ClassDef)
         }
-        key = self._layout.key_for(path)
-        if key in self._modules:
-            key = self._path_key(path)
-        self._modules[key] = Module(key, path, tree, classes)
+        import_key = self._source.key_for(path)
+        key = self._path_key(path) if import_key in self._modules else import_key
+        self._modules[key] = Module(key, path, tree, classes, import_key)
 
     def _path_key(self, path: Path) -> str:
-        return "/" + self._layout.relative_path(path).as_posix()
+        return "/" + self._source.relative_path(path).as_posix()

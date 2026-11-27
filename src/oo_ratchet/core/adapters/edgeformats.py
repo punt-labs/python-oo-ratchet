@@ -7,7 +7,7 @@ from collections import defaultdict
 
 from oo_ratchet.core.domain.edges import EdgeBook, EdgeRecord
 from oo_ratchet.core.domain.errors import StateError
-from oo_ratchet.design.layer_edges import Edge
+from oo_ratchet.core.domain.layer_edges import Edge
 
 
 class EdgeFormat:

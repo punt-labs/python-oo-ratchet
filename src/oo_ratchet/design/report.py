@@ -7,7 +7,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Self
 
-from .findings import Finding, Rules
+from oo_ratchet.core.domain.findings import Finding, Rules
 
 
 class DesignReport:

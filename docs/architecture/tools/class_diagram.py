@@ -79,6 +79,28 @@ for grp, names in names_by_group.items():
     seen.update(names)
 duplicated = {n for n, c in seen.items() if c > 1}
 
+# --- cycles between groups, of any length ------------------------------------
+def has_cycle(pairs: set[tuple[str, str]]) -> bool:
+    """Depth-first search for a back edge in the group graph."""
+    succ: dict[str, set[str]] = defaultdict(set)
+    for a, b in pairs:
+        succ[a].add(b)
+    state: dict[str, int] = {}  # 1 = on the current path, 2 = finished
+
+    def visit(v: str) -> bool:
+        state[v] = 1
+        for w in succ[v]:
+            if state.get(w) == 1 or (w not in state and visit(w)):
+                return True
+        state[v] = 2
+        return False
+
+    return any(v not in state and visit(v) for v in sorted(succ))
+
+
+cycle_note = ("import cycles between packages: present" if has_cycle(set(edges))
+              else "no import cycles between packages")
+
 # --- classes the design check flags ------------------------------------------
 _run = subprocess.run(
     ["uv", "run", "oo-ratchet", "design", "src/oo_ratchet/", "--json"],
@@ -222,9 +244,10 @@ cmds.append({"cmd": "text", "pos": [lx, ly + 40],
 cmds.append({"cmd": "text", "pos": [lx, ly + 58],
              "text": "arrow: package imports package (count)", "color": "#e5c07b"})
 cmds.append({"cmd": "text", "pos": [lx, ly + 76],
-             "text": "no import cycles between packages", "color": GREY})
+             "text": cycle_note, "color": GREY})
 
 element = {"kind": "draw", "id": "classes", "width": W, "height": H,
            "bg_color": "#21252b", "commands": cmds}
 OUT.write_text(json.dumps(element))
-print(f"commands: {len(cmds)}; edges: {dict(edges)}; duplicated: {sorted(duplicated)}")
+print(f"commands: {len(cmds)}; edges: {dict(edges)}; duplicated: {sorted(duplicated)}; "
+      f"{cycle_note}")

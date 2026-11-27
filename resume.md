@@ -50,10 +50,13 @@ commit message.
    - Add both to `Thresholds.CEILINGS` in `src/oo_ratchet/oo/thresholds.py`.
      Ranking goes through the per-operator badness function, so a ceiling is
      one entry in that set.
-   - Start with a failing test: deleting a trivial function counts as an
-     `avg_complexity` regression.
+   - Start with a test that fails today: deleting a trivial function raises
+     `avg_complexity` while it stays under the 5.0 target, and the test asserts
+     that this is not a regression. Today `Thresholds` counts it as one, so
+     the test fails until B5 lands.
    - Demo: `docs/architecture/tools/demo_targets.py` on vox, `main` versus the
-     branch. At c825334, 5 vox modules fail a new-file target.
+     branch. At c825334, 5 vox modules (whole tree) miss an absolute OO
+     target.
 
 ## Commands
 

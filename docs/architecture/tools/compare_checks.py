@@ -2,52 +2,28 @@
 
 from __future__ import annotations
 
-import json
-import subprocess
 import sys
 from pathlib import Path
+
+from oo_json import failing_metrics, run_json, scored_rows
 
 REPO = Path(sys.argv[1])
 
 
-def meets(op: str, target: float, value: float) -> bool:
-    if op == ">=":
-        return value >= target
-    if op == "<=":
-        return value <= target
-    return value == target
-
-
-def run(*args: str) -> dict:
-    """Run oo-ratchet with --json. Exit 1 is normal (a target failed); no JSON is not."""
-    out = subprocess.run(
-        ["oo-ratchet", *args, "--json"], cwd=REPO, capture_output=True, text=True
-    )
-    try:
-        return json.loads(out.stdout)
-    except json.JSONDecodeError:
-        sys.exit(f"oo-ratchet {' '.join(args)} produced no JSON (exit {out.returncode}): "
-                 f"{(out.stderr or out.stdout).strip()}")
-
-
 def primary_fails(src: str) -> list[str]:
     """Per-file target failures, using the gate's own thresholds from its output."""
-    data = run("oo", src)
-    targets = {m: rule.split() for m, rule in data["thresholds"].items()}
+    data = run_json(["oo-ratchet", "oo", src], cwd=str(REPO))
     fails = []
-    for row in data["per_file"]:
+    for row in scored_rows(data):
         name = Path(row["file"]).name
-        if name == "__init__.py":
-            continue  # identical empty package markers on both sides
-        for metric, (op, target) in targets.items():
-            if not meets(op, float(target), row[metric]):
-                fails.append(f"{name}:{metric}={row[metric]}")
+        for metric in failing_metrics(row, data["thresholds"]):
+            fails.append(f"{name}:{metric}={row[metric]}")
     return fails
 
 
 def design_findings(src: str, layers: Path | None) -> list[str]:
     extra = ["--layers", str(layers)] if layers else []
-    data = run("design", src, *extra)
+    data = run_json(["oo-ratchet", "design", src, *extra], cwd=str(REPO))
     return [f"{Path(f['path']).name}:{f['rule']}" for f in data["findings"]]
 
 

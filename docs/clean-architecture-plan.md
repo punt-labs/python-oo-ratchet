@@ -51,8 +51,13 @@ Measured with this repo's own tool:
 
 ![Current packages and classes](architecture/1-current-state.png)
 
-- **Imports:** no cycles between modules, and none between subpackages. The
-  dependency graph runs `layers → design → oo/coupling → core`. The largest
+- **Imports:** no cycles between modules. Between packages there are none
+  once the root package's entry modules (`__main__`, `gates`) are counted
+  apart from its shared modules (`source_set`, `backfill`, ...). Counted as one
+  root package, every package sits in one cycle: `gates` imports each gate's
+  `cli`, and every gate imports `source_set`. The entry ring in the target
+  removes that cycle. The dependency graph runs
+  `entry → layers → design → oo/coupling → core`. The largest
   edge is `layers → design`, with 22 imports: the layers gate runs on code
   that lives in the advisory design package.
 - **Duplication:** 7 class names are defined in more than one gate: `GitRepo`
@@ -153,15 +158,19 @@ generators are in `docs/architecture/tools/`:
 | `class_diagram.py <repo> <out.json>` | the current state, from the live code and `oo-ratchet design --json`; rerun after each unit |
 | `target_diagram.py <out.json>` | the intermediate target (hand-specified) |
 | `clean_diagram.py <out.json>` | the four-ring target (hand-specified) |
-| `package_graph.py <repo>/src/oo_ratchet` | prints the package import edges and any cycles |
+| `package_graph.py <repo>/src/oo_ratchet [--one-root]` | prints the package import edges and every cycle (strongly connected components); `--one-root` groups the entry modules with the shared root modules |
 
 Three measurement scripts sit beside them:
 
 | Script | Measures |
 |--------|----------|
-| `demo_targets.py <adopter> <src> <main-checkout> <branch-checkout>` | the vox demo: modules failing a new-file OO target, `main`'s build versus a branch's (runs `uvx --from <checkout> oo-ratchet` with the adopter as the working directory) |
+| `demo_targets.py <adopter> <src> <main-checkout> <branch-checkout>` | the vox demo: modules, across the whole tree, that miss an absolute OO target (the targets a new file must meet), `main`'s build versus a branch's (runs `uvx --from <checkout> oo-ratchet` with the adopter as the working directory) |
 | `adopter_shape.py <src>` | module size distribution, classes per module, and design finding counts (run with `uv run --directory <repo> python ...`) |
 | `compare_checks.py <repo>` | the OO gate and the design check on each `evals/design` bad/good pair |
+
+All three read the gate through `oo_json.py`. It runs `oo-ratchet --json`, stops
+with a message when the command is missing, prints no JSON, or cannot score a
+file, and checks each value against the target that run reported.
 
 The three diagram scripts each write one lux `draw` element as JSON;
 `package_graph.py` and the measurement scripts above print plain text. To

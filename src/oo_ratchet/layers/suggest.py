@@ -52,7 +52,7 @@ class Suggestion:
             raise LayersScanError(f"cannot read or parse: {names}")
         scripts = ConsoleScripts(LayerTable.nearest(src))
         facts = PackageFacts(index, scripts).all()
-        if not facts:
+        if len(facts) < 2:
             raise LayersScanError(f"no modules to check under {src}")
         self._verdicts = RingRules(facts).verdicts()
         self._modules = tuple(sorted(self._verdicts))

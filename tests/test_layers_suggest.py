@@ -40,20 +40,20 @@ class TestRules:
         repo.edit("cli", "import argparse\n")
         code, out = repo.run("--suggest")
         assert code == 0
-        assert rings(out)["entry"] == ["app.cli"]
+        assert rings(out)["entry"] == ["app", "app.cli"]
         assert "app.cli: entry (imports argparse)" in out
 
     def test_typer_is_entry(self, repo: LayersRepo) -> None:
         start(repo)
         repo.edit("cli", "from typer import Typer\n")
-        assert rings(repo.run("--suggest")[1])["entry"] == ["app.cli"]
+        assert rings(repo.run("--suggest")[1])["entry"] == ["app", "app.cli"]
 
     def test_console_script_target_is_entry(self, repo: LayersRepo) -> None:
         start(repo)
         repo.edit("runner", "")
         code, out = repo.run("--suggest")
         assert code == 0
-        assert rings(out)["entry"] == ["app.runner"]
+        assert rings(out)["entry"] == ["app", "app.runner"]
         assert "console script app-run" in out
 
     def test_io_import_is_adapters(self, repo: LayersRepo) -> None:
@@ -96,7 +96,7 @@ class TestRules:
         start(repo)
         repo.edit("cli", "import argparse\nimport json\n")
         out = repo.run("--suggest")[1]
-        assert rings(out)["entry"] == ["app.cli"]
+        assert rings(out)["entry"] == ["app", "app.cli"]
         assert "rings it also matched: adapters (imports IO: json)" in out
 
     def test_unclassifiable_module_is_a_comment_not_a_guess(

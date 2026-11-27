@@ -171,7 +171,7 @@ class TestShadowedRoundTrip:
     def test_empty_reasons_section_says_none(self, repo: LayersRepo) -> None:
         start(repo)
         for name in ("kernel", "service", "cli"):
-            repo.edit(name, "from app import a\n")
+            repo.edit(name, "import app\nfrom app import a\n")
         repo.write("src/app/a/__init__.py", "")
         repo.write("src/app/a.py", "")
         assert repo.run("--suggest")[1].rstrip().endswith("# Reasons:\n#   none")
@@ -259,3 +259,100 @@ class TestOutsideGit:
         )
         assert done.returncode == 0, done.stdout + done.stderr
         assert "app.a" in done.stdout
+
+
+class TestProtocolBindings:
+    """A base is a Protocol only if it resolves to typing's Protocol."""
+
+    @staticmethod
+    def adapter_imports_kernel(repo: LayersRepo, source: str) -> list[str]:
+        start(repo)
+        repo.edit("kernel", source)
+        repo.edit("service", "import json\nimport app.kernel\n")
+        return rings(repo.run("--suggest")[1])["application"]
+
+    @pytest.mark.parametrize(
+        "source",
+        [
+            "from typing import Protocol as Port\n\n\nclass P(Port): ...\n",
+            "import typing as t\n\n\nclass P(t.Protocol): ...\n",
+            "import typing\n\n\nclass P(typing.Protocol): ...\n",
+            "from typing_extensions import Protocol\n\n\nclass P(Protocol): ...\n",
+            "import typing_extensions as te\n\n\nclass P(te.Protocol): ...\n",
+            "from typing import Protocol\n\n\nclass P(Protocol[int]): ...\n",
+        ],
+    )
+    def test_resolved_protocol_is_application(
+        self, repo: LayersRepo, source: str
+    ) -> None:
+        assert self.adapter_imports_kernel(repo, source) == ["app.kernel"]
+
+    @pytest.mark.parametrize(
+        "source",
+        [
+            "from other import Protocol\n\n\nclass P(Protocol): ...\n",
+            "import other\n\n\nclass P(other.Protocol): ...\n",
+            "class Protocol: ...\n\n\nclass P(Protocol): ...\n",
+        ],
+    )
+    def test_lookalike_is_not_a_port(self, repo: LayersRepo, source: str) -> None:
+        assert self.adapter_imports_kernel(repo, source) == []
+
+
+class TestSeveralScripts:
+    """Every script that targets a module is named in its entry reason."""
+
+    def test_all_script_names_are_kept(self, repo: LayersRepo) -> None:
+        start(repo)
+        scripts = (
+            PROJECT.split("[project.scripts]")[0]
+            + "[project.scripts]\n"
+            + 'zed = "app.runner:other"\napp-run = "app.runner:main"\n'
+        )
+        repo.write("pyproject.toml", scripts)
+        repo.write("src/app/runner.py", "")
+        out = repo.run("--suggest")[1]
+        assert "console script app-run, console script zed" in out
+
+
+class TestPackageRoot:
+    """The root is placed: adopters list it, and the design check wants it layered."""
+
+    def test_root_is_entry(self, repo: LayersRepo) -> None:
+        start(repo)
+        out = repo.run("--suggest")[1]
+        assert "app" in rings(out)["entry"]
+
+    def test_root_imported_by_a_non_entry_module_is_unclassified(
+        self, repo: LayersRepo
+    ) -> None:
+        start(repo)
+        repo.write("src/app/__init__.py", "from app.kernel import K\n")
+        repo.edit("kernel", "class K: ...\n")
+        repo.edit("service", "from app import K\n")
+        out = repo.run("--suggest")[1]
+        assert "app" not in rings(out)["entry"]
+        assert "# app: unclassified (" in out
+
+    def test_design_check_and_gate_accept_the_table(self, repo: LayersRepo) -> None:
+        start(repo)
+        repo.write("src/app/__init__.py", "from app import kernel\n")
+        repo.edit("cli", "import argparse\n")
+        repo.edit("service", "import json\n")
+        _, data = roundtrip(repo)
+        assert data["violations"] == []
+        code, text = design(repo)
+        assert code == 0, text
+        unlayered = [
+            f for f in json.loads(text)["findings"] if f["rule"] == "unlayered-module"
+        ]
+        assert not any(f["path"].endswith("app/__init__.py") for f in unlayered)
+
+
+def design(repo: LayersRepo) -> tuple[int, str]:
+    """Run the design check on the package; return its exit code and stdout."""
+    from oo_ratchet.design.cli import main
+
+    repo._out.readouterr()
+    code = main([str(repo.root / "src" / "app"), "--json"])
+    return code, repo._out.readouterr().out

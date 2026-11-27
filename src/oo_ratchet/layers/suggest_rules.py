@@ -57,10 +57,10 @@ class RingRules:
         return result
 
     def _first_pass(self) -> dict[str, Verdict]:
-        entries = {f.name for f in self._facts if not f.forced and f.entry}
-        outer = {f.name: self._outer(f, entries) for f in self._facts}
-        adapters = {n for n, v in outer.items() if v and v.ring == "adapters"}
         importers = self._importers()
+        entries = self._entries(importers)
+        outer = {f.name: self._outer(f, entries, importers) for f in self._facts}
+        adapters = {n for n, v in outer.items() if v and v.ring == "adapters"}
         return {
             f.name: outer[f.name] or self._inner(f, importers, adapters)
             for f in self._facts
@@ -73,10 +73,23 @@ class RingRules:
                 found.setdefault(target, set()).add(fact.name)
         return found
 
+    def _entries(self, importers: dict[str, set[str]]) -> set[str]:
+        """Return the entry modules; the root is one only if just entry imports it."""
+        found = {f.name for f in self._facts if not f.forced and f.entry and not f.root}
+        roots = (f.name for f in self._facts if f.root and not f.forced)
+        found.update(r for r in roots if not importers.get(r, set()) - found)
+        return found
+
     @classmethod
-    def _outer(cls, fact: ModuleFacts, entries: set[str]) -> Verdict | None:
+    def _outer(
+        cls, fact: ModuleFacts, entries: set[str], importers: dict[str, set[str]]
+    ) -> Verdict | None:
         if fact.forced:
             return Verdict(None, fact.forced)
+        if fact.root and fact.name not in entries:
+            named = ", ".join(sorted(importers[fact.name] - entries))
+            why = f"package root imported by non-entry {named}; only entry may"
+            return Verdict(None, why)
         if fact.entry:
             io = f"adapters (imports IO: {', '.join(fact.io)})"
             return Verdict("entry", ", ".join(fact.entry), (io,) if fact.io else ())

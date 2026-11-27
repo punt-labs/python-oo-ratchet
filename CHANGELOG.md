@@ -13,6 +13,9 @@
   (domain importing application, adapters, entry or an unclassified module)
   is unclassified too, so the table does not fail the gate on itself.
   Imports come from the gate's own edge extractor. It needs no git repository.
+  The package root goes in `entry` (unclassified if a non-entry module imports
+  it), Protocol bases resolve through the module's imports, and every script
+  name targeting a module is kept.
 
 ### Changed
 

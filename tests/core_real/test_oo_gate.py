@@ -295,8 +295,8 @@ def test_check_base_without_baseline(
         fx,
         capsys,
         check(base, require=False),
-        code=0,
-        has="No baseline at base or origin/main tip -- first-adoption",
+        code=1,
+        has="origin/main is unresolvable with an in-tree baseline present",
     )
     both(
         fx,
@@ -304,6 +304,14 @@ def test_check_base_without_baseline(
         check(base, "--tripwire", require=False),
         code=0,
         has="Base predates baseline adoption on push tripwire",
+    )
+    fx.set_origin_main(base)
+    both(
+        fx,
+        capsys,
+        check(base, require=False),
+        code=0,
+        has="No baseline at base or origin/main tip -- first-adoption",
     )
 
 
@@ -338,19 +346,17 @@ def test_check_tripwire_without_in_tree_baseline(
     )
 
 
-def test_check_base_without_baseline_unresolvable_tip(
+def test_check_base_without_baseline_and_nothing_adopted(
     fx: GitFixture, capsys: pytest.CaptureFixture[str]
 ) -> None:
     fx.write("sub/w.py", GOOD)
-    base = fx.commit("no baseline")
-    fx.snapshot("sub")
-    fx.commit("adopt")
+    base = fx.commit("no baseline anywhere")
     both(
         fx,
         capsys,
         check(base, require=False),
         code=0,
-        has="No baseline at base or origin/main tip",
+        has="No base baseline and no origin/main -- first-adoption bootstrap pass",
     )
 
 
@@ -535,7 +541,7 @@ def test_reconcile_prunes_and_refuses(
     fx: GitFixture, capsys: pytest.CaptureFixture[str]
 ) -> None:
     fx.write("sub/gone.py", GOOD)
-    start(fx, GOOD)
+    fx.set_origin_main(start(fx, GOOD))
     (fx.root / "sub/gone.py").unlink()
     fx.write("sub/w.py", WORSE)
     both(fx, capsys, ["sub", "--reconcile"], code=1, has="REFUSED (1 files):")

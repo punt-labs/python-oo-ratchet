@@ -112,12 +112,14 @@ class RebaselineFiles(Operation):
             if path not in current:
                 refused.append(f"{requested}: not found in scored tree")
             elif gated:
-                refused.append(
-                    f"{requested}: {', '.join(gated)} over cap and regressed"
-                )
+                refused.append(f"{requested}: {self._why(current[path], gated)}")
             else:
                 accepted.append(path)
         return accepted, refused
+
+    def _why(self, entry: dict[str, float], gated: list[str]) -> str:
+        """Return why the gated metrics refuse a bless."""
+        return f"{', '.join(m for m in gated if m in entry)} over cap and regressed"
 
     def _write(
         self,

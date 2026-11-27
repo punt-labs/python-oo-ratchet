@@ -66,6 +66,20 @@ def test_package_graph_finds_module_cycle_through_type_checking_import(
     assert "component: pkg.archive, pkg.rescan" in out
 
 
+def test_package_graph_counts_imports_of_the_root_package(tmp_path: Path) -> None:
+    """`import pkg` and `from pkg import name` reach the root __init__.py; a cycle
+    through it is reported."""
+    pkg = tmp_path / "pkg"
+    (pkg / "a").mkdir(parents=True)
+    (pkg / "__init__.py").write_text("from pkg.a.m import VALUE\n")
+    (pkg / "a" / "__init__.py").write_text("")
+    (pkg / "a" / "m.py").write_text("import pkg\nVALUE = 1\n")
+    out = _package_graph(pkg)
+    assert "module cycles: 1 " in out
+    assert "component: pkg, pkg.a.m" in out
+    assert "package cycles: 1" in out
+
+
 def test_package_graph_cycle_across_subpackages_and_entry_split(tmp_path: Path) -> None:
     """A three-package loop with no reciprocal edge, and the entry/root split."""
     pkg = tmp_path / "pkg"

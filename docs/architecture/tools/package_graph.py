@@ -83,7 +83,8 @@ def imported_modules(node: ast.AST, here: str, is_pkg: bool) -> list[str]:
                  else scanned_module(mod) for a in node.names]
     else:
         return []
-    return sorted({m for m in found if m is not None and m.startswith(PKG + ".")})
+    return sorted({m for m in found
+                   if m is not None and (m == PKG or m.startswith(PKG + "."))})
 
 
 edges: Counter[tuple[str, str]] = Counter()

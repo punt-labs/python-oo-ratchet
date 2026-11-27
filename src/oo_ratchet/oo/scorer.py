@@ -9,7 +9,7 @@ from typing import Self
 from oo_ratchet.source_set import Source, SourceSet
 
 from .metrics import ModuleMetrics
-from .thresholds import Thresholds
+from .thresholds import OO_METRICS
 
 # Metrics whose aggregate is the worst (max) rather than the mean.
 _MAX_AGGREGATED = frozenset(
@@ -51,7 +51,7 @@ class Scorer:
     def rows(self) -> dict[str, dict[str, float]]:
         """Return each parsed file's gated metric values, keyed by path."""
         return {
-            str(r["file"]): {k: float(r[k]) for k in Thresholds.names() if k in r}
+            str(r["file"]): {k: float(r[k]) for k in OO_METRICS.names if k in r}
             for r in self._results
             if "error" not in r
         }
@@ -75,7 +75,7 @@ class Scorer:
     def grades(self) -> dict[str, str]:
         """Return PASS/FAIL per aggregated metric."""
         return {
-            k: "PASS" if Thresholds.meets(k, v) else "FAIL"
+            k: "PASS" if OO_METRICS.metric(k).meets(v) else "FAIL"
             for k, v in self.summary.items()
         }
 
@@ -105,11 +105,11 @@ class Scorer:
             return {"file": cls._normalize(path, root), "error": str(e)}
 
     def _aggregate(self) -> dict[str, float]:
-        agg: dict[str, list[float]] = {k: [] for k in Thresholds.names()}
+        agg: dict[str, list[float]] = {k: [] for k in OO_METRICS.names}
         for r in self._results:
             if "error" in r:
                 continue
-            for k in Thresholds.names():
+            for k in OO_METRICS.names:
                 if k in r:
                     agg[k].append(float(r[k]))
         summary: dict[str, float] = {}
@@ -132,10 +132,11 @@ class Scorer:
             f"\n{'Metric':<28} {'Value':>8} {'Target':>10} {'Grade':>6}",
             "-" * 56,
         ]
-        for k in Thresholds.names():
+        for k in OO_METRICS.names:
             if k not in summary:
                 continue
-            op, target_val = Thresholds.TABLE[k]
+            metric = OO_METRICS.metric(k)
+            op, target_val = metric.op, metric.target
             g = grades[k]
             marker = "  " if g == "PASS" else " *"
             lines.append(f"{k:<28} {summary[k]:>8.2f} {op} {target_val:<8} {g}{marker}")
@@ -147,9 +148,9 @@ class Scorer:
         for r in self._results:
             lines.append(f"\n  {r.get('file', '?')}")
             for k, v in r.items():
-                if k == "file" or k not in Thresholds.TABLE:
+                if k == "file" or k not in OO_METRICS:
                     continue
-                g = "PASS" if Thresholds.meets(k, float(v)) else "FAIL"
+                g = "PASS" if OO_METRICS.metric(k).meets(float(v)) else "FAIL"
                 lines.append(f"    {k:<26} {v:>8} {g}")
         return lines
 
@@ -159,6 +160,6 @@ class Scorer:
             "per_file": self._results,
             "aggregate": self.summary,
             "grades": self.grades,
-            "thresholds": {k: Thresholds.describe(k) for k in Thresholds.names()},
+            "thresholds": {m.name: m.describe() for m in OO_METRICS.items},
         }
         return json.dumps(output, indent=2)

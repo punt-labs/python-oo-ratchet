@@ -6,7 +6,7 @@ import json
 from typing import Self
 
 from .scorer import CouplingScorer
-from .thresholds import CouplingThresholds
+from .thresholds import COUPLING_METRICS, CouplingTargets
 
 
 class CouplingReport:
@@ -27,10 +27,11 @@ class CouplingReport:
             f"\n{'Metric':<28} {'Value':>8} {'Target':>10} {'Grade':>6}",
             "-" * 56,
         ]
-        for k in CouplingThresholds.names():
+        for k in COUPLING_METRICS.names:
             if k not in summary:
                 continue
-            op, target = CouplingThresholds.TABLE[k]
+            metric = COUPLING_METRICS.metric(k)
+            op, target = metric.op, metric.target
             grade = grades[k]
             marker = "  " if grade == "PASS" else " *"
             lines.append(f"{k:<28} {summary[k]:>8.2f} {op} {target:<8} {grade}{marker}")
@@ -60,14 +61,14 @@ class CouplingReport:
     def render_per_file(self) -> list[str]:
         """Return the per-file breakdown, honoring the ``__main__`` relaxation."""
         lines = ["\n--- Per-file breakdown ---"]
-        caps = self._scorer.config.caps
+        targets = CouplingTargets(self._scorer.config.caps)
         for r in self._scorer.results:
             fpath = str(r.get("file", "?"))
             lines.append(f"\n  {fpath}")
             for k, v in r.items():
-                if k == "file" or k not in CouplingThresholds.TABLE:
+                if k == "file" or k not in COUPLING_METRICS:
                     continue
-                passed = CouplingThresholds.meets(k, float(v), fpath, caps)
+                passed = targets.metric(k, fpath).meets(float(v))
                 grade = "PASS" if passed else "FAIL"
                 lines.append(f"    {k:<26} {v:>8} {grade}")
         return lines
@@ -79,8 +80,6 @@ class CouplingReport:
             "packages": [p.as_dict() for p in self._scorer.packages],
             "aggregate": self._scorer.summary,
             "grades": self._scorer.grades,
-            "thresholds": {
-                k: CouplingThresholds.describe(k) for k in CouplingThresholds.names()
-            },
+            "thresholds": {m.name: m.describe() for m in COUPLING_METRICS.items},
         }
         return json.dumps(output, indent=2)

@@ -13,7 +13,7 @@ from oo_ratchet.core.domain.errors import StateError
 from oo_ratchet.source_set import Source, SourceSet
 
 from .scorer import Scorer
-from .thresholds import Thresholds
+from .thresholds import OO_METRICS
 
 
 @dataclass(frozen=True, slots=True)
@@ -132,9 +132,7 @@ class OoOptions:
 class OoCommand:
     """Run one OO command line on the shared core and print its report."""
 
-    POLICY: ClassVar[GatePolicy] = GatePolicy.from_table(
-        Thresholds.TABLE, Thresholds.CEILINGS
-    )
+    POLICY: ClassVar[GatePolicy] = GatePolicy(OO_METRICS.items)
 
     _opts: OoOptions
 

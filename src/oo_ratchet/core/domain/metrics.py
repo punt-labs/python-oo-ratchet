@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import operator
-from collections.abc import Callable
+from collections.abc import Callable, Collection, Mapping
 from dataclasses import dataclass
+from operator import attrgetter
 from typing import ClassVar
 
 
@@ -53,3 +54,41 @@ class Metric:
     def _rank(self, value: float) -> float:
         floor = self.target if self.ceiling else float("-inf")
         return self.BADNESS[self.op](max(value, floor), self.target)
+
+
+@dataclass(frozen=True, slots=True)
+class MetricSet:
+    """The metrics one gate tracks, in table order."""
+
+    items: tuple[Metric, ...]
+
+    @classmethod
+    def from_table(
+        cls,
+        table: Mapping[str, tuple[str, float]],
+        ceilings: Collection[str] = (),
+    ) -> MetricSet:
+        """Build the set from an ``{name: (op, target)}`` table."""
+        return cls(
+            tuple(
+                Metric(name, op, target, name in ceilings)
+                for name, (op, target) in table.items()
+            )
+        )
+
+    @property
+    def names(self) -> tuple[str, ...]:
+        """Return the metric names in table order."""
+        return tuple(m.name for m in self.items)
+
+    @property
+    def ceilings(self) -> tuple[str, ...]:
+        """Return the names of the ceiling metrics."""
+        return tuple(m.name for m in filter(attrgetter("ceiling"), self.items))
+
+    def metric(self, name: str) -> Metric:
+        """Return the named metric."""
+        return {m.name: m for m in self.items}[name]
+
+    def __contains__(self, name: object) -> bool:
+        return name in self.names

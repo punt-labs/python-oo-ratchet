@@ -17,7 +17,7 @@ import oo_ratchet.oo
 from oo_ratchet.core.adapters.gitrepo import GitRepo
 from oo_ratchet.core.domain.changes import Diff
 from oo_ratchet.core.domain.errors import StateError
-from oo_ratchet.oo import ModuleMetrics, Scorer, Thresholds
+from oo_ratchet.oo import OO_METRICS, ModuleMetrics, Scorer
 from tests.gate_runs import Ratchet, Scored
 
 if TYPE_CHECKING:
@@ -58,39 +58,43 @@ class TestThresholds:
     """The direction-aware comparison semantics per operator kind."""
 
     def test_meets_ge(self) -> None:
-        assert Thresholds.meets("encapsulation_ratio", 1.0) is True
-        assert Thresholds.meets("encapsulation_ratio", 0.99) is False
+        assert OO_METRICS.metric("encapsulation_ratio").meets(1.0) is True
+        assert OO_METRICS.metric("encapsulation_ratio").meets(0.99) is False
 
     def test_meets_le(self) -> None:
-        assert Thresholds.meets("max_complexity", 10) is True
-        assert Thresholds.meets("max_complexity", 11) is False
+        assert OO_METRICS.metric("max_complexity").meets(10) is True
+        assert OO_METRICS.metric("max_complexity").meets(11) is False
 
     def test_meets_eq(self) -> None:
-        assert Thresholds.meets("init_violations", 0) is True
-        assert Thresholds.meets("init_violations", 1) is False
+        assert OO_METRICS.metric("init_violations").meets(0) is True
+        assert OO_METRICS.metric("init_violations").meets(1) is False
 
     def test_better_or_equal_ge(self) -> None:
-        assert Thresholds.better_or_equal("encapsulation_ratio", 0.9, 0.8) is True
-        assert Thresholds.better_or_equal("encapsulation_ratio", 0.7, 0.8) is False
+        assert (
+            OO_METRICS.metric("encapsulation_ratio").better_or_equal(0.9, 0.8) is True
+        )
+        assert (
+            OO_METRICS.metric("encapsulation_ratio").better_or_equal(0.7, 0.8) is False
+        )
 
     def test_better_or_equal_le(self) -> None:
-        assert Thresholds.better_or_equal("max_complexity", 3.0, 3.0) is True
-        assert Thresholds.better_or_equal("max_complexity", 3.5, 3.0) is False
+        assert OO_METRICS.metric("max_complexity").better_or_equal(3.0, 3.0) is True
+        assert OO_METRICS.metric("max_complexity").better_or_equal(3.5, 3.0) is False
 
     def test_module_size_is_a_ceiling(self) -> None:
         # Under 400 code lines, growth is not a regression (PL-1685);
         # over it, any growth is.
-        assert Thresholds.better_or_equal("module_size", 101, 100) is True
-        assert Thresholds.better_or_equal("module_size", 451, 450) is False
+        assert OO_METRICS.metric("module_size").better_or_equal(101, 100) is True
+        assert OO_METRICS.metric("module_size").better_or_equal(451, 450) is False
 
     def test_better_or_equal_eq_is_distance_to_target(self) -> None:
         # future_annotations target is 1; 1 is as good as 1, 0 is worse.
-        assert Thresholds.better_or_equal("future_annotations", 1, 1) is True
-        assert Thresholds.better_or_equal("future_annotations", 0, 1) is False
+        assert OO_METRICS.metric("future_annotations").better_or_equal(1, 1) is True
+        assert OO_METRICS.metric("future_annotations").better_or_equal(0, 1) is False
 
     def test_strictly_better(self) -> None:
-        assert Thresholds.strictly_better("max_complexity", 5, 6) is True
-        assert Thresholds.strictly_better("max_complexity", 6, 6) is False
+        assert OO_METRICS.metric("max_complexity").strictly_better(5, 6) is True
+        assert OO_METRICS.metric("max_complexity").strictly_better(6, 6) is False
 
 
 class TestModuleMetrics:

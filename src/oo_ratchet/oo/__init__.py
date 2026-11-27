@@ -5,13 +5,13 @@ from __future__ import annotations
 from .cli import OoCommand, OoOptions, main
 from .metrics import ModuleMetrics
 from .scorer import Scorer
-from .thresholds import Thresholds
+from .thresholds import OO_METRICS
 
 __all__ = [
+    "OO_METRICS",
     "ModuleMetrics",
     "OoCommand",
     "OoOptions",
     "Scorer",
-    "Thresholds",
     "main",
 ]

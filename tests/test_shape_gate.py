@@ -17,7 +17,7 @@ import pytest
 
 from oo_ratchet.core.application.update import PlanApplier, UpdatePlan
 from oo_ratchet.oo.cli import OoCommand
-from oo_ratchet.oo.thresholds import Thresholds
+from oo_ratchet.oo.thresholds import OO_METRICS
 from tests.core.doubles import World
 from tests.test_oo_ratchet import GOOD, WORSE, GitFixture
 
@@ -76,30 +76,30 @@ class TestThresholdTable:
         "metric", ["classes_per_module", "method_ratio", "class_to_func_ratio"]
     )
     def test_shape_metric_is_not_gated(self, metric: str) -> None:
-        assert metric not in Thresholds.names()
+        assert metric not in OO_METRICS.names
 
     def test_module_size_ceiling_is_400(self) -> None:
-        assert Thresholds.meets("module_size", 400)
-        assert not Thresholds.meets("module_size", 401)
+        assert OO_METRICS.metric("module_size").meets(400)
+        assert not OO_METRICS.metric("module_size").meets(401)
 
     def test_growth_under_ceiling_is_not_a_regression(self) -> None:
         # The lux case: a 29-line composition root grew to 39 lines.
-        assert Thresholds.better_or_equal("module_size", 39, 29)
-        assert not Thresholds.strictly_better("module_size", 29, 39)
+        assert OO_METRICS.metric("module_size").better_or_equal(39, 29)
+        assert not OO_METRICS.metric("module_size").strictly_better(29, 39)
 
     def test_growth_over_ceiling_is_a_regression(self) -> None:
-        assert not Thresholds.better_or_equal("module_size", 451, 450)
-        assert not Thresholds.better_or_equal("module_size", 401, 380)
+        assert not OO_METRICS.metric("module_size").better_or_equal(451, 450)
+        assert not OO_METRICS.metric("module_size").better_or_equal(401, 380)
 
     def test_shrinking_an_over_ceiling_module_is_an_improvement(self) -> None:
-        assert Thresholds.strictly_better("module_size", 420, 450)
-        assert Thresholds.strictly_better("module_size", 390, 450)
+        assert OO_METRICS.metric("module_size").strictly_better(420, 450)
+        assert OO_METRICS.metric("module_size").strictly_better(390, 450)
 
     def test_ceiling_boundary(self) -> None:
-        assert Thresholds.better_or_equal("module_size", 400, 300)
-        assert not Thresholds.strictly_better("module_size", 400, 300)
-        assert Thresholds.strictly_better("module_size", 400, 401)
-        assert not Thresholds.better_or_equal("module_size", 401, 400)
+        assert OO_METRICS.metric("module_size").better_or_equal(400, 300)
+        assert not OO_METRICS.metric("module_size").strictly_better(400, 300)
+        assert OO_METRICS.metric("module_size").strictly_better(400, 401)
+        assert not OO_METRICS.metric("module_size").better_or_equal(401, 400)
 
 
 class TestUpdateRecords:
@@ -194,8 +194,8 @@ class TestCeilingsAreWellFormed:
     def test_every_ceiling_is_a_le_metric_in_the_table(self) -> None:
         # max(value, target) ranks correctly only for a <= metric; a typo or a
         # >= metric here would silently change the ordering.
-        for metric in Thresholds.CEILINGS:
-            assert Thresholds.TABLE[metric][0] == "<="
+        for metric in OO_METRICS.ceilings:
+            assert OO_METRICS.metric(metric).op == "<="
 
 
 class TestMissingBaseMetricFailsClosed:

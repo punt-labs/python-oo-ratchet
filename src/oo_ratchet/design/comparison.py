@@ -6,7 +6,7 @@ from typing import ClassVar, Self
 
 from oo_ratchet.core.application.policy import GatePolicy
 from oo_ratchet.core.domain.verdicts import MetricRow, Review
-from oo_ratchet.oo.thresholds import Thresholds
+from oo_ratchet.oo.thresholds import OO_METRICS
 
 
 class ShadowMetrics:
@@ -16,9 +16,7 @@ class ShadowMetrics:
     values measured at the merge base.
     """
 
-    POLICY: ClassVar[GatePolicy] = GatePolicy.from_table(
-        Thresholds.TABLE, Thresholds.CEILINGS
-    )
+    POLICY: ClassVar[GatePolicy] = GatePolicy(OO_METRICS.items)
 
     _review: Review
 

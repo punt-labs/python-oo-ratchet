@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Self
 
-from oo_ratchet.core.adapters.metricgate import MetricFiles, MetricGate
+from oo_ratchet.core.adapters.metricgate import BlessRequest, MetricFiles, MetricGate
 from oo_ratchet.core.domain.errors import StateError
 from oo_ratchet.gate_options import (
     Flag,
@@ -149,12 +149,14 @@ class CouplingRun:
             )
         if opts.rebaseline_files is not None:
             return gate.bless(
-                list(opts.rebaseline_files),
-                reason=opts.reason,
-                allow_ci_write=opts.allow_ci_write,
-                source=opts.source,
-                base_ref=opts.base_ref,
-                require_base=opts.require_base,
+                BlessRequest(
+                    list(opts.rebaseline_files),
+                    opts.reason,
+                    opts.allow_ci_write,
+                    opts.source,
+                    opts.base_ref,
+                    opts.require_base,
+                )
             )
         return gate.update(
             base_ref=opts.base_ref,

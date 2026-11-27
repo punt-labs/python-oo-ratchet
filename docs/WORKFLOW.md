@@ -132,6 +132,7 @@ function demo(unit):
         - on this repo: uv run oo-ratchet <gate> src/oo_ratchet/ ...
         - for a change an adopter would see, from the adopter's root:
           uvx --from <this checkout> oo-ratchet <gate> <its src> --check
+          (the design check takes --shadow-check origin/main, not --check)
     include one input the gate must refuse (a regression, a bad flag, a
         missing base) and confirm it fails with a clear message
     paste the commands and output into the PR as "demo confirmed: <sha>"

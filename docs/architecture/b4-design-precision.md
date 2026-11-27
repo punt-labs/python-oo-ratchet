@@ -75,7 +75,7 @@ gate-capable list is `Rules.GATE_CAPABLE` in `src/oo_ratchet/core/domain/finding
 
 `misplaced-function` is 2 of 2 but has two findings in four repositories: too few
 to call it measured, so it stays advisory. Every other rule is under 70% and
-stays advisory; the README states each number.
+stays advisory; `docs/DESIGN.md` states each number.
 
 `domain-io` is 36% and is nevertheless in Tier 0 of the shadow verdict
 (`would-fail: tier0`). Those tier labels are unchanged here; the 36% is the

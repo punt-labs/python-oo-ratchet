@@ -24,6 +24,20 @@ class Bless:
     regressed: set[str] = field(default_factory=set)
     improved: set[str] = field(default_factory=set)
 
+    def record(
+        self,
+        path: str,
+        waived: dict[str, list[float]],
+        gains: dict[str, list[float]],
+    ) -> None:
+        """Record the loosenings and gains of ``path`` against its base row."""
+        if waived:
+            self.waived[path] = waived
+            self.regressed.add(path)
+        if gains:
+            self.gains[path] = gains
+            self.improved.add(path)
+
 
 class Relax(Operation):
     """Write one file's current metrics even if looser, with a justification."""
@@ -185,12 +199,5 @@ class RebaselineFiles(Operation):
         old: dict[str, float] | None,
         bless: Bless,
     ) -> None:
-        if old is None:
-            return
-        waived, gains = self._policy.changes(entry, old)
-        if waived:
-            bless.waived[path] = waived
-            bless.regressed.add(path)
-        if gains:
-            bless.gains[path] = gains
-            bless.improved.add(path)
+        if old is not None:
+            bless.record(path, *self._policy.changes(entry, old))

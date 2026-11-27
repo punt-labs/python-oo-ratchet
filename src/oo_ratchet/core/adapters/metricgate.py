@@ -42,6 +42,17 @@ class MetricGate:
     binds the tree the CLI scored; no operation runs before it.
     """
 
+    @dataclass(frozen=True, slots=True)
+    class BlessRequest:
+        """One scoped bless: the files, why, and the base they are judged on."""
+
+        paths: list[str]
+        reason: str
+        allow_ci_write: bool
+        source: str | None
+        base_ref: str | None
+        require_base: bool
+
     _files: MetricFiles
     _git: GitRepo
     _root: Path
@@ -119,50 +130,32 @@ class MetricGate:
             )
         return self._view.rebaseline(verdict), self._code(verdict)
 
-    def bless(
-        self,
-        paths: list[str],
-        *,
-        reason: str,
-        allow_ci_write: bool,
-        source: str | None,
-        base_ref: str | None,
-        require_base: bool,
-    ) -> Report:
+    def bless(self, request: MetricGate.BlessRequest) -> Report:
         """Record the named files' scores where they clear their caps."""
-        verdict = self._blessed(
-            paths,
-            (reason, source),
-            allow_ci_write=allow_ci_write,
-            base=(base_ref, require_base),
-        )
-        return self._view.bless(verdict, reason), self._code(verdict)
+        verdict = self._blessed(request)
+        return self._view.bless(verdict, request.reason), self._code(verdict)
 
     def log(self) -> Report:
         """Return the audit history."""
         view = AuditView(self._root / self._files.audit, "coupling")
         return view.lines(), 0
 
-    def _blessed(
-        self,
-        paths: list[str],
-        why: tuple[str, str | None],
-        *,
-        allow_ci_write: bool,
-        base: tuple[str | None, bool],
-    ) -> Verdict:
-        blocked = GateCli.write_blocked(allow_ci_write=allow_ci_write)
+    def _blessed(self, request: MetricGate.BlessRequest) -> Verdict:
+        blocked = GateCli.write_blocked(allow_ci_write=request.allow_ci_write)
         if blocked is not None:
             return blocked
-        reason, source = why
-        if not reason.strip():
+        if not request.reason.strip():
             return Verdict.refused("blank-reason")
         policy, ports = self._bound()
-        loaded = BlessBase.load(ports.history, base[0], require_base=base[1])
+        loaded = BlessBase.load(
+            ports.history, request.base_ref, require_base=request.require_base
+        )
         if isinstance(loaded, Verdict):
             return loaded
         bless = RebaselineFiles(policy, ports)
-        return bless.run(paths, reason=reason, source=source, base=loaded)
+        return bless.run(
+            request.paths, reason=request.reason, source=request.source, base=loaded
+        )
 
     def _bound(self) -> tuple[GatePolicy, Ports]:
         if self._run is None:

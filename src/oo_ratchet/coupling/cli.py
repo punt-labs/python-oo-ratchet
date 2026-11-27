@@ -149,12 +149,14 @@ class CouplingRun:
             )
         if opts.rebaseline_files is not None:
             return gate.bless(
-                list(opts.rebaseline_files),
-                reason=opts.reason,
-                allow_ci_write=opts.allow_ci_write,
-                source=opts.source,
-                base_ref=opts.base_ref,
-                require_base=opts.require_base,
+                MetricGate.BlessRequest(
+                    list(opts.rebaseline_files),
+                    opts.reason,
+                    opts.allow_ci_write,
+                    opts.source,
+                    opts.base_ref,
+                    opts.require_base,
+                )
             )
         return gate.update(
             base_ref=opts.base_ref,

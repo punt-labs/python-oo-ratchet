@@ -38,11 +38,8 @@ class TotalReview:
         """
         waived = 0
         rises: list[FileRise] = []
-        for path in sorted(current.paths() | base.paths()):
-            now, then = current.file_total(path), base.file_total(path)
+        for path, then, now in current.growth(base):
             rise = now - then
-            if rise <= 0:
-                continue
             ceiling = ledger.ceiling(path)
             unwaived = rise if ceiling is None else max(0, now - max(then, ceiling))
             waived += rise - unwaived

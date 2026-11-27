@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Documentation restructure. `README.md` is now a short overview that follows
+  the Punt Labs README standard. The detailed specification moved to
+  `docs/REFERENCE.md`, `docs/LAYERS.md` and `docs/DESIGN.md`. The setup
+  steps, the `[tool.oo-ratchet.*]` settings and the guide "Adopting Clean
+  Architecture with oo-ratchet" moved to `docs/CONFIGURING.md`. The
+  "Develop" section moved to `CONTRIBUTING.md`. No behavior changes.
+
 ## [0.7.0] - 2026-11-27
 
 This release breaks things, so read it before you bump a pin. Adopters pinned

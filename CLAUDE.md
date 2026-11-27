@@ -28,8 +28,11 @@ quality got worse:
 
 All state files live at the repository root.
 
-`README.md` is the user-facing specification of every rule, metric and flag;
-read the section for the gate you are changing before changing it. The formal
+`docs/REFERENCE.md` is the specification of every rule, metric and flag (the
+`layers` gate is in `docs/LAYERS.md`, the `design` check in `docs/DESIGN.md`);
+read the section for the gate you are changing before changing it.
+`docs/CONFIGURING.md` is how a user sets a repo up, and `README.md` is the
+short user-facing overview that links them. The formal
 model is `docs/ratchet.tex`. The policy enforced is punt-kit's
 `lang-rules/python/python-oo-adoption.md`.
 
@@ -111,7 +114,7 @@ Consequences for any change under `src/oo_ratchet/`:
   CI runs `--check --allow-config-change` with the merge-base `--base-ref` in
   that PR, and the one merge commit's `push: [main]` run also needs
   `--check --base-ref HEAD~1 --require-base --tripwire --allow-config-change`;
-  the flag comes off both afterward (README, "Layers gate"). Widening the
+  the flag comes off both afterward (`docs/LAYERS.md`, "Adopting Domain Purity Edges"). Widening the
   table, or moving a module outward or out of `domain`, needs the same flag.
 - `check-suppressions` compares the total suppression count (`noqa`,
   `type: ignore`, per-file-ignores, ...) with the base tree's total. Adding one
@@ -125,7 +128,7 @@ Consequences for any change under `src/oo_ratchet/`:
   `GITHUB_ACTIONS=true` without `--allow-ci-write`.
 
 OO targets new code must meet, all eight (`src/oo_ratchet/oo/thresholds.py`,
-tabled in `README.md` under "Targets and counting rules"): encapsulation ratio
+tabled in `docs/REFERENCE.md` under "Targets and Counting Rules"): encapsulation ratio
 >= 1.0, average params <= 4, max complexity <= 10, average complexity <= 5,
 at most 400 code lines per module, no explicit `__init__` on non-dataclass
 classes, no public `self.x` assignments, and `from __future__ import
@@ -183,7 +186,7 @@ pattern.
 - Unknown config keys, metrics or modes in `[tool.oo-ratchet.*]` are errors.
 - Baseline/audit file names and formats are a compatibility contract with
   adopter repos (vox, quarry, lux, z-spec) that switched over without
-  rebaselining; the formats are documented in `README.md`.
+  rebaselining; the formats are documented in `docs/REFERENCE.md` ("Baseline and Audit Formats").
 
 ## Design evals
 

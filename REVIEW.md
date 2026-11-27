@@ -20,7 +20,7 @@ this repository can ship, because every adopter trusts the verdict.
   `--rebaseline-files`, `--rebaseline`).
 - A change to the baseline or audit file formats that adopter repos would
   read differently.
-- A metric computed differently from what `README.md` documents.
+- A metric computed differently from what `docs/REFERENCE.md` documents.
 - Errors swallowed or logged without reaching the exit status or the report.
 - Changed behavior with no test, or a test that cannot fail.
 - Security defects in the code: shell or argument injection into git calls,

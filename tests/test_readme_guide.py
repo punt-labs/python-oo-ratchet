@@ -1,7 +1,8 @@
-"""The README guide "Adopting Clean Architecture with oo-ratchet" stays true.
+"""docs/CONFIGURING.md stays true.
 
-Every `oo-ratchet` command in the guide's ```bash blocks names a real gate and
-only flags that gate's parser knows, and the guide covers the adoption path.
+Every `oo-ratchet` command in any of the guide's ```bash blocks names a real
+gate and only flags that gate's parser knows, and the guide covers the
+adoption path under "Adopting Clean Architecture with oo-ratchet".
 """
 
 from __future__ import annotations
@@ -20,12 +21,9 @@ PLACEHOLDER_FLAGS = {"-h", "--help"}
 
 
 def _guide() -> str:
-    text = (ROOT / "README.md").read_text(encoding="utf-8")
-    start = text.find(HEADING + "\n")
-    assert start != -1, f"README.md has no section {HEADING!r}"
-    nxt = re.search(r"^## ", text[start + len(HEADING) :], re.MULTILINE)
-    end = len(text) if nxt is None else start + len(HEADING) + nxt.start()
-    return text[start:end]
+    text = (ROOT / "docs" / "CONFIGURING.md").read_text(encoding="utf-8")
+    assert HEADING + "\n" in text, f"CONFIGURING.md has no section {HEADING!r}"
+    return text
 
 
 def _commands(guide: str) -> list[list[str]]:
@@ -91,6 +89,8 @@ def test_every_guide_command_uses_real_gates_and_flags(
 ) -> None:
     for words in _commands(_guide()):
         gate = words[0]
+        if gate in PLACEHOLDER_FLAGS:
+            continue
         assert gate in GATES, words
         known = _known_flags(_help(gate, capsys))
         for word in words[1:]:

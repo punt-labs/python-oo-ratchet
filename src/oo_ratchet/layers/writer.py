@@ -52,13 +52,19 @@ class LayersWriter:
         way to loosen the baseline is to fix the code or edit the file by hand,
         and ``check`` rejects a hand edit that grows it past the merge base. If
         the audit entry cannot be written, the previous baseline is put back.
+        ``config_change`` lets an update add domain-purity (``io``) edges, and
+        only those; the audit entry lists them under ``added``.
         """
-        blocked = self._blocked(scan, allow_ci_write=allow_ci_write)
+        permitted = scan.io_edges if config_change else frozenset()
+        blocked = self._blocked(
+            scan, allow_ci_write=allow_ci_write, permitted=permitted
+        )
         if blocked is not None:
             return blocked
         current = frozenset(v.edge for v in scan.violations)
         recorded = self._baseline.scoped(scan.package)
         adopting = not recorded
+        accepted = (current & permitted) - recorded
         retired = self._retired(scan.package)
         before = self._baseline.raw()
         kept = self._baseline.edges - recorded - retired
@@ -68,7 +74,7 @@ class LayersWriter:
                 verdict="adopt" if adopting else "pass",
                 modules=len(scan.modules),
                 violations=len(current),
-                added=current if adopting else frozenset(),
+                added=current if adopting else accepted,
                 removed=recorded - current,
                 commit=self._git.short_head(),
                 source=source,
@@ -83,7 +89,9 @@ class LayersWriter:
             f"  violations: {len(current)} ({len(recorded - current)} removed)",
         )
 
-    def _blocked(self, scan: LayerScan, *, allow_ci_write: bool) -> Outcome | None:
+    def _blocked(
+        self, scan: LayerScan, *, allow_ci_write: bool, permitted: frozenset[Edge]
+    ) -> Outcome | None:
         """Return the refusal that stops an update, or ``None`` when it may write."""
         if os.environ.get("GITHUB_ACTIONS") == "true" and not allow_ci_write:
             return Outcome.failed(
@@ -92,7 +100,7 @@ class LayersWriter:
             )
         refusals = {
             "a package the layers do not cover": list(scan.problems),
-            "new layer violations": self._added(scan),
+            "new layer violations": self._added(scan, permitted),
         }
         for what, rows in refusals.items():
             if rows:
@@ -102,11 +110,11 @@ class LayersWriter:
                 )
         return None
 
-    def _added(self, scan: LayerScan) -> list[str]:
+    def _added(self, scan: LayerScan, permitted: frozenset[Edge]) -> list[str]:
         known = self._baseline.scoped(scan.package)
         if not known:
             return []
-        return [str(e) for e in sorted(scan.edges - known)]
+        return [str(e) for e in sorted(scan.edges - known - permitted)]
 
     def _retired(self, package: str) -> frozenset[Edge]:
         """Return rows whose package directory no longer exists in the repository."""

@@ -24,8 +24,15 @@
   fails `layers --check`; a removed one is a stale entry that `--update`
   drops. Declared layers have no domain and get no purity edges. The baseline
   format is unchanged. vox, quarry, lux and z-spec configure the fixed form: a
-  domain module that imports IO there shows up as new edges until the adopter
-  runs `oo-ratchet layers --update` and commits the baseline.
+  domain module that imports IO there shows up as new edges. The adopter runs
+  `oo-ratchet layers src/pkg/ --update --allow-config-change --source <ref>`
+  once and commits the baseline; CI runs `layers --check --allow-config-change`
+  in that PR. With the flag, `--update` may add domain-purity edges (layer
+  class `io`) to the baseline and lists them under `added` in the audit entry,
+  and `--check` does not count them as growth over the base. Any other new
+  edge is still refused. Without the flag nothing changes. Literal
+  `importlib.import_module("subprocess")` and `__import__` calls and
+  `builtins.open(...)` in a domain module are edges too.
 - OO `--update` compares rows against the baseline at the merge base, as
   `--check` does, not against the in-tree baseline. A later commit on a branch
   is no longer refused for giving back part of an earlier commit's gain while

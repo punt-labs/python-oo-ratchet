@@ -4,19 +4,21 @@ from __future__ import annotations
 
 from typing import Self
 
-from oo_ratchet.design.domain_io import DomainIO
 from oo_ratchet.design.layer_config import LayerConfig
 from oo_ratchet.design.layer_edges import Edge, Violation
 from oo_ratchet.design.layer_violations import LayerViolations
 from oo_ratchet.design.modules import Module
+
+from .io_sites import IoSites
 
 
 class ModuleViolations:
     """Edges a module's layer refuses, plus the IO modules a domain module imports.
 
     An IO import is an edge from the domain module to the IO module (a bare
-    ``open`` call is an edge to ``builtins.open``), classed as layer ``io``. It
-    applies to the fixed four-layer form only: declared layers have no domain.
+    ``open`` or ``builtins.open`` call is an edge to ``builtins.open``), classed
+    as layer ``io``. It applies to the fixed four-layer form only: declared
+    layers have no domain.
     """
 
     _found: LayerViolations
@@ -41,6 +43,6 @@ class ModuleViolations:
         if self._config.ORDERED and source == "domain":
             edges.update(
                 Violation(Edge(name, io), source, "io")
-                for io in DomainIO(module).targets()
+                for io in IoSites(module).names()
             )
         return edges

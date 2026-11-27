@@ -85,6 +85,11 @@ class LayerScan:
         return frozenset(v.edge for v in self._violations)
 
     @property
+    def io_edges(self) -> frozenset[Edge]:
+        """Return the domain-purity edges: a domain module's IO imports."""
+        return frozenset(v.edge for v in self._violations if v.target_layer == "io")
+
+    @property
     def unassigned(self) -> tuple[str, ...]:
         """Return the non-root modules that match no layer."""
         return self._unassigned

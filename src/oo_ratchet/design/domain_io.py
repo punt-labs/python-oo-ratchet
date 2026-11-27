@@ -88,6 +88,11 @@ class DomainIO:
         return [f"{base}.{alias.name}" for alias in node.names]
 
     @classmethod
+    def is_io(cls, name: str) -> bool:
+        """Return whether the dotted module ``name`` is, or is inside, an IO module."""
+        return cls._is_io(name)
+
+    @classmethod
     def _is_io(cls, name: str) -> bool:
         return any(name == io or name.startswith(io + ".") for io in cls.IO)
 

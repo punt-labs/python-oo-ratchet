@@ -31,6 +31,14 @@ class Tally:
         """Return the count carried by ``path``, 0 when it carries none."""
         return sum(self.by_file.get(path, {}).values())
 
+    def growth(self, base: Tally) -> list[tuple[str, int, int]]:
+        """Return (path, base count, count) for each file above its base, sorted."""
+        return [
+            (path, then, now)
+            for path in sorted(self.paths() | base.paths())
+            if (now := self.file_total(path)) > (then := base.file_total(path))
+        ]
+
     def rebased(self, old_prefix: str, new_prefix: str) -> Self:
         """Return a copy with ``by_file`` keys moved onto a new root.
 

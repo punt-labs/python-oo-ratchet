@@ -118,15 +118,10 @@ class Check(Operation):
         *,
         allow_no_improvement: bool,
     ) -> Verdict:
-        failures = list(integrity)
-        if review.has_regression:
-            subjects = tuple(f"{p}: {m}" for p, m in review.regressions)
-            failures.append(Failure("regression", subjects))
         gated = self._policy.must_improve and not allow_no_improvement
-        if gated and not review.improvement_satisfied:
-            failures.append(Failure("no-improvement"))
+        failures = (*integrity, *review.failures(gated=gated))
         note = self._pass_note(review, allow_no_improvement=allow_no_improvement)
-        return Verdict(failures=tuple(failures), note=note, review=review)
+        return Verdict(failures=failures, note=note, review=review)
 
     def _pass_note(self, review: Review, *, allow_no_improvement: bool) -> str:
         if not self._policy.must_improve:

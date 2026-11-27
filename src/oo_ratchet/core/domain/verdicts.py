@@ -106,6 +106,19 @@ class Review:
         present = any(r.tracked for r in self.files)
         return any(r.credits(tracked_present=present) for r in self.files)
 
+    def failures(self, *, gated: bool) -> tuple[Failure, ...]:
+        """Return the failures of the change: regressions, and no improvement.
+
+        ``gated`` is whether the must-improve gate applies to this run.
+        """
+        found: list[Failure] = []
+        if self.has_regression:
+            subjects = tuple(f"{p}: {m}" for p, m in self.regressions)
+            found.append(Failure("regression", subjects))
+        if gated and not self.improvement_satisfied:
+            found.append(Failure("no-improvement"))
+        return tuple(found)
+
 
 @dataclass(frozen=True, slots=True)
 class Failure:

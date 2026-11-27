@@ -31,6 +31,12 @@ def own_findings() -> frozenset[tuple[str, str]]:
     ("rule", "symbol"),
     [
         ("size-cap", "MetricGate.bless"),
+        ("feature-envy", "Check._verdict"),
+        ("feature-envy", "Reconcile._plan"),
+        ("feature-envy", "RebaselineFiles._classify"),
+        ("feature-envy", "PlanApplier._record"),
+        ("feature-envy", "PlanApplier._write"),
+        ("feature-envy", "TotalReview.of"),
     ],
 )
 def test_method_debt_is_not_reported(rule: str, symbol: str) -> None:

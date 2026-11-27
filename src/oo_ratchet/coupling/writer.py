@@ -69,13 +69,41 @@ class CouplingWriter:
                 current, frozenset(current), {}, scorer.parse_errors, source
             )
         diff = self._git.diff(base)
-        touched = frozenset(
-            p
-            for p in diff.python_files()
-            if p in current or p in scorer.parse_errors or not (self._root / p).exists()
+        touched = self._in_scope(
+            self._root, diff.python_files(), current, scorer.parse_errors
         )
+        touched |= self._vanished(diff.renames)
         return self._apply(
             current, touched, diff.renames, touched & scorer.parse_errors, source
+        )
+
+    @staticmethod
+    def _in_scope(
+        root: Path,
+        paths: frozenset[str],
+        current: dict[str, dict[str, float]],
+        parse_errors: frozenset[str],
+    ) -> frozenset[str]:
+        """Keep diff paths that were scored, failed to parse, or are gone."""
+        return frozenset(
+            p
+            for p in paths
+            if p in current or p in parse_errors or not (root / p).exists()
+        )
+
+    def _vanished(self, renames: dict[str, str]) -> frozenset[str]:
+        """Return baseline rows whose file is gone from the tree.
+
+        The merge-base diff cannot name a file created and deleted inside the
+        branch, or deleted before the base, so its row would outlive it. A
+        rename source is excluded: its row is the carried base for the rename
+        target and is dropped only once that target is written.
+        """
+        carried = frozenset(renames.values())
+        return frozenset(
+            p
+            for p in self._baseline.entries
+            if p not in carried and not (self._root / p).exists()
         )
 
     def rebaseline(

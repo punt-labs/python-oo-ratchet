@@ -760,3 +760,56 @@ class TestFailClosed:
         assert gr.root is None
         assert gr.available is False
         assert gr.resolve_base(None) is None
+
+
+class TestUpdateDropsDeletedRows:
+    """``--update`` drops baseline rows of files gone from the tree (PL-1734)."""
+
+    def _stale_row_repo(self, fx: GitFixture) -> str:
+        """Baseline holds a row for ``pkg/gone.py``, which no diff to base names."""
+        fx.write("pkg/a.py", LOW)
+        fx.snapshot()
+        data = dict(CouplingBaseline(fx.root).entries)
+        data["pkg/gone.py"] = {"public_names": 3.0}
+        fx.write_baseline(data)
+        return fx.commit("base")
+
+    def _update(self, fx: GitFixture, base: str) -> tuple[str, ...]:
+        outcome = fx.writer().update(
+            fx.scorer(),
+            base_ref=base,
+            require_base=False,
+            allow_ci_write=True,
+            source=None,
+        )
+        assert outcome.exit_code == 0
+        return outcome.lines
+
+    def test_row_of_deleted_file_is_dropped_and_reported(self, fx: GitFixture) -> None:
+        base = self._stale_row_repo(fx)
+        lines = self._update(fx, base)
+        assert CouplingBaseline(fx.root).get("pkg/gone.py") is None
+        assert "  files removed:  1" in lines
+        last = CouplingAudit(fx.root).path.read_text().splitlines()[-1]
+        assert json.loads(last)["removed"] == ["pkg/gone.py"]
+
+    def test_row_of_existing_file_is_kept(self, fx: GitFixture) -> None:
+        base = self._stale_row_repo(fx)
+        self._update(fx, base)
+        assert CouplingBaseline(fx.root).get("pkg/a.py") is not None
+
+    def test_row_of_unparseable_existing_file_is_kept(self, fx: GitFixture) -> None:
+        fx.write("pkg/a.py", LOW)
+        fx.write("pkg/b.py", LOW)
+        fx.snapshot()
+        base = fx.commit("base")
+        fx.write("pkg/b.py", BROKEN)
+        outcome = fx.writer().update(
+            fx.scorer(),
+            base_ref=base,
+            require_base=False,
+            allow_ci_write=True,
+            source=None,
+        )
+        assert outcome.exit_code == 1
+        assert CouplingBaseline(fx.root).get("pkg/b.py") is not None

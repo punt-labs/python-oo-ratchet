@@ -42,15 +42,7 @@ class LayersReport:
         return json.dumps(
             {
                 "modules": len(self._scan.modules),
-                "violations": [
-                    {
-                        "source": v.edge.source,
-                        "target": v.edge.target,
-                        "source_layer": v.source_layer,
-                        "target_layer": v.target_layer,
-                    }
-                    for v in self._scan.violations
-                ],
+                "violations": [v.as_dict() for v in self._scan.violations],
                 "unassigned": list(self._scan.unassigned),
                 **self._diagram.as_json(),
             },

@@ -47,6 +47,23 @@ class Metric:
         """Return whether ``current`` is strictly better than ``baseline``."""
         return self._rank(current) < self._rank(baseline)
 
+    def classify(self, current: float, base: float | None, *, waived: bool) -> str:
+        """Return the status of ``current`` against ``base``.
+
+        A metric missing from the base row is judged by its target: a
+        hand-edited row cannot hide a regression or earn must-improve credit.
+        """
+        if base is None:
+            return ("REGRESSED", "PASS")[self.meets(current)]
+        verdicts = {
+            (True, True): "IMPROVED",
+            (False, True): "PASS",
+            (False, False): ("REGRESSED", "RELAXED")[waived],
+        }
+        return verdicts[
+            self.strictly_better(current, base), self.better_or_equal(current, base)
+        ]
+
     def describe(self) -> str:
         """Return the ``op target`` label."""
         return f"{self.op} {self.target}"

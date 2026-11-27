@@ -37,8 +37,7 @@ class LayerDiagram:
 
     def module_rings(self) -> dict[str, str | None]:
         """Return each module's ring, ``None`` when no layer claims it."""
-        config = self._scan.config
-        rings = {m: config.layer(m) for m in self._scan.modules}
+        rings = self._scan.rings()
         return {m: r for m, r in rings.items() if r is not None or "." in m}
 
     def ring_edges(self) -> list[dict[str, str | int]]:

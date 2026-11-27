@@ -93,7 +93,7 @@ class CouplingView(GateCli):
         review = verdict.review
         if review is None:
             return self._plain(verdict)
-        rows = [r for f in review.files for r in f.rows]
+        rows = list(review.rows)
         lines = [self.HEADER, "-" * 108, *map(self._row, rows)]
         if not rows:
             lines.append("  (all metrics unchanged)")

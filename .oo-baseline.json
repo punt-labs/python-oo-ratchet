@@ -82,7 +82,7 @@
     "encapsulation_ratio": 1.0,
     "avg_params": 1.36,
     "max_complexity": 7.0,
-    "avg_complexity": 4.0,
+    "avg_complexity": 3.82,
     "module_size": 160.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
@@ -212,7 +212,7 @@
     "encapsulation_ratio": 1.0,
     "avg_params": 1.43,
     "max_complexity": 8.0,
-    "avg_complexity": 3.86,
+    "avg_complexity": 3.79,
     "module_size": 197.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
@@ -422,18 +422,18 @@
     "encapsulation_ratio": 1.0,
     "avg_params": 2.71,
     "max_complexity": 9.0,
-    "avg_complexity": 4.86,
-    "module_size": 146.0,
+    "avg_complexity": 4.57,
+    "module_size": 145.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
   },
   "src/oo_ratchet/core/application/edgeports.py": {
     "encapsulation_ratio": 1.0,
-    "avg_params": 0.64,
+    "avg_params": 0.8,
     "max_complexity": 1.0,
     "avg_complexity": 1.0,
-    "module_size": 81.0,
+    "module_size": 82.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -470,10 +470,10 @@
   },
   "src/oo_ratchet/core/application/policy.py": {
     "encapsulation_ratio": 1.0,
-    "avg_params": 2.33,
+    "avg_params": 2.25,
     "max_complexity": 9.0,
-    "avg_complexity": 3.95,
-    "module_size": 187.0,
+    "avg_complexity": 3.85,
+    "module_size": 178.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -670,10 +670,10 @@
   },
   "src/oo_ratchet/core/domain/layer_edges.py": {
     "encapsulation_ratio": 1.0,
-    "avg_params": 0.33,
+    "avg_params": 0.25,
     "max_complexity": 2.0,
-    "avg_complexity": 1.33,
-    "module_size": 17.0,
+    "avg_complexity": 1.25,
+    "module_size": 24.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -708,6 +708,16 @@
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
   },
+  "src/oo_ratchet/core/domain/layer_widening.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 1.22,
+    "max_complexity": 2.0,
+    "avg_complexity": 1.78,
+    "module_size": 45.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
   "src/oo_ratchet/core/domain/ledgers.py": {
     "encapsulation_ratio": 1.0,
     "avg_params": 0.67,
@@ -720,10 +730,10 @@
   },
   "src/oo_ratchet/core/domain/metrics.py": {
     "encapsulation_ratio": 1.0,
-    "avg_params": 1.0,
+    "avg_params": 1.18,
     "max_complexity": 2.0,
-    "avg_complexity": 1.5,
-    "module_size": 58.0,
+    "avg_complexity": 1.55,
+    "module_size": 69.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -744,16 +754,6 @@
     "max_complexity": 1.0,
     "avg_complexity": 1.0,
     "module_size": 16.0,
-    "init_violations": 0.0,
-    "public_attr_violations": 0.0,
-    "future_annotations": 1.0
-  },
-  "src/oo_ratchet/core/domain/policies.py": {
-    "encapsulation_ratio": 1.0,
-    "avg_params": 1.67,
-    "max_complexity": 2.0,
-    "avg_complexity": 1.78,
-    "module_size": 51.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -890,10 +890,10 @@
   },
   "src/oo_ratchet/core/domain/verdicts.py": {
     "encapsulation_ratio": 1.0,
-    "avg_params": 0.33,
-    "max_complexity": 7.0,
-    "avg_complexity": 2.22,
-    "module_size": 72.0,
+    "avg_params": 0.31,
+    "max_complexity": 4.0,
+    "avg_complexity": 1.77,
+    "module_size": 80.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -1464,9 +1464,9 @@
   "src/oo_ratchet/layers/diagram.py": {
     "encapsulation_ratio": 1.0,
     "avg_params": 0.17,
-    "max_complexity": 5.0,
-    "avg_complexity": 2.67,
-    "module_size": 49.0,
+    "max_complexity": 4.0,
+    "avg_complexity": 2.5,
+    "module_size": 48.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -1542,7 +1542,7 @@
     "avg_params": 0.33,
     "max_complexity": 4.0,
     "avg_complexity": 2.33,
-    "module_size": 45.0,
+    "module_size": 37.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -1569,10 +1569,10 @@
   },
   "src/oo_ratchet/layers/scan.py": {
     "encapsulation_ratio": 1.0,
-    "avg_params": 0.43,
+    "avg_params": 0.62,
     "max_complexity": 7.0,
     "avg_complexity": 2.5,
-    "module_size": 103.0,
+    "module_size": 112.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0

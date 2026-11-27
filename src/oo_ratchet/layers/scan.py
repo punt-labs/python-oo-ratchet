@@ -9,6 +9,7 @@ from typing import Self
 from oo_ratchet.core.domain.layer_config import LayerConfig, LayerConfigError
 from oo_ratchet.core.domain.layer_edges import Edge, Violation
 from oo_ratchet.core.domain.layer_table import LayerTable
+from oo_ratchet.core.domain.layer_widening import LayerWidening
 from oo_ratchet.core.domain.modules import ModuleIndex
 from oo_ratchet.source_set import Source, SourceSet
 
@@ -66,9 +67,25 @@ class LayerScan:
         self._package = index.package_name
         return self
 
-    def under(self, config: LayerConfig) -> Self:
-        """Return the same package scanned under another layer config."""
-        return type(self)(self._src, config)
+    def held_edges(
+        self, config: LayerConfig, shared: Iterable[str], exclude: Iterable[Edge]
+    ) -> list[Edge]:
+        """Return the sorted edges this package would violate under ``config``.
+
+        Only edges whose source is in ``shared`` and that are not in
+        ``exclude`` count.
+        """
+        found = type(self)(self._src, config).edges - frozenset(exclude)
+        sources = set(shared)
+        return sorted(e for e in found if e.source in sources)
+
+    def widened_over(self, base: LayerConfig, shared: Iterable[str]) -> list[str]:
+        """Return how this scan's layer config allows more than ``base``'s."""
+        return LayerWidening(self._config, base).lines(sorted(set(shared)))
+
+    def rings(self) -> dict[str, str | None]:
+        """Return each scanned module's layer, ``None`` when none claims it."""
+        return {m: self._config.layer(m) for m in self._modules}
 
     @property
     def modules(self) -> tuple[str, ...]:

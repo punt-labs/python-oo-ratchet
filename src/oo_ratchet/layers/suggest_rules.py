@@ -72,10 +72,15 @@ class RingRules:
 
     def _entries(self, importers: dict[str, set[str]]) -> set[str]:
         """Return the entry modules; the root is one only if just entry imports it."""
-        found = {f.name for f in self._facts if f.evidenced}
+        found = {f.name for f in self._facts if self._evidenced(f)}
         roots = (f.name for f in self._facts if f.root and not f.forced)
         found.update(r for r in roots if not importers.get(r, set()) - found)
         return found
+
+    @staticmethod
+    def _evidenced(fact: ModuleFacts) -> bool:
+        """Return whether a placeable non-root module shows entry evidence."""
+        return bool(fact.entry) and not fact.forced and not fact.root
 
     def _first(
         self,
@@ -101,7 +106,7 @@ class RingRules:
         fact: ModuleFacts, entries: set[str], importers: dict[str, set[str]]
     ) -> Verdict:
         if fact.name in entries:
-            return Verdict("entry", fact.entry_text)
+            return Verdict("entry", ", ".join(fact.entry))
         named = ", ".join(sorted(importers[fact.name] - entries))
         return Verdict(
             None, f"package root imported by non-entry {named}; only entry may"
@@ -114,7 +119,7 @@ class RingRules:
     @classmethod
     def _unintended(cls, fact: ModuleFacts, chain: str | None) -> Verdict:
         if fact.entry:
-            return Verdict("entry", fact.entry_text)
+            return Verdict("entry", ", ".join(fact.entry))
         why = "no declaration or package name convention"
         return Verdict(None, f"{why}; {cls._evidence(chain)}")
 
@@ -123,7 +128,7 @@ class RingRules:
         ring = intent.ring
         if fact.entry and ring != "entry":
             why = f"{intent.source} says {ring}, but entry evidence: "
-            return Verdict(None, why + fact.entry_text, conflict=True)
+            return Verdict(None, why + ", ".join(fact.entry), conflict=True)
         if ring == "domain" and chain:
             why = f"{intent.source} says domain, but {cls._evidence(chain)}"
             return Verdict(None, why, conflict=True)

@@ -880,10 +880,10 @@
   },
   "src/oo_ratchet/core/domain/verdicts.py": {
     "encapsulation_ratio": 1.0,
-    "avg_params": 0.31,
+    "avg_params": 0.29,
     "max_complexity": 4.0,
-    "avg_complexity": 1.77,
-    "module_size": 80.0,
+    "avg_complexity": 1.71,
+    "module_size": 89.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -1119,10 +1119,10 @@
   },
   "src/oo_ratchet/design/comparison.py": {
     "encapsulation_ratio": 1.0,
-    "avg_params": 0.67,
+    "avg_params": 0.6,
     "max_complexity": 3.0,
-    "avg_complexity": 1.83,
-    "module_size": 47.0,
+    "avg_complexity": 2.0,
+    "module_size": 37.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -1535,10 +1535,10 @@
   },
   "src/oo_ratchet/layers/scan.py": {
     "encapsulation_ratio": 1.0,
-    "avg_params": 0.62,
+    "avg_params": 0.53,
     "max_complexity": 6.0,
-    "avg_complexity": 2.44,
-    "module_size": 112.0,
+    "avg_complexity": 2.33,
+    "module_size": 101.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -1576,9 +1576,9 @@
   "src/oo_ratchet/layers/suggest_lists.py": {
     "encapsulation_ratio": 1.0,
     "avg_params": 1.0,
-    "max_complexity": 8.0,
-    "avg_complexity": 3.14,
-    "module_size": 65.0,
+    "max_complexity": 4.0,
+    "avg_complexity": 2.38,
+    "module_size": 68.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -1615,10 +1615,10 @@
   },
   "src/oo_ratchet/layers/suggest_text.py": {
     "encapsulation_ratio": 1.0,
-    "avg_params": 1.0,
+    "avg_params": 0.6,
     "max_complexity": 4.0,
-    "avg_complexity": 2.5,
-    "module_size": 35.0,
+    "avg_complexity": 2.2,
+    "module_size": 39.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0

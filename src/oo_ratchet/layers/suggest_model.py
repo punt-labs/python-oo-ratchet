@@ -23,16 +23,6 @@ class ModuleFacts:
     marker: str | None = None
     marker_problem: str | None = None
 
-    @property
-    def entry_text(self) -> str:
-        """Return the entry evidence as one comma-separated line."""
-        return ", ".join(self.entry)
-
-    @property
-    def evidenced(self) -> bool:
-        """Return whether this placeable non-root module shows entry evidence."""
-        return bool(self.entry) and not self.forced and not self.root
-
 
 @dataclass(frozen=True, slots=True)
 class Verdict:

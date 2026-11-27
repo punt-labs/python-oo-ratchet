@@ -12,7 +12,7 @@ from oo_ratchet.source_set import Source, SourceSelection
 from .ring_intent import RingIntent
 from .scan import LayersScanError
 from .suggest_facts import ConsoleScripts, PackageFacts, SuggestNames
-from .suggest_lists import RingLists, SuggestHeader
+from .suggest_lists import RingLists
 from .suggest_rules import RingRules
 from .suggest_table import RingTable
 
@@ -28,7 +28,6 @@ class Suggestion:
     """
 
     _src: Source
-    _header: SuggestHeader
     _lists: RingLists
     _scripts: bool
 
@@ -45,8 +44,7 @@ class Suggestion:
         table = LayerTable.ordered(LayerTable.read(anchor).config())
         intent = RingIntent(table, SuggestNames(nearest).table)
         verdicts = RingRules(facts, intent, index.package_name).verdicts()
-        self._header = SuggestHeader(index.package_name)
-        self._lists = RingLists(verdicts)
+        self._lists = RingLists(verdicts, index.package_name)
         self._scripts = scripts.found
         return self
 
@@ -64,4 +62,4 @@ class Suggestion:
         lists = self._lists
         table = RingTable(list(lists.modules), lists.rings()).render()
         missing = () if self._scripts else (NO_PYPROJECT,)
-        return Outcome.passed(*self._header.lines(), *missing, *table, *lists.notes())
+        return Outcome.passed(*lists.header(), *missing, *table, *lists.notes())

@@ -13,9 +13,6 @@ from tests.test_hollow_classes import own_findings
     ("rule", "symbol"),
     [
         (Rules.STATELESS_BAG, "SafeText"),
-        (Rules.SPLIT_COHESION, "RingLists"),
-        (Rules.FEATURE_ENVY, "ClassRules._stateless"),
-        (Rules.FEATURE_ENVY, "ClumpOwners._parent"),
         (Rules.FEATURE_ENVY, "ShadowMetrics._delta"),
     ],
 )

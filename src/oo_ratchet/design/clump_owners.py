@@ -33,11 +33,25 @@ class ClumpOwners:
         }
         entries = []
         for owner in declarations:
-            parent = owner.enclosing_class(classes)
+            parent = self._parent(owner, classes)
             if owner.eligible and not self._excluded(owner, parent):
                 family = (owner.module.key, (parent or owner).symbol)
                 entries.append((owner, self._names(owner), family))
         return entries
+
+    @staticmethod
+    def _parent(
+        owner: Declaration, classes: dict[tuple[str, str], Declaration]
+    ) -> Declaration | None:
+        if owner.kind == "class":
+            return None
+        prefix = owner.symbol.rpartition(".")[0]
+        while prefix:
+            parent = classes.get((owner.module.key, prefix))
+            if parent is not None:
+                return parent
+            prefix = prefix.rpartition(".")[0]
+        return None
 
     @staticmethod
     def _excluded(owner: Declaration, parent: Declaration | None) -> bool:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Self
 
 from .suggest_model import Verdict
@@ -27,30 +28,16 @@ HEADER = (
 )
 
 
-class SuggestHeader:
-    """The comment header of a suggestion, with the package name escaped."""
-
-    _package: str
-
-    def __new__(cls, package: str) -> Self:
-        self = super().__new__(cls)
-        self._package = package
-        return self
-
-    def lines(self) -> tuple[str, ...]:
-        """Return the header lines."""
-        safe = SafeText(self._package).comment()
-        return tuple(line.format(package=safe) for line in HEADER)
-
-
 class RingLists:
-    """Render verdicts as rings, conflicts and unclassified."""
+    """Render verdicts as the header, then rings, conflicts and unclassified."""
 
     _verdicts: dict[str, Verdict]
+    _package: str
 
-    def __new__(cls, verdicts: dict[str, Verdict]) -> Self:
+    def __new__(cls, verdicts: dict[str, Verdict], package: str) -> Self:
         self = super().__new__(cls)
         self._verdicts = verdicts
+        self._package = package
         return self
 
     @property
@@ -62,10 +49,15 @@ class RingLists:
         """Return the ring of each module that has one."""
         return {n: v.ring for n, v in self._verdicts.items() if v.ring}
 
+    def header(self) -> tuple[str, ...]:
+        """Return the comment header, with the package name escaped."""
+        safe = SafeText(self._package).comment()
+        return tuple(line.format(package=safe) for line in HEADER)
+
     def notes(self) -> list[str]:
-        ringed = [n for n in self.modules if self._verdicts[n].ring]
-        clash = [n for n in self.modules if self._verdicts[n].conflict]
-        free = [n for n in self.modules if n not in ringed and n not in clash]
+        ringed = self._named(lambda v: bool(v.ring))
+        clash = self._named(lambda v: v.conflict)
+        free = self._named(lambda v: not v.ring and not v.conflict)
         lines = ["", "# Ring from declaration, name or entry evidence:"]
         lines.extend(self._lines(ringed, None))
         lines.extend(("", "# Conflicts:"))
@@ -74,6 +66,9 @@ class RingLists:
         lines.extend(self._lines(free, "unclassified"))
         lines.extend(("", self._summary(ringed, clash, free)))
         return lines
+
+    def _named(self, wanted: Callable[[Verdict], bool]) -> list[str]:
+        return [n for n in self.modules if wanted(self._verdicts[n])]
 
     def _lines(self, names: list[str], label: str | None) -> list[str]:
         if not names:

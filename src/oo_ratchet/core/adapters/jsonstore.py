@@ -55,10 +55,12 @@ class AuditFile:
     """Append to and read an audit log file; implements ``AuditSink``."""
 
     _path: Path
+    _form: type[AuditFormat]
 
-    def __new__(cls, path: Path) -> Self:
+    def __new__(cls, path: Path, form: type[AuditFormat] = AuditFormat) -> Self:
         self = super().__new__(cls)
         self._path = path
+        self._form = form
         return self
 
     @property
@@ -70,7 +72,7 @@ class AuditFile:
         """Stamp ``record`` with the current time and add its line."""
         stamp = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         with self._path.open("a") as f:
-            f.write(AuditFormat.encode(record, stamp))
+            f.write(self._form.encode(record, stamp))
         logger.info("Appended %s entry to audit %s", record.verdict, self._path)
 
     def records(self) -> tuple[AuditRecord, ...]:

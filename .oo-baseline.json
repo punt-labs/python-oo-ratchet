@@ -38,6 +38,246 @@
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
   },
+  "src/oo_ratchet/core/__init__.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 0.0,
+    "max_complexity": 0.0,
+    "avg_complexity": 0.0,
+    "module_size": 1.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
+  "src/oo_ratchet/core/adapters/__init__.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 0.0,
+    "max_complexity": 0.0,
+    "avg_complexity": 0.0,
+    "module_size": 1.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
+  "src/oo_ratchet/core/adapters/formats.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 1.4,
+    "max_complexity": 9.0,
+    "avg_complexity": 4.6,
+    "module_size": 80.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
+  "src/oo_ratchet/core/adapters/gatecli.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 1.0,
+    "max_complexity": 9.0,
+    "avg_complexity": 2.86,
+    "module_size": 79.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
+  "src/oo_ratchet/core/adapters/gitrepo.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 1.27,
+    "max_complexity": 6.0,
+    "avg_complexity": 2.64,
+    "module_size": 93.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
+  "src/oo_ratchet/core/adapters/jsonstore.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 0.44,
+    "max_complexity": 3.0,
+    "avg_complexity": 1.33,
+    "module_size": 50.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
+  "src/oo_ratchet/core/adapters/pyprojectconfig.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 0.67,
+    "max_complexity": 5.0,
+    "avg_complexity": 3.0,
+    "module_size": 30.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
+  "src/oo_ratchet/core/adapters/sourcetree.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 1.0,
+    "max_complexity": 2.0,
+    "avg_complexity": 1.25,
+    "module_size": 23.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
+  "src/oo_ratchet/core/application/__init__.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 0.0,
+    "max_complexity": 0.0,
+    "avg_complexity": 0.0,
+    "module_size": 1.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
+  "src/oo_ratchet/core/application/bases.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 1.33,
+    "max_complexity": 6.0,
+    "avg_complexity": 3.33,
+    "module_size": 32.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
+  "src/oo_ratchet/core/application/check.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 2.75,
+    "max_complexity": 9.0,
+    "avg_complexity": 4.5,
+    "module_size": 115.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
+  "src/oo_ratchet/core/application/operation.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 2.0,
+    "max_complexity": 1.0,
+    "avg_complexity": 1.0,
+    "module_size": 27.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
+  "src/oo_ratchet/core/application/policy.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 2.26,
+    "max_complexity": 9.0,
+    "avg_complexity": 4.05,
+    "module_size": 167.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
+  "src/oo_ratchet/core/application/ports.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 0.75,
+    "max_complexity": 1.0,
+    "avg_complexity": 1.0,
+    "module_size": 42.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
+  "src/oo_ratchet/core/application/update.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 2.78,
+    "max_complexity": 7.0,
+    "avg_complexity": 4.78,
+    "module_size": 146.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
+  "src/oo_ratchet/core/application/waive.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 3.0,
+    "max_complexity": 6.0,
+    "avg_complexity": 3.5,
+    "module_size": 127.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
+  "src/oo_ratchet/core/domain/__init__.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 0.0,
+    "max_complexity": 0.0,
+    "avg_complexity": 0.0,
+    "module_size": 1.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
+  "src/oo_ratchet/core/domain/changes.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 0.5,
+    "max_complexity": 7.0,
+    "avg_complexity": 5.0,
+    "module_size": 25.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
+  "src/oo_ratchet/core/domain/errors.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 0.0,
+    "max_complexity": 0.0,
+    "avg_complexity": 0.0,
+    "module_size": 3.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
+  "src/oo_ratchet/core/domain/metrics.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 1.2,
+    "max_complexity": 2.0,
+    "avg_complexity": 1.2,
+    "module_size": 32.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
+  "src/oo_ratchet/core/domain/records.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 0.75,
+    "max_complexity": 5.0,
+    "avg_complexity": 4.0,
+    "module_size": 45.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
+  "src/oo_ratchet/core/domain/scores.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 0.33,
+    "max_complexity": 2.0,
+    "avg_complexity": 1.67,
+    "module_size": 25.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
+  "src/oo_ratchet/core/domain/selection.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 0.5,
+    "max_complexity": 4.0,
+    "avg_complexity": 3.5,
+    "module_size": 17.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
+  "src/oo_ratchet/core/domain/verdicts.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 0.43,
+    "max_complexity": 7.0,
+    "avg_complexity": 2.29,
+    "module_size": 64.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
   "src/oo_ratchet/coupling/__init__.py": {
     "method_ratio": 1.0,
     "encapsulation_ratio": 1.0,
@@ -1584,14 +1824,11 @@
     "future_annotations": 1.0
   },
   "src/oo_ratchet/source_archive.py": {
-    "method_ratio": 1.0,
     "encapsulation_ratio": 1.0,
-    "avg_params": 3.0,
-    "max_complexity": 8.0,
-    "avg_complexity": 3.33,
-    "module_size": 34.0,
-    "classes_per_module": 1.0,
-    "class_to_func_ratio": 1.0,
+    "avg_params": 2.4,
+    "max_complexity": 4.0,
+    "avg_complexity": 2.4,
+    "module_size": 36.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -1620,27 +1857,21 @@
     "future_annotations": 1.0
   },
   "src/oo_ratchet/source_rescan.py": {
-    "method_ratio": 1.0,
     "encapsulation_ratio": 1.0,
-    "avg_params": 1.71,
+    "avg_params": 2.0,
     "max_complexity": 5.0,
-    "avg_complexity": 2.29,
-    "module_size": 55.0,
-    "classes_per_module": 1.0,
-    "class_to_func_ratio": 1.0,
+    "avg_complexity": 3.25,
+    "module_size": 52.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
   },
   "src/oo_ratchet/source_set.py": {
-    "method_ratio": 1.0,
     "encapsulation_ratio": 1.0,
     "avg_params": 1.11,
     "max_complexity": 4.0,
     "avg_complexity": 1.93,
     "module_size": 150.0,
-    "classes_per_module": 1.0,
-    "class_to_func_ratio": 1.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0

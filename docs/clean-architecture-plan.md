@@ -181,6 +181,69 @@ form. It is kept for comparison:
 | A4 | PL-1722 | class debt: split `SourceSet`, `MetricRule` objects, fold the hollow classes, objects decide for themselves |
 | A5 | PL-1723 | method and signature debt: feature envy, complexity, long signatures, data clumps |
 
+### A2 decisions
+
+The shared core lives in `src/oo_ratchet/core/` with `domain/`, `application/`
+and `adapters/`. The layers table in `pyproject.toml` names each ring. The
+glob `oo_ratchet.*.baseline` matches across dots, so a core module is never
+named after an existing ring pattern (`audit`, `baseline`, `report`, `cli`).
+
+- **Domain types are frozen data.** `Score`, `BaselineRow`, `Measurement`,
+  `Metric`, `Waiver`, `FileReview`, `Review`, `Failure`, `Verdict`,
+  `AuditRecord`, `Diff` (renames as a dict), `SourceSelection` (strings, no
+  `Path`) and `StateError`/`GitError`. The domain imports no IO module.
+- **A baseline is `Rows`**, `{path: {metric: number}}`, the shape the OO and
+  coupling gates already write. Gate-specific metric sets differ only in the
+  `GatePolicy` table.
+- **`GatePolicy` holds the differences between gates**: the metric table
+  (target, direction, ceiling) and three flags. `must_improve` (OO true,
+  coupling false), `absolute_targets` (a new file or a metric missing from the
+  base row is judged by its target; OO true, coupling reports it as info) and
+  `lock_rows` (the in-tree baseline must equal the scores of every touched or
+  rewritten file; OO true, coupling false).
+- **Four ports plus `ArchiveRepo`.** `History` has five methods (`resolve`,
+  `baseline_at`, `audit_at`, `changes_since`, `head`), `BaselineStore` three,
+  `AuditSink` two, `SourceReader` three (`measure`, `exists`, `key`).
+  `ArchiveRepo` moved from `source_rescan` into `core.application.ports`;
+  `source_archive` and `source_rescan` import it under `TYPE_CHECKING`, which
+  ends the one module cycle. It keeps its private `_git` member until A3
+  deletes the three `GitRepo` copies.
+- **Operations return a `Verdict`, not text.** A failure is a `Failure(kind,
+  subjects)`; `GateCli` maps kinds to messages. `Check`, `Update`, `Relax`,
+  `RebaselineFiles` and `Rebaseline` take a `GatePolicy` and a `Ports` bundle.
+- **The CI-write guard is an adapter concern.** `GateCli.write_blocked` reads
+  `GITHUB_ACTIONS`; the operations never read the environment.
+- **Audit waivers come from `AuditRecord.waivers_since`**: records the base log
+  does not already carry, with verdict `relaxed` or `rebaseline-files`, matched
+  by a key that ignores key order.
+- **Path spellings** for `RebaselineFiles` are normalised by
+  `SourceReader.key`, implemented by `SourceTree`.
+- **One `GitRepo` adapter** (`core/adapters/gitrepo.py`) is built from the two
+  file names of a gate. It reads the baseline and audit blobs through
+  `BaselineFormat` and `AuditFormat`.
+- **Not in A2, left to A3:** `reconcile` (the whole-tree sweep), the
+  suppression gate's total-and-ceiling-ledger comparison and its different
+  audit and baseline formats, `PyprojectConfig` reading each gate's own table,
+  and the `LayerModel` move out of `design` (`LayerConfig`, `Edge`,
+  `Violation`, `ModuleIndex`), which touches 38 imports from `layers`.
+- **Differences from the live gates, to pin as A3 equivalence cases.** No gate
+  runs on the core yet; each A3 unit ports one gate behind a test that runs the
+  old gate and the core on the same repository. The cases known now:
+  a malformed in-tree baseline at the adoption merge (the old OO gate fails,
+  `Bases.undocumented` passes); a coupling update that beats the merge base but
+  loosens a tighter in-tree row (the coupling writer refuses, `PlanApplier`
+  accepts); `RebaselineFiles` over-cap tests use in-tree rows, coupling bless
+  uses the committed predecessor's row; bless paths given relative to the
+  working directory, not the repository root; `PyprojectConfig.table` on a
+  scalar parent key returns nothing where a direct query raises. The
+  equivalence tests build the core's ports from the legacy adapter; A3 points
+  them at `core/adapters/gitrepo.py`.
+- **Tests.** `tests/core/` runs the operations against in-memory ports in
+  under a second. `tests/core_real/` holds the real-git `GitRepo` tests and
+  the equivalence tests: each scenario runs the existing OO gate through
+  `oo_ratchet.oo.cli.main` and the new operations on the same repository, and
+  the verdicts must match.
+
 ## Order
 
 | Wave | In parallel | Waits on |

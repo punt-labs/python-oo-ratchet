@@ -1,4 +1,4 @@
-"""The README guide "Adopting Clean Architecture with oo-ratchet" stays true.
+"""The guide in docs/CONFIGURING.md, "Adopting Clean Architecture with oo-ratchet" stays true.
 
 Every `oo-ratchet` command in the guide's ```bash blocks names a real gate and
 only flags that gate's parser knows, and the guide covers the adoption path.
@@ -20,9 +20,9 @@ PLACEHOLDER_FLAGS = {"-h", "--help"}
 
 
 def _guide() -> str:
-    text = (ROOT / "README.md").read_text(encoding="utf-8")
+    text = (ROOT / "docs" / "CONFIGURING.md").read_text(encoding="utf-8")
     start = text.find(HEADING + "\n")
-    assert start != -1, f"README.md has no section {HEADING!r}"
+    assert start != -1, f"CONFIGURING.md has no section {HEADING!r}"
     nxt = re.search(r"^## ", text[start + len(HEADING) :], re.MULTILINE)
     end = len(text) if nxt is None else start + len(HEADING) + nxt.start()
     return text[start:end]

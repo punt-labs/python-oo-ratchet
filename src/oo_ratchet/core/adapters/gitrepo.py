@@ -60,7 +60,7 @@ class GitRepo:
         return out.strip() if out else None
 
     def fork_point(self, ref: str) -> str | None:
-        """Return where ``ref`` diverges from HEAD, ``None`` if either is unresolvable."""
+        """Return where ``ref`` diverges from HEAD, ``None`` if unresolvable."""
         commit = self.resolve(ref)
         return self.merge_base(commit, "HEAD") if commit is not None else None
 

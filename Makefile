@@ -1,9 +1,10 @@
-.PHONY: help lint type test check build clean check-oo update-oo check-coupling update-coupling check-suppressions update-suppressions
+.PHONY: help lint type test check build clean check-oo update-oo check-coupling update-coupling check-suppressions update-suppressions check-layers update-layers
 
 SRC := src/oo_ratchet/
 OO_BASE ?=
 COUPLING_BASE ?=
 SUPPRESSION_BASE ?=
+LAYERS_BASE ?=
 EVAL_VARIANTS := $(wildcard evals/design/*/bad evals/design/*/good)
 EVAL_TYPE_TARGETS := $(addprefix type-,$(EVAL_VARIANTS))
 
@@ -26,7 +27,7 @@ $(EVAL_TYPE_TARGETS): type-%:
 test: ## full suite, including the real-git slow tier
 	uv run pytest -m ""
 
-check: lint type test check-oo check-coupling check-suppressions ## all gates
+check: lint type test check-oo check-coupling check-suppressions check-layers ## all gates
 
 check-oo: ## OO must-improve ratchet (dogfooded on this package)
 	uv run oo-ratchet oo $(SRC) --check $(OO_BASE)
@@ -45,6 +46,12 @@ check-suppressions: ## suppression-count regression gate
 
 update-suppressions:
 	uv run oo-ratchet suppressions $(SRC) --update
+
+check-layers: ## layer-import ratchet (the four-ring table in pyproject.toml)
+	uv run oo-ratchet layers $(SRC) --check $(LAYERS_BASE)
+
+update-layers:
+	uv run oo-ratchet layers $(SRC) --update $(LAYERS_BASE)
 
 build: ## wheel + sdist
 	uv build

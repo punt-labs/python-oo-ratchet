@@ -106,3 +106,60 @@ ignore = [
 
 [tool.ruff.lint.mccabe]
 max-complexity = 10
+[tool.oo-ratchet.layers]
+entry = [
+  "oo_ratchet",
+  "oo_ratchet.__main__",
+  "oo_ratchet.gates",
+  "oo_ratchet.logging_config",
+  "oo_ratchet.usage",
+  "oo_ratchet.*.cli",
+]
+adapters = [
+  "oo_ratchet.*.gitio",
+  "oo_ratchet.*.baseline",
+  "oo_ratchet.*.audit",
+  "oo_ratchet.*.report",
+  "oo_ratchet.*.outcome",
+  "oo_ratchet.*.persist",
+  "oo_ratchet.*.pyproject",
+  "oo_ratchet.*.config",
+  "oo_ratchet.*.base_config",
+  "oo_ratchet.*.output",
+  "oo_ratchet.*.layout",
+  "oo_ratchet.*.tree",
+  "oo_ratchet.*.trees",
+  "oo_ratchet.*.package_tree",
+  "oo_ratchet.*.listing",
+  "oo_ratchet.*.shadow_snapshot",
+  "oo_ratchet.*.legacy_shadow",
+  "oo_ratchet.*.namespace_shadow",
+  "oo_ratchet.source_archive",
+  "oo_ratchet.source_history",
+  "oo_ratchet.source_options",
+  "oo_ratchet.source_rescan",
+  "oo_ratchet.source_set",
+  "oo_ratchet.sources",
+]
+application = [
+  "oo_ratchet.backfill",
+  "oo_ratchet.*.ratchet",
+  "oo_ratchet.*.compare",
+  "oo_ratchet.*.bless",
+  "oo_ratchet.*.relax",
+  "oo_ratchet.*.writer",
+  "oo_ratchet.*.rescan",
+  "oo_ratchet.*.apply",
+  "oo_ratchet.*.adoption",
+  "oo_ratchet.*.verdict",
+  "oo_ratchet.*.widening",
+  "oo_ratchet.*.chain",
+  "oo_ratchet.*.delta",
+  "oo_ratchet.*.scan",
+  "oo_ratchet.*.shadow",
+  "oo_ratchet.*.shadow_scan",
+  "oo_ratchet.*.shadow_report",
+]
+domain = [
+  "oo_ratchet.*",
+]

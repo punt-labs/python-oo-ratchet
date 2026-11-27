@@ -18,8 +18,9 @@ quality got worse:
   a fresh scan of the base tree. State: `.suppression-baseline.json`,
   `.suppression-audit.jsonl`.
 - `layers`: a baseline of forbidden import edges that may only shrink. State:
-  `.oo-layers-baseline.json`, `.oo-layers-audit.jsonl`. Not yet wired into
-  this repo's own `Makefile` or CI.
+  `.oo-layers-baseline.json`, `.oo-layers-audit.jsonl`. The four-ring table
+  (entry/adapters/application/domain) is `[tool.oo-ratchet.layers]` in
+  `pyproject.toml`; `make check-layers` runs the gate.
 - `design`: advisory; findings exit 0, bad input exits 2. `--shadow-check REF`
   compares findings against the merge base. No state files.
 
@@ -46,6 +47,7 @@ Always use `make` targets; Python 3.13+, managed by `uv`.
 ```bash
 uv sync
 make check            # lint type test check-oo check-coupling check-suppressions
+                      # check-layers
 make lint             # ruff check + ruff format --check (src tests evals)
 make type             # mypy --strict on src+tests, pyright on tests+evals,
                       # plus a separate mypy run per evals/design/*/{bad,good}
@@ -63,7 +65,7 @@ there is no uncollected test directory.
 
 ## The package ratchets itself
 
-`make check-oo`, `check-coupling` and `check-suppressions` run this package's
+`make check-oo`, `check-coupling`, `check-suppressions` and `check-layers` run this package's
 own gates over `src/oo_ratchet/` only (not `tests/` or `evals/`). Without
 `--base-ref`, `check-oo` and `check-coupling` compare the working tree against
 the merge base of `origin/main` and `HEAD`, so on a clean `main` they see no
@@ -76,6 +78,7 @@ check a branch exactly as CI does, get the merge-base SHA with
 make check-oo OO_BASE="--base-ref <sha> --require-base"
 make check-coupling COUPLING_BASE="--base-ref <sha> --require-base"
 make check-suppressions SUPPRESSION_BASE="--base-ref <sha> --require-base"
+make check-layers LAYERS_BASE="--base-ref <sha> --require-base"
 ```
 
 Consequences for any change under `src/oo_ratchet/`:
@@ -88,6 +91,12 @@ Consequences for any change under `src/oo_ratchet/`:
   same `--base-ref`) and commit the rewritten baseline and audit files with
   the source change. `--check` requires the in-tree baseline to equal the current
   scores.
+- `check-layers` fails on a layer-import edge not in `.oo-layers-baseline.json`
+  (the four-ring table is `[tool.oo-ratchet.layers]` in `pyproject.toml`; the
+  baseline holds 106 edges at adoption). Edges may only be removed: after
+  removing one, run `make update-layers` and commit the rewritten baseline and
+  audit file. Adding an edge or widening the table needs
+  `--update --allow-config-change --source <ref>`.
 - `check-suppressions` compares the total suppression count (`noqa`,
   `type: ignore`, per-file-ignores, ...) with the base tree's total. Adding one
   fails the gate unless the same change removes another.

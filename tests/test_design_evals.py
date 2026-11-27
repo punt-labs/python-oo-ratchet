@@ -6,6 +6,7 @@ import json
 import shutil
 import subprocess
 import sys
+import tempfile
 import tomllib
 from pathlib import Path
 from typing import TypedDict, cast
@@ -51,12 +52,17 @@ def _expected(pair: Path, variant: str) -> set[Key]:
 
 def _scan(root: Path) -> set[Key]:
     layers = root.parents[1] / "layers.toml"
-    doc = json.loads(
-        DesignScanner(root, layers if layers.is_file() else None).report.to_json()
-    )
+    # Scan a copy outside the checkout: the repository's own pyproject layer
+    # table must not reach the fixtures through the ancestor lookup.
+    with tempfile.TemporaryDirectory() as scratch:
+        copy = Path(scratch) / root.name
+        shutil.copytree(root, copy)
+        doc = json.loads(
+            DesignScanner(copy, layers if layers.is_file() else None).report.to_json()
+        )
     assert doc["skipped"] == []
     return {
-        (row["rule"], Path(row["path"]).relative_to(root).as_posix(), row["symbol"])
+        (row["rule"], Path(row["path"]).relative_to(copy).as_posix(), row["symbol"])
         for row in doc["findings"]
     }
 

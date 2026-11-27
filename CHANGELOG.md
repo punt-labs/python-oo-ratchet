@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+### Changed
+
+- The OO gate no longer pushes code into small one-class modules (PL-1685).
+  `method_ratio`, `class_to_func_ratio` and `classes_per_module` are no longer
+  gated or recorded in baselines; `--json` still reports them. `module_size`
+  is a ceiling of 400 code lines (was 300, compared file by file): under it,
+  growth is not a regression and shrinking is not an improvement; over it,
+  smaller is better. Existing baselines load unchanged; their extra fields are
+  ignored and dropped when a row is rewritten. On vox, modules failing a
+  new-file target fall from 22 to 5.
+
+### Removed
+
+- The extraction waiver (`oo/provenance.py`, `LineChange`,
+  `GitRepo.line_changes`, the `EXTRACTED` review state). It exempted only the
+  two class-shape ratios, which are no longer gated.
+
 ## [0.6.0] - 2026-11-23
 
 ### Added
@@ -143,10 +160,6 @@
 
 ## [0.1.0] - 2026-11-18
 
-### Added
-
-- Published to PyPI as `punt-oo-ratchet` (CLI `oo-ratchet`) via `release.yml` trusted publishing.
-
 ### Fixed (Qodo review of #1)
 
 - `--tripwire` on all three gates, and it fails when main has no baseline.
@@ -159,6 +172,7 @@
 
 ### Added
 
+- Published to PyPI as `punt-oo-ratchet` (CLI `oo-ratchet`) via `release.yml` trusted publishing.
 - `oo-ratchet` package and CLI (`oo-ratchet {oo,coupling,suppressions}`), extracted from vox's `tools/` ratchets.
 - Extraction provenance for new zero-class modules, coupling `--tripwire`, `tokenize`-based suppression scan (from quarry).
 - `--rebaseline-files` bounded bless with over-cap carry, vanished-row cleanup, removed rows in the audit log (from lux).

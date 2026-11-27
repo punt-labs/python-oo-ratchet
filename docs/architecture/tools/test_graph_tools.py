@@ -6,6 +6,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 TOOLS = Path(__file__).parent
 sys.path.insert(0, str(TOOLS))
 
@@ -66,14 +68,17 @@ def test_package_graph_finds_module_cycle_through_type_checking_import(
     assert "component: pkg.archive, pkg.rescan" in out
 
 
-def test_package_graph_counts_imports_of_the_root_package(tmp_path: Path) -> None:
+@pytest.mark.parametrize("back_edge", ["import pkg", "from pkg import NAME"])
+def test_package_graph_counts_imports_of_the_root_package(
+    tmp_path: Path, back_edge: str,
+) -> None:
     """`import pkg` and `from pkg import name` reach the root __init__.py; a cycle
     through it is reported."""
     pkg = tmp_path / "pkg"
     (pkg / "a").mkdir(parents=True)
-    (pkg / "__init__.py").write_text("from pkg.a.m import VALUE\n")
+    (pkg / "__init__.py").write_text("from pkg.a.m import VALUE\nNAME = 1\n")
     (pkg / "a" / "__init__.py").write_text("")
-    (pkg / "a" / "m.py").write_text("import pkg\nVALUE = 1\n")
+    (pkg / "a" / "m.py").write_text(f"{back_edge}\nVALUE = 1\n")
     out = _package_graph(pkg)
     assert "module cycles: 1 " in out
     assert "component: pkg, pkg.a.m" in out

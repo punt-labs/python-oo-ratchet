@@ -46,19 +46,22 @@ class DomainIO:
         """Return one finding per IO module import, plus bare unbound opens."""
         out = [self._finding(node, name) for node, name in self._imports()]
         out.extend(
-            self._finding(node, "open")
-            for node in BuiltinOpen(self._module.tree).calls()
+            self._finding(node, "open") for node in self._opens(self._module.tree)
         )
         return out
 
     def targets(self) -> list[str]:
         """Return the sorted distinct IO targets, a bare ``open`` as builtins.open."""
-        tree = self._module.tree
-        type_only = ImportTargets.type_only(tree)
         names = {name for _, name in self._imports()}
-        if any(id(call) not in type_only for call in BuiltinOpen(tree).calls()):
+        if self._opens(self._module.tree):
             names.add("builtins.open")
         return sorted(names)
+
+    @staticmethod
+    def _opens(tree: ast.Module) -> list[ast.Call]:
+        """Return the bare unbound ``open`` calls outside TYPE_CHECKING."""
+        type_only = ImportTargets.type_only(tree)
+        return [call for call in BuiltinOpen(tree).calls() if id(call) not in type_only]
 
     def _imports(self) -> list[tuple[ast.stmt, str]]:
         type_only = ImportTargets.type_only(self._module.tree)

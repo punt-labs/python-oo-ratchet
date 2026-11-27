@@ -508,10 +508,10 @@
   },
   "src/oo_ratchet/design/domain_io.py": {
     "encapsulation_ratio": 1.0,
-    "avg_params": 0.8,
+    "avg_params": 0.82,
     "max_complexity": 5.0,
-    "avg_complexity": 2.9,
-    "module_size": 87.0,
+    "avg_complexity": 2.82,
+    "module_size": 88.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0

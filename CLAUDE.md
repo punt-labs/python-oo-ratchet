@@ -65,10 +65,11 @@ are not collected by pytest.
 
 `make check-oo`, `check-coupling` and `check-suppressions` run this package's
 own gates over `src/oo_ratchet/` only (not `tests/` or `evals/`). Without
-`--base-ref`, `check-oo` and `check-coupling` compare against the merge base of
-`origin/main` and `HEAD`, so on `main` itself they see no touched files and
-pass trivially. To check a branch exactly as CI does, get the merge-base SHA
-with `git merge-base origin/main HEAD`, then:
+`--base-ref`, `check-oo` and `check-coupling` compare the working tree against
+the merge base of `origin/main` and `HEAD`, so on a clean `main` they see no
+touched files and pass trivially; uncommitted edits are still checked. To
+check a branch exactly as CI does, get the merge-base SHA with
+`git merge-base origin/main HEAD`, then:
 
 ```bash
 make check-oo OO_BASE="--base-ref <sha> --require-base"
@@ -80,10 +81,11 @@ Consequences for any change under `src/oo_ratchet/`:
 
 - No OO metric may regress on any touched file, and at least one metric must
   improve on at least one touched, already-baselined file (other touched files
-  may stay level). New files must meet the targets below. After editing, run
-  `make update-oo` and `make update-coupling` (with the same `--base-ref`)
-  and commit the rewritten baseline and audit files with the
-  source change. `--check` requires the in-tree baseline to equal the current
+  may stay level). New files must meet the targets below; a change that only
+  adds files passes by meeting them, with no improvement needed elsewhere.
+  After editing, run `make update-oo` and `make update-coupling` (with the
+  same `--base-ref`) and commit the rewritten baseline and audit files with
+  the source change. `--check` requires the in-tree baseline to equal the current
   scores.
 - `check-suppressions` compares the total suppression count (`noqa`,
   `type: ignore`, per-file-ignores, ...) with the base tree's total. Adding one

@@ -82,11 +82,13 @@ Measured with this repo's own tool:
 ### Ring counts
 
 The four-ring table for `src/oo_ratchet` is `architecture/four-rings.toml`.
-Each module is placed by its role: `*.gitio`, `*.baseline`,
-`*.audit`, `*.report`, `*.outcome` and the `source_*` modules are
+Modules are placed by role; the file lists every pattern and module it names.
+The main ones: `*.gitio`, `*.baseline`, `*.audit`, `*.report`, `*.outcome`,
+config readers such as `coupling/config` and the `source_*` modules are
 adapters; `*.ratchet`, `*.compare`, `*.bless`, `*.relax`, `*.writer`, `*.rescan`,
-`*.apply`, `*.scan`, `backfill` are application; `__main__`, `gates`, `usage`,
-`logging_config` and `*.cli` are entry; every other module is domain. Measured with
+`*.apply`, `*.scan`, the `shadow*` modules, `backfill` are application; `__main__`, `gates`, `usage`,
+`logging_config` and `*.cli` are entry; every module the file does not name is
+domain. Measured with
 `oo-ratchet design src/oo_ratchet/ --layers docs/architecture/four-rings.toml
 --json`, run from the repository root (137 files scanned, 243 findings):
 
@@ -120,13 +122,14 @@ The 130 `layer-import` violations by importing ring and the ring imported:
 
 Entry and adapters import nothing outward. 54 of the 130 are in the four package
 `__init__.py` files (`oo`, `coupling`, `layers`, `suppression`), which are
-domain by the table and re-export every module of their package. The most
+domain by the table and import the modules they export, most of them in the
+outer rings. The most
 imported outer modules are `source_set` (17), `coupling/outcome` (7),
 `oo/baseline` (7), `coupling/gitio` (6), `oo/compare` (6), `oo/audit` (6) and
 `oo/gitio` (6).
 
-The 9 `thick-entry` findings are methods of the five `cli.py` modules whose
-complexity exceeds 4 (`oo/cli.py` `Cli._run_action` is 10). The 9 `domain-io`
+The 9 `thick-entry` findings are methods of the four CLI modules (`oo`, `coupling`,
+`suppression`, `layers`) whose complexity exceeds 4 (`oo/cli.py` `Cli._run_action` is 10). The 9 `domain-io`
 findings are in 8 modules: 6 import `pathlib`
 (`coupling/packages`, `coupling/scorer`, `design/layer_table`,
 `design/modules`, `oo/scorer`, `suppression/scanner`), 2 import `io`

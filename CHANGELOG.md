@@ -69,6 +69,25 @@
 
 ### Fixed
 
+- `layers --check` now treats moving a module outward (toward `entry`) or out
+  of `domain` in the fixed four-layer table as a policy widening, so
+  promoting a domain module to `adapters` no longer escapes domain-purity
+  enforcement. It needs `--allow-config-change`, like a widened `imports`.
+  Moves toward `domain` and declared layers are unchanged. Only modules that
+  exist at both the base and the current tree can move: a new module listed in
+  an outer layer is not a promotion, and its edges are not judged under the
+  base config. A module that loses its layer (for example a clean package
+  initializer dropped from `domain`) is a widening too. The base's modules
+  come from the committed tree (`git ls-tree`) for a single package
+  directory: an `export-ignore`d module still counts, a base with only
+  `__init__.py` (or none) works, a stray non-UTF-8 file name elsewhere does
+  not block the check, a package at the repository root or moved to another
+  directory (found by import name among top-level packages) is handled, and an
+  ambiguous base package fails the check instead of passing. A `--namespace`
+  or multi-root selection compares every current module (strict, no history),
+  so a new module listed in an outer layer by name needs
+  `--allow-config-change`. `LayersRatchet`'s base-modules argument is optional;
+  without it every current module counts as present, the same strict default.
 - Reading `[tool.oo-ratchet]` stops at the checkout root. A repository with no
   `pyproject.toml` inside a directory tree that has one adopted the outer
   file's namespace and roots.

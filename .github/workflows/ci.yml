@@ -30,10 +30,12 @@ jobs:
           make check-oo OO_BASE="${OO_ARGS}"
           make check-coupling COUPLING_BASE="--base-ref ${BASE} --require-base"
           make check-suppressions SUPPRESSION_BASE="--base-ref ${BASE} --require-base"
+          make check-layers LAYERS_BASE="--base-ref ${BASE} --require-base"
       - name: Ratchets (main, post-merge tripwire)
         if: github.event_name == 'push'
         run: |
           make check-oo OO_BASE="--base-ref HEAD~1 --require-base --allow-no-improvement --tripwire"
           make check-coupling COUPLING_BASE="--base-ref HEAD~1 --require-base --tripwire"
           make check-suppressions SUPPRESSION_BASE="--base-ref HEAD~1 --require-base --tripwire"
+          make check-layers LAYERS_BASE="--base-ref HEAD~1 --require-base --tripwire"
       - run: uv build

@@ -8,10 +8,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Self
 
-from oo_ratchet.coupling.gitio import GitError
 from oo_ratchet.coupling.outcome import Outcome
 from oo_ratchet.source_set import Source, SourceSet
 
+from .base_modules import BaseModules, GitError
 from .failures import FAILURES
 from .gitio import LayersGit
 from .ratchet import LayersRatchet
@@ -150,7 +150,7 @@ class Cli:
     def _dispatch(self, scan: LayerScan, root: Path, git: LayersGit) -> Outcome:
         opts = self._opts
         if opts.check:
-            return LayersRatchet(root, git).check(
+            return LayersRatchet(root, git, BaseModules(root, opts.src).shared).check(
                 scan,
                 base_ref=opts.base_ref,
                 require_base=opts.require_base,

@@ -1,8 +1,13 @@
-A0 (PL-1718) measurement, main at 987f57b, ring table `docs/architecture/four-rings.toml`.
+A0 (PL-1718) measurement on the `src/oo_ratchet` of main 987f57b, with the ring table of `docs/architecture/four-rings.toml` as added in b4b85a5.
+Reproduce: extract `src` of 987f57b (`git archive 987f57b src`), save `git show b4b85a5:docs/architecture/four-rings.toml` to a file and run
+`uv run oo-ratchet design src/oo_ratchet/ --layers <that file> --json` (137 files scanned, 243 findings).
+The current tree, with the table in `pyproject.toml`
+(`uv run oo-ratchet design src/oo_ratchet/ --json`): 139 files scanned, 248
+findings; `layer-import` 130, `domain-io` 9, `thick-entry` 9.
 
 Commands:
 
-- `uv run oo-ratchet design src/oo_ratchet/ --layers docs/architecture/four-rings.toml --json`
+- `uv run oo-ratchet design src/oo_ratchet/ --layers <table of 987f57b> --json`
 - `uv run python docs/architecture/tools/adopter_shape.py src/oo_ratchet`
 
 Design check with the four rings: 137 files scanned, 243 findings. `*.cli` modules are entry and `*.writer` modules are application, as PL-1718 specifies.

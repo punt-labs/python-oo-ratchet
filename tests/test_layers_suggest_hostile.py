@@ -229,7 +229,7 @@ class TestNonBmpNames:
 
     def test_controls_and_quotes_still_escaped(self) -> None:
         text = 'a"b\\c\x7f' + LS + "\x85\n\U00010400"
-        quoted = SafeText.quoted(text)
+        quoted = SafeText(text).quoted()
         assert tomllib.loads(f"k = {quoted}")["k"] == text
 
 

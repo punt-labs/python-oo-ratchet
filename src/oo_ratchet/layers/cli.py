@@ -138,7 +138,7 @@ class Cli:
         opts = self._opts
         if opts.check:
             return LayersRatchet(
-                root, self._git, BaseModules(root, opts.src).shared
+                root, self._git, BaseModules(root, opts.src, self._git).shared
             ).check(
                 scan,
                 base_ref=opts.base_ref,

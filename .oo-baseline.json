@@ -1077,10 +1077,10 @@
   },
   "src/oo_ratchet/layers/base_modules.py": {
     "encapsulation_ratio": 1.0,
-    "avg_params": 2.67,
-    "max_complexity": 5.0,
-    "avg_complexity": 2.67,
-    "module_size": 45.0,
+    "avg_params": 2.3,
+    "max_complexity": 7.0,
+    "avg_complexity": 4.2,
+    "module_size": 95.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -1233,8 +1233,8 @@
     "encapsulation_ratio": 1.0,
     "avg_params": 3.0,
     "max_complexity": 9.0,
-    "avg_complexity": 4.8,
-    "module_size": 128.0,
+    "avg_complexity": 4.17,
+    "module_size": 133.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0

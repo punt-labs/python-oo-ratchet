@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 from pathlib import Path
-from typing import TYPE_CHECKING, Self
+from typing import Self
 
 from oo_ratchet.coupling.outcome import Outcome
 from oo_ratchet.design.layer_edges import Edge
@@ -25,10 +25,12 @@ from .gitio import LayersGit
 from .scan import LayerScan
 from .verdict import LayersVerdict
 
-if TYPE_CHECKING:
-    from oo_ratchet.design.layer_config import LayerConfig
+type SharedModules = Callable[[Iterable[str], str, str], list[str]]
 
-type SharedModules = Callable[[Iterable[str], str, LayerConfig], list[str]]
+
+def _every_module(modules: Iterable[str], _base: str, _package: str) -> list[str]:
+    """Treat every current module as present at the base: no module is new."""
+    return list(modules)
 
 
 class LayersRatchet:
@@ -40,7 +42,12 @@ class LayersRatchet:
     _git: LayersGit
     _shared: SharedModules
 
-    def __new__(cls, root: Path, git: LayersGit, shared: SharedModules) -> Self:
+    def __new__(
+        cls,
+        root: Path,
+        git: LayersGit,
+        shared: SharedModules = _every_module,
+    ) -> Self:
         self = super().__new__(cls)
         self._config = BaseConfig(root, git)
         self._adoption = Adoption(root)
@@ -109,7 +116,7 @@ class LayersRatchet:
         accepted = scan.io_edges if allow_config_change else frozenset()
         if config is not None:
             same = BaseComparison(
-                scan, config, self._shared(scan.modules, base, config)
+                scan, config, self._shared(scan.modules, base, scan.package)
             )
             under_base = same.under_base(base_edges, accepted)
             widened = [] if allow_config_change else same.widened()

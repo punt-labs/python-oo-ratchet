@@ -1,11 +1,16 @@
-"""The one option set every ratchet gate parses its command line into."""
+"""The one command line every ratchet gate parses, runs and prints."""
 
 from __future__ import annotations
 
 import argparse
+import sys
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from enum import Enum
-from typing import Any, Self
+from pathlib import Path
+from typing import Any, Protocol, Self
+
+from oo_ratchet.core.domain.errors import StateError
 
 from .source_set import Source, SourceSelection
 from .sources import Sources
@@ -122,6 +127,11 @@ class GateOptions:
     allow_config_change: bool = False
     source: str | None = None
 
+    @property
+    def anchor(self) -> Path:
+        """Return the physical path of the selected source."""
+        return SourceSelection.path(self.src)
+
     @classmethod
     def parse(cls, spec: GateSpec, argv: list[str] | None = None) -> Self:
         """Build options from ``argv`` (defaults to ``sys.argv``)."""
@@ -158,3 +168,41 @@ class GateOptions:
         if isinstance(ns.src, Sources):
             ns.src = SourceSelection(ns.src)
         return ns
+
+
+type Report = tuple[list[str], int]
+
+
+class Gate(Protocol):
+    """What one gate does with its parsed options: report lines and an exit code."""
+
+    def run(self) -> Report:
+        """Execute the requested operation."""
+        ...
+
+
+class GateCommand:
+    """Parse one gate's command line, run the gate and print its report.
+
+    Locating the repository root can fail while a gate is built; that is a
+    failing report, never a traceback.
+    """
+
+    _spec: GateSpec
+    _build: Callable[[GateOptions], Gate]
+
+    def __new__(cls, spec: GateSpec, build: Callable[[GateOptions], Gate]) -> Self:
+        self = super().__new__(cls)
+        self._spec = spec
+        self._build = build
+        return self
+
+    def main(self, argv: list[str] | None = None) -> int:
+        """Parse ``argv``, run the gate and return its exit code."""
+        options = GateOptions.parse(self._spec, argv)
+        try:
+            lines, code = self._build(options).run()
+        except StateError as exc:
+            lines, code = [f"FAIL: {exc}"], 1
+        sys.stdout.writelines(line + "\n" for line in lines)
+        return code

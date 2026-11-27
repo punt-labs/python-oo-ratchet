@@ -517,4 +517,4 @@ def test_historical_namespace_roots_cannot_escape_the_checkout(
     )
     source = SourceSelection.from_roots((repo.root / "src/app",), "app")
     with pytest.raises(ValueError, match="historical namespace root escapes checkout"):
-        SourceHistory(source).at_base(repo.root, repo.root / "historical", {})
+        SourceHistory(source.target).at_base(repo.root, repo.root / "historical", {})

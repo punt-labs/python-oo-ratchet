@@ -209,8 +209,8 @@ def test_absent_historical_root_does_not_select_unrelated_namespace(
     assert source.project is not None
     tree = tmp_path / "base"
     write(tree, "app/unrelated.py", HEADER)
-    target = SourceHistory(source).at_base(source.project, tree, {})
-    assert not SourceSelection.path(target).exists()
+    target = SourceHistory(source.target).at_base(source.project, tree, {})
+    assert not SourceSelection(target).anchor.exists()
 
 
 def test_resolved_namespace_is_passed_through_unchanged(

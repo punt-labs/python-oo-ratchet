@@ -7,8 +7,15 @@ from typing import Self
 from oo_ratchet.core.adapters.edgegate import EdgeGate
 from oo_ratchet.core.adapters.gitrepo import GitRepo
 from oo_ratchet.core.domain.exits import Outcome
-from oo_ratchet.gate_command import GateCommand, Report
-from oo_ratchet.gate_options import Flag, GateOptions, GateSpec, Kind, Needs
+from oo_ratchet.gate_options import (
+    Flag,
+    GateCommand,
+    GateOptions,
+    GateSpec,
+    Kind,
+    Needs,
+    Report,
+)
 from oo_ratchet.source_set import SourceSelection
 
 from .failures import FAILURES
@@ -78,13 +85,10 @@ class LayersRun:
 
     def run(self) -> Report:
         """Execute the requested operation and return its report."""
-        outcome = self._outcome()
+        if not self._opts.anchor.exists():
+            return [f"Not found: {self._opts.src}"], 1
+        outcome = self._suggest() if self._opts.suggest else self._checked()
         return list(outcome.lines), outcome.exit_code
-
-    def _outcome(self) -> Outcome:
-        if not SourceSelection.path(self._opts.src).exists():
-            return Outcome.failed(f"Not found: {self._opts.src}")
-        return self._suggest() if self._opts.suggest else self._checked()
 
     def _checked(self) -> Outcome:
         git = EdgeGate.repo(self._opts.src)

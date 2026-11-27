@@ -6,6 +6,7 @@ The module keeps its name: the layers baseline holds its import edges by module.
 from __future__ import annotations
 
 import os.path
+from collections.abc import Callable
 from pathlib import Path
 from typing import Self
 
@@ -37,6 +38,13 @@ class SourceSelection:
     def path(target: Source) -> Path:
         """Return the physical anchor without changing legacy Path spelling."""
         return target.anchor if isinstance(target, SourceSelection) else target
+
+    def select[T](
+        self, legacy: Callable[[Path], T], namespace: Callable[[Sources], T]
+    ) -> T:
+        """Apply ``legacy`` to a lone path or ``namespace`` to its portions."""
+        target = self._target
+        return namespace(target) if isinstance(target, Sources) else legacy(target)
 
     @property
     def target(self) -> Path | Sources:

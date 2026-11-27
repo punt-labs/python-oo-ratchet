@@ -5,26 +5,26 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Self
 
-from .source_set import Source, SourceSelection
 from .sources import Sources
 
 
 class SourceHistory:
     """Translate one source selection, not module identities, across a checkout."""
 
-    _selection: SourceSelection
+    _target: Path | Sources
 
-    def __new__(cls, source: Source) -> Self:
+    def __new__(cls, target: Path | Sources) -> Self:
         self = super().__new__(cls)
-        self._selection = SourceSelection(source)
+        self._target = target
         return self
 
-    def at_base(self, repo: Path, tree: Path, renames: dict[str, str]) -> Source:
+    def at_base(
+        self, repo: Path, tree: Path, renames: dict[str, str]
+    ) -> Path | Sources:
         """Select historical physical portions using the same resolved namespace."""
-        target = self._selection.target
-        if isinstance(target, Sources):
-            return SourceSelection(self.at(target, repo, tree, renames))
-        return tree / target.resolve().relative_to(repo)
+        if isinstance(self._target, Sources):
+            return self.at(self._target, repo, tree, renames)
+        return tree / self._target.resolve().relative_to(repo)
 
     @staticmethod
     def at(

@@ -2,15 +2,19 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Self
 
 from oo_ratchet.core.adapters.tallygate import GateFiles, TallyGate
 from oo_ratchet.core.domain.errors import StateError
 from oo_ratchet.core.domain.tallies import Tally
-from oo_ratchet.gate_command import GateCommand, Report
-from oo_ratchet.gate_options import Flag, GateOptions, GateSpec, Kind
-from oo_ratchet.source_set import Source, SourceSelection
+from oo_ratchet.gate_options import (
+    Flag,
+    GateCommand,
+    GateOptions,
+    GateSpec,
+    Kind,
+    Report,
+)
 
 from .pyproject import PyprojectError
 from .report import SuppressionReport
@@ -64,7 +68,9 @@ class SuppressionRun:
     def __new__(cls, options: GateOptions) -> Self:
         self = super().__new__(cls)
         self._opts = options
-        self._gate = TallyGate(_FILES, options.src, cls._count)
+        self._gate = TallyGate(
+            _FILES, options.src, lambda target, root: Scanner(target, root).report.tally
+        )
         return self
 
     @property
@@ -75,7 +81,7 @@ class SuppressionRun:
 
     def run(self) -> Report:
         """Execute the requested operation and return its report."""
-        if not SourceSelection.path(self._opts.src).exists():
+        if not self._opts.anchor.exists():
             return [f"not found: {self._opts.src}"], 1
         try:
             # Anchor the scan's project root and the state files to the repo
@@ -92,7 +98,7 @@ class SuppressionRun:
 
     def _dispatch(self, report: SuppressionReport) -> Report:
         opts = self._opts
-        tally = self._count_report(report)
+        tally = report.tally
         if opts.check:
             return self._gate.check(
                 tally,
@@ -128,14 +134,6 @@ class SuppressionRun:
             justify=opts.justify,
             allow_ci_write=opts.allow_ci_write,
         )
-
-    @staticmethod
-    def _count(target: Source, project: Path) -> Tally:
-        return SuppressionRun._count_report(Scanner(target, project).report)
-
-    @staticmethod
-    def _count_report(report: SuppressionReport) -> Tally:
-        return report.tally
 
 
 def main(argv: list[str] | None = None) -> int:

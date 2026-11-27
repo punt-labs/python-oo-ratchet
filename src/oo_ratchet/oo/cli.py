@@ -4,8 +4,7 @@ from __future__ import annotations
 
 from oo_ratchet.core.adapters.oogate import OoGate
 from oo_ratchet.core.application.policy import GatePolicy
-from oo_ratchet.gate_command import GateCommand
-from oo_ratchet.gate_options import Flag, GateOptions, GateSpec, Kind
+from oo_ratchet.gate_options import Flag, GateCommand, GateOptions, GateSpec, Kind
 
 from .scorer import Scorer
 from .thresholds import Thresholds

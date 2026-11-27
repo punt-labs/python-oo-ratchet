@@ -20,10 +20,10 @@ class ShadowCheck:
     def __new__(cls, source: Source, layers: Path | None, ref: str) -> Self:
         self = super().__new__(cls)
         selection = SourceSelection(source)
-        if selection.namespace is None:
-            self._report = LegacyShadow(selection.anchor, layers, ref).report
-        else:
-            self._report = NamespaceShadow(selection, layers, ref).report
+        self._report = selection.select(
+            lambda path: LegacyShadow(path, layers, ref).report,
+            lambda _: NamespaceShadow(selection, layers, ref).report,
+        )
         return self
 
     @property

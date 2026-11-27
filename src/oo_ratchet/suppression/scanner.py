@@ -24,10 +24,11 @@ class Scanner:
         file_results = self._collect_files(target)
         pfi = PerFileIgnoresCounter(root / "pyproject.toml")
         report = SuppressionReport.from_files(file_results, pfi.total, pfi.breakdown)
-        if SourceSelection(target).namespace is not None:
-            # A namespace report keys files relative to the project root.
-            report = SuppressionReport.rebased(report, str(root.resolve()) + "/", "")
-        self._report = report
+        # A namespace report keys files relative to the project root.
+        self._report = SourceSelection(target).select(
+            lambda _: report,
+            lambda _: SuppressionReport.rebased(report, str(root.resolve()) + "/", ""),
+        )
         return self
 
     @property

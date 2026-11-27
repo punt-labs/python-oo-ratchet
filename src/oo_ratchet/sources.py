@@ -84,13 +84,8 @@ class Sources:
         if len(roots) == 1 and namespace is None:
             return Path(roots[0])
         config, base = cls._config()
-        selected = namespace if namespace is not None else config.get("namespace")
-        if not roots:
-            roots = cls._configured(config, base)
-        if not roots:
-            raise ValueError("the following arguments are required: src")
-        if not isinstance(selected, str):
-            raise ValueError("multiple roots need --namespace or configured namespace")
+        roots = roots or cls._configured(config, base)
+        selected = cls._required(roots, namespace, config)
         paths = cls._paths(roots)
         return cls(
             tuple(sorted(paths)),
@@ -98,6 +93,17 @@ class Sources:
             cls._project(base, paths),
             tuple(Path(root).resolve() for root in roots),
         )
+
+    @staticmethod
+    def _required(
+        roots: list[str], namespace: str | None, config: dict[str, object]
+    ) -> str:
+        if not roots:
+            raise ValueError("the following arguments are required: src")
+        selected = namespace if namespace is not None else config.get("namespace")
+        if not isinstance(selected, str):
+            raise ValueError("multiple roots need --namespace or configured namespace")
+        return selected
 
     @staticmethod
     def _project(base: Path, paths: set[Path]) -> Path | None:

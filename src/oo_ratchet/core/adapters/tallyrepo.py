@@ -75,8 +75,15 @@ class TallyRepo:
 
         ``None`` when the target did not exist at ``ref``.
         """
-        archive = SourceArchive(self._git, self._scan, Tally.rebased)
-        return archive.rescan(ref, self._target, self._single)
+        archive = SourceArchive(
+            self._git,
+            lambda target, root: self._scan(SourceSelection(target), root),
+            Tally.rebased,
+        )
+        return SourceSelection(self._target).select(
+            lambda path: self._single(ref, path),
+            lambda sources: archive.scan(ref, sources),
+        )
 
     def _single(self, ref: str, target: Path) -> Tally | None:
         target_rel = self._relpath(target)

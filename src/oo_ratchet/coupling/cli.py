@@ -6,9 +6,14 @@ from typing import Self
 
 from oo_ratchet.core.adapters.metricgate import MetricFiles, MetricGate
 from oo_ratchet.core.domain.errors import StateError
-from oo_ratchet.gate_command import GateCommand, Report
-from oo_ratchet.gate_options import Flag, GateOptions, GateSpec, Kind
-from oo_ratchet.source_set import SourceSelection
+from oo_ratchet.gate_options import (
+    Flag,
+    GateCommand,
+    GateOptions,
+    GateSpec,
+    Kind,
+    Report,
+)
 
 from .config import CouplingConfig, CouplingConfigError
 from .gateinput import GateInput
@@ -78,7 +83,7 @@ class CouplingRun:
         guard = self._rebaseline_files_guard()
         if guard is not None:
             return [guard], 1
-        if not SourceSelection.path(self._opts.src).exists():
+        if not self._opts.anchor.exists():
             return [f"Not found: {self._opts.src}"], 1
         try:
             # Score inside the try: a read/decode failure (OSError,

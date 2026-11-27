@@ -3,18 +3,16 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Self
+from typing import Self
 
 from oo_ratchet.core.adapters.shadowtree import ShadowTree
 from oo_ratchet.source_history import SourceHistory
+from oo_ratchet.source_set import SourceSelection
 
 from .comparison import ShadowMetrics
 from .shadow_keys import KeyChanges
 from .shadow_report import ShadowReport
 from .shadow_scan import ShadowScan
-
-if TYPE_CHECKING:
-    from oo_ratchet.source_set import SourceSelection
 
 
 class NamespaceShadow:
@@ -34,7 +32,9 @@ class NamespaceShadow:
         override = layers.resolve() if layers is not None else None
         with git.checkout(base) as tree:
             before = ShadowScan(
-                SourceHistory(source).at_base(root, tree, renames),
+                SourceSelection(
+                    SourceHistory(source.target).at_base(root, tree, renames)
+                ),
                 tree,
                 override,
                 package_name=source.package_name,

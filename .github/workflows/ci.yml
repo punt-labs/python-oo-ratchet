@@ -31,6 +31,7 @@ jobs:
           make check-coupling COUPLING_BASE="--base-ref ${BASE} --require-base"
           make check-suppressions SUPPRESSION_BASE="--base-ref ${BASE} --require-base"
           make check-layers LAYERS_BASE="--base-ref ${BASE} --require-base"
+          make check-design DESIGN_BASE="--shadow-check ${BASE}"
       - name: Ratchets (main, post-merge tripwire)
         if: github.event_name == 'push'
         run: |
@@ -38,4 +39,5 @@ jobs:
           make check-coupling COUPLING_BASE="--base-ref HEAD~1 --require-base --tripwire"
           make check-suppressions SUPPRESSION_BASE="--base-ref HEAD~1 --require-base --tripwire"
           make check-layers LAYERS_BASE="--base-ref HEAD~1 --require-base --tripwire"
+          make check-design DESIGN_BASE="--shadow-check HEAD~1"
       - run: uv build

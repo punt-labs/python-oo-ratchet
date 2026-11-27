@@ -177,14 +177,10 @@ class ModuleCouplingMetrics:
     @staticmethod
     def _declares_value_shape(node: ast.ClassDef) -> bool:
         """Return True for a ``@dataclass`` or an empty-``__slots__`` marker class."""
-        for deco in node.decorator_list:
-            target = deco.func if isinstance(deco, ast.Call) else deco
-            name = target.attr if isinstance(target, ast.Attribute) else None
-            if isinstance(target, ast.Name):
-                name = target.id
-            if name == "dataclass":
-                return True
         return any(
+            ModuleCouplingMetrics._is_dataclass_decorator(deco)
+            for deco in node.decorator_list
+        ) or any(
             isinstance(item, ast.Assign)
             and any(
                 isinstance(t, ast.Name) and t.id == "__slots__" for t in item.targets
@@ -193,6 +189,14 @@ class ModuleCouplingMetrics:
             and not item.value.elts
             for item in node.body
         )
+
+    @staticmethod
+    def _is_dataclass_decorator(deco: ast.expr) -> bool:
+        target = deco.func if isinstance(deco, ast.Call) else deco
+        name = target.attr if isinstance(target, ast.Attribute) else None
+        if isinstance(target, ast.Name):
+            name = target.id
+        return name == "dataclass"
 
     @staticmethod
     def _is_type_definition(node: ast.ClassDef) -> bool:

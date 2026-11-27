@@ -36,7 +36,14 @@ class DesignCli:
         parser.add_argument(
             "--shadow-check",
             metavar="GIT_REF",
-            help="compare merge-base debt, advisory only",
+            help="compare merge-base debt, advisory unless --enforce",
+        )
+        parser.add_argument(
+            "--enforce",
+            action="store_true",
+            help="with --shadow-check, exit 1 on an added finding of a "
+            "gate-capable rule (layer-import, size-cap, thick-entry, "
+            "unlayered-module, stateless-single-method)",
         )
         return parser
 

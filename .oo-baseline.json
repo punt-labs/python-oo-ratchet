@@ -1530,14 +1530,11 @@
     "future_annotations": 1.0
   },
   "src/oo_ratchet/source_options.py": {
-    "method_ratio": 1.0,
     "encapsulation_ratio": 1.0,
     "avg_params": 1.43,
     "max_complexity": 8.0,
-    "avg_complexity": 4.29,
-    "module_size": 79.0,
-    "classes_per_module": 1.0,
-    "class_to_func_ratio": 1.0,
+    "avg_complexity": 4.43,
+    "module_size": 81.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0

@@ -5,14 +5,15 @@ from __future__ import annotations
 import ast
 from typing import Self
 
+from oo_ratchet.core.domain.modulesource import ModuleSource
+
 from .imports import ImportResolver
-from .layout import PackageLayout
 
 
 class ImportGraph:
     """A directed graph of internal package imports, keyed by module.
 
-    Nodes are the layout's dotted module keys; an edge ``a -> b`` means module
+    Nodes are the source's dotted module keys; an edge ``a -> b`` means module
     ``a`` imports module ``b`` from the same package. ``cycle_members`` returns
     every node on any directed cycle, which the scorer maps to the
     ``circular_imports`` metric.
@@ -26,11 +27,11 @@ class ImportGraph:
         return self
 
     @classmethod
-    def build(cls, layout: PackageLayout) -> Self:
-        """Parse every module under ``layout`` into an import graph."""
+    def build(cls, source: ModuleSource, modules: frozenset[str]) -> Self:
+        """Parse every module of ``source`` into an import graph."""
         edges: dict[str, set[str]] = {}
-        for py_file in sorted(layout.root_files()):
-            key = layout.key_for(py_file)
+        for py_file in sorted(source.files()):
+            key = source.key_for(py_file)
             try:
                 tree = ast.parse(py_file.read_text(), filename=str(py_file))
             except (SyntaxError, OSError, UnicodeDecodeError):
@@ -40,8 +41,8 @@ class ImportGraph:
                 continue
             resolver = ImportResolver(
                 key,
-                layout.modules,
-                layout.name,
+                modules,
+                source.name,
                 is_package=py_file.name == "__init__.py",
             )
             edges[key] = resolver.internal_imports(tree)

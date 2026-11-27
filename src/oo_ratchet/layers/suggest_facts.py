@@ -15,7 +15,7 @@ from oo_ratchet.core.domain.modules import Module, ModuleIndex
 from oo_ratchet.core.domain.targets import ImportTargets
 
 from .io_sites import IoSites
-from .strict import StrictViolations
+from .package_edges import PackageEdges
 from .suggest_model import ModuleFacts
 
 ENTRY_LIBRARIES = ("argparse", "typer")
@@ -93,14 +93,14 @@ class PackageFacts:
     """
 
     _index: ModuleIndex
-    _edges: StrictViolations
+    _edges: PackageEdges
     _names: LayerImports
     _scripts: ConsoleScripts
 
     def __new__(cls, index: ModuleIndex, scripts: ConsoleScripts) -> Self:
         self = super().__new__(cls)
         self._index = index
-        self._edges = StrictViolations(index, LayerConfig({}))
+        self._edges = PackageEdges(index, LayerConfig({}))
         self._names = LayerImports(index)
         self._scripts = scripts
         return self

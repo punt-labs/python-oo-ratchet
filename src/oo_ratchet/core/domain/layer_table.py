@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import tomllib
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Self
 
 from .declared_layers import DeclaredLayers
 from .layer_config import LayerConfig, LayerConfigError
@@ -13,38 +13,54 @@ if TYPE_CHECKING:
 
 
 class LayerTable:
-    """Read the layers table of a pyproject and build the config it describes."""
+    """One parsed pyproject and the layers table it may hold."""
+
+    _document: object
+    _label: str
+    _strict: bool
+
+    def __new__(cls, document: object, label: str, *, strict: bool = False) -> Self:
+        self = super().__new__(cls)
+        self._document = document
+        self._label = label
+        self._strict = strict
+        return self
 
     @classmethod
-    def load(cls, anchor: Path, override: Path | None = None) -> LayerConfig | None:
+    def read(cls, anchor: Path, override: Path | None = None) -> Self:
         """Read an explicit file or the nearest ancestor pyproject, if any."""
         path = override or cls.nearest(anchor)
         if path is None:
-            return None
-        return cls._config(cls._read(path), str(path), strict=override is not None)
+            return cls({}, "no pyproject")
+        return cls(cls._read(path), str(path), strict=override is not None)
 
     @classmethod
-    def from_text(cls, text: str, label: str) -> LayerConfig | None:
-        """Read the layers table of pyproject ``text``; ``None`` when it has none."""
+    def from_text(cls, text: str, label: str) -> Self:
+        """Read the pyproject ``text``, which may hold no layers table."""
         try:
-            table: object = tomllib.loads(text)
+            document: object = tomllib.loads(text)
         except tomllib.TOMLDecodeError as exc:
             raise LayerConfigError(f"cannot read {label}: {exc}") from exc
-        return cls._config(table, label, strict=False)
+        return cls(document, label)
 
-    @classmethod
-    def _config(cls, table: object, path: str, *, strict: bool) -> LayerConfig | None:
+    def config(self) -> LayerConfig | None:
+        """Return the config the table describes; ``None`` when it has none."""
+        table = self._document
         for key in ("tool", "oo-ratchet", "layers"):
             if not isinstance(table, dict):
-                raise LayerConfigError(f"{path}: layer configuration must be a table")
+                raise LayerConfigError(
+                    f"{self._label}: layer configuration must be a table"
+                )
             if key not in table:
-                if strict:
-                    raise LayerConfigError(f"{path}: missing [tool.oo-ratchet.layers]")
+                if self._strict:
+                    raise LayerConfigError(
+                        f"{self._label}: missing [tool.oo-ratchet.layers]"
+                    )
                 return None
             table = table[key]
         if not isinstance(table, dict):
-            raise LayerConfigError(f"{path}: layers must be a table")
-        return cls.build(table)
+            raise LayerConfigError(f"{self._label}: layers must be a table")
+        return self.build(table)
 
     @staticmethod
     def ordered(config: LayerConfig | None) -> LayerConfig | None:

@@ -42,16 +42,11 @@ _BY_EXIT_CODE: dict[int, Outcome] = {0: "pass", 1: "fail", 2: "invalid"}
 _SIGNAL_PREFIX = f"{TOOL}.cli."
 
 
-@final
-class _ExitStatus:
-    """Classify a gate's exit status into the closed outcome enum."""
-
-    @staticmethod
-    def outcome(code: object) -> Outcome:
-        """Return the outcome of an exit code; anything unexpected is an error."""
-        if code is None:
-            return "pass"
-        return _BY_EXIT_CODE.get(code, "error") if isinstance(code, int) else "error"
+def _outcome_of(code: object) -> Outcome:
+    """Return the outcome of an exit code; anything unexpected is an error."""
+    if code is None:
+        return "pass"
+    return _BY_EXIT_CODE.get(code, "error") if isinstance(code, int) else "error"
 
 
 @final
@@ -107,10 +102,10 @@ class Usage:
         try:
             code = call()
         except SystemExit as exc:
-            outcome = _ExitStatus.outcome(exc.code)
+            outcome = _outcome_of(exc.code)
             raise
         else:
-            outcome = _ExitStatus.outcome(code)
+            outcome = _outcome_of(code)
             return code
         finally:
             duration_ms = (time.monotonic() - started) * 1000

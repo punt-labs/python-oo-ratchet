@@ -9,7 +9,7 @@ from oo_ratchet.core.domain.declaration import Declaration
 from oo_ratchet.core.domain.project_types import ProjectTypes
 from oo_ratchet.core.domain.protocol_imports import ProtocolImports
 from oo_ratchet.core.domain.shape import ClassShape, Method
-from oo_ratchet.core.domain.type_reference import TypeReference
+from oo_ratchet.core.domain.type_reference import type_name
 
 
 class MiddleMan:
@@ -73,7 +73,7 @@ class MiddleMan:
     def _marker(base: ast.expr, aliases: set[str]) -> bool:
         reference = base.value if isinstance(base, ast.Subscript) else base
         return isinstance(reference, (ast.Name, ast.Attribute)) and (
-            TypeReference.name(reference) in aliases
+            type_name(reference) in aliases
         )
 
     @classmethod

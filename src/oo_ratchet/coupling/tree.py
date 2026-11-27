@@ -2,20 +2,20 @@
 
 from __future__ import annotations
 
+from functools import cached_property
 from pathlib import Path
 from typing import Self
 
 from oo_ratchet.source_set import Source, SourceSelection
 
 from .graph import ImportGraph
-from .layout import PackageLayout
 from .packages import PackageMetrics, PackageScorer
 
 
 class CouplingTree:
     """Own discovery and the complete graph before per-file metrics are scored."""
 
-    _layout: PackageLayout
+    _source: SourceSelection
     _graph: ImportGraph
     _file: Path | None
 
@@ -23,19 +23,28 @@ class CouplingTree:
         self = super().__new__(cls)
         source = SourceSelection(target)
         self._file = source.file
-        self._layout = PackageLayout(self._file.parent if self._file else source)
-        self._graph = ImportGraph({}) if self._file else ImportGraph.build(self._layout)
+        self._source = SourceSelection(self._file.parent if self._file else source)
+        self._graph = (
+            ImportGraph({})
+            if self._file
+            else ImportGraph.build(self._source, self.modules)
+        )
         return self
 
     @property
-    def layout(self) -> PackageLayout:
-        """Return the namespace-wide module inventory."""
-        return self._layout
+    def source(self) -> SourceSelection:
+        """Return the namespace-wide source selection."""
+        return self._source
+
+    @cached_property
+    def modules(self) -> frozenset[str]:
+        """Return every namespace-relative module key."""
+        return frozenset(map(self._source.key_for, self._source.files()))
 
     @property
     def files(self) -> list[Path]:
         """Return selected files, not siblings of a legacy file target."""
-        return [self._file] if self._file else self._layout.root_files()
+        return [self._file] if self._file else self._source.files()
 
     @property
     def cycles(self) -> frozenset[str]:
@@ -48,5 +57,5 @@ class CouplingTree:
         return (
             ()
             if self._file
-            else tuple(PackageScorer(self._layout, self._graph).score())
+            else tuple(PackageScorer(self._source, self._graph).score())
         )

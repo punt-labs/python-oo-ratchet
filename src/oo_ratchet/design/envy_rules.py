@@ -31,7 +31,7 @@ class EnvyRules:
         envied: dict[tuple[str, str], Finding] = {}
         out: list[Finding] = []
         for owner in self._inventory.declarations():
-            if owner.kind == "class" or not self._inventory.eligible(owner):
+            if owner.kind == "class" or not owner.eligible:
                 continue
             known = ReceiverTypes(owner, self._types).known()
             for target in self._envied(owner, known):
@@ -41,15 +41,14 @@ class EnvyRules:
             out.extend(self._feature(owner, known))
         return list(envied.values()) + out
 
-    def _envied(
-        self, owner: Declaration, known: dict[str, Declaration]
-    ) -> list[Declaration]:
+    @staticmethod
+    def _envied(owner: Declaration, known: dict[str, Declaration]) -> list[Declaration]:
         reads = FunctionShape(owner).reads()
         return [
             target
             for name, target in known.items()
             if target.module.key != owner.module.key
-            and self._inventory.eligible(target)
+            and target.eligible
             and DataFields(target).data_only()
             and len(reads.get(name, set()) & DataFields(target).names()) >= 2
         ]

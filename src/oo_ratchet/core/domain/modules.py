@@ -6,6 +6,7 @@ import ast
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Self
 
+from .findings import Finding
 from .shape import ClassShape
 
 if TYPE_CHECKING:
@@ -29,6 +30,48 @@ class Module:
     def is_package(self) -> bool:
         """Return whether the file is a package ``__init__``."""
         return self.path.name == "__init__.py"
+
+    def finding(self, rule: str, line: int, symbol: str, detail: str) -> Finding:
+        """Return a ``rule`` finding at ``line`` of this file."""
+        return Finding(rule, str(self.path), line, symbol, detail)
+
+    def import_froms(self) -> list[ast.ImportFrom]:
+        """Return every ``from ... import`` statement, wherever it sits."""
+        return [n for n in ast.walk(self.tree) if isinstance(n, ast.ImportFrom)]
+
+    def climbing(self, depth: int) -> list[str]:
+        """Return ``path:line`` for each relative import that climbs above ``depth``."""
+        return [
+            f"{self.path}:{n.lineno}"
+            for n in ast.walk(self.tree)
+            if isinstance(n, ast.ImportFrom) and n.level > depth
+        ]
+
+    def package_parts(self) -> list[str]:
+        """Return the dotted parts of the package this file sits in, from its key."""
+        if self.import_key == "__init__":
+            return []
+        parts = self.import_key.split(".")
+        return parts if self.path.name == "__init__.py" else parts[:-1]
+
+    def reexport(self, name: str) -> tuple[ast.ImportFrom, str] | None:
+        """Return the top-level import that binds ``name``, with its source name.
+
+        The source name differs from ``name`` for ``from .core import Engine as
+        PublicEngine``.
+        """
+        for node in self.tree.body:
+            source = self._bound(node, name)
+            if source is not None and isinstance(node, ast.ImportFrom):
+                return node, source
+        return None
+
+    @staticmethod
+    def _bound(node: ast.stmt, name: str) -> str | None:
+        """Return the source name ``node`` binds to ``name``, if it is an import."""
+        if not isinstance(node, ast.ImportFrom):
+            return None
+        return next((a.name for a in node.names if (a.asname or a.name) == name), None)
 
 
 class ModuleIndex:

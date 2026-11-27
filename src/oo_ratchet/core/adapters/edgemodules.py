@@ -9,7 +9,7 @@ from typing import Self
 from oo_ratchet.layers.scan import LayersScanError
 from oo_ratchet.source_set import Source, SourceSelection
 
-from .nullisting import NulListing
+from . import nullisting
 
 
 class BaseModules:
@@ -43,7 +43,9 @@ class BaseModules:
         return [m for m in modules if m in known]
 
     def _tracked_python(self, base: str) -> list[PurePosixPath]:
-        raw = NulListing.run(self._root, ["ls-tree", "-r", "--name-only", "-z", base])
+        raw = nullisting.nul_listing(
+            self._root, ["ls-tree", "-r", "--name-only", "-z", base]
+        )
         return [PurePosixPath(p) for p in raw if p.endswith(".py")]
 
     @staticmethod

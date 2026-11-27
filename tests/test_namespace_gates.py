@@ -9,8 +9,9 @@ import pytest
 
 from oo_ratchet.__main__ import main
 from oo_ratchet.core.adapters.gitrepo import GitRepo
+from oo_ratchet.core.adapters.packagetrees import PackageTree
 from oo_ratchet.core.adapters.tallyrepo import TallyRepo
-from oo_ratchet.core.adapters.treeviews import BaseTree, WorkingTree
+from oo_ratchet.core.adapters.treeviews import WorkingTree
 from oo_ratchet.core.domain.tallies import Tally
 from oo_ratchet.coupling.cli import SPEC as COUPLING
 from oo_ratchet.gate_options import GateOptions
@@ -467,7 +468,7 @@ def test_namespace_namesakes_below_regular_ancestors_are_not_top_level(
     repo.write("src/outer/nested/app/core.py", HEADER)
     base = repo.commit("only a nested namespace namesake")
     found = (
-        BaseTree(base, repo.root).package_at("app")
+        PackageTree.base(base, repo.root).package_at("app")
         if kind == "base"
         else WorkingTree(repo.root).has_package("app")
     )

@@ -51,7 +51,7 @@ class DesignReport:
             ),
         ]
         for rule, count in self.counts().items():
-            lines.append(f"\n{rule} ({count}): {Rules.DESCRIPTIONS[rule]}")
+            lines.append(f"\n{rule} ({count}): {Rules(rule).description}")
             lines.extend(
                 f"  {f.path}:{f.line}  {f.symbol}  -- {f.detail}"
                 for f in self._findings

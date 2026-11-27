@@ -48,8 +48,7 @@ class BoundaryCheck:
     def _scan(self, module: Module) -> list[Finding]:
         type_only = self._targets.type_only(module.tree)
         out: list[Finding] = []
-        imports = (n for n in ast.walk(module.tree) if isinstance(n, ast.ImportFrom))
-        for node in imports:
+        for node in module.import_froms():
             target = self._crossing(module, node)
             if target is None:
                 continue
@@ -81,9 +80,8 @@ class BoundaryCheck:
     ) -> Finding:
         source = self._index.component(target) or "<root>"
         suffix = " (type-only)" if typed else ""
-        return Finding(
+        return module.finding(
             Rules.CONCRETE_IMPORT,
-            str(module.path),
             node.lineno,
             name,
             f"imports concrete {name} from {source} ({target}){suffix}",
@@ -105,24 +103,9 @@ class BoundaryCheck:
             return module.classes[name]
         if not module.is_package or hops == 0:
             return None
-        found = self._reexport(module, name)
+        found = module.reexport(name)
         if found is None:
             return None
         node, source = found
         inner = self._targets.key_for(module, node)
         return None if inner is None else self._resolve(inner, source, hops - 1)
-
-    @staticmethod
-    def _reexport(module: Module, name: str) -> tuple[ast.ImportFrom, str] | None:
-        """Return the import in a package ``__init__`` exporting ``name``.
-
-        Also returns the name the class has in its source module, which
-        differs from ``name`` for ``from .core import Engine as PublicEngine``.
-        """
-        for node in module.tree.body:
-            if not isinstance(node, ast.ImportFrom):
-                continue
-            for alias in node.names:
-                if (alias.asname or alias.name) == name:
-                    return node, alias.name
-        return None

@@ -36,7 +36,7 @@ class MisplacedRule:
             )
             for owner in self._inventory.declarations()
             if owner.kind == "function"
-            and self._inventory.eligible(owner)
+            and owner.eligible
             and not owner.node.name.startswith(("_", "create_"))
             and self._placed(owner)
         ]

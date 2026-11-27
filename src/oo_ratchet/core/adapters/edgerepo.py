@@ -14,7 +14,7 @@ from oo_ratchet.source_set import Source, SourceSelection
 from .edgeformats import EdgeFormat
 from .edgemodules import BaseModules
 from .gitrepo import GitRepo
-from .treeviews import BaseTree
+from .packagetrees import PackageTree
 
 
 class EdgeRepo:
@@ -63,7 +63,7 @@ class EdgeRepo:
         tree, or anything at the scanned directory's real path (a symlink, or a
         package at the repository root).
         """
-        tree = BaseTree(ref, self._root)
+        tree = PackageTree.base(ref, self._root)
         real = (
             SourceSelection.path(self._src).resolve().relative_to(self._root.resolve())
         )
@@ -88,7 +88,7 @@ class EdgeRepo:
             raise LayerConfigError(msg) from exc
         path = rel.as_posix()
         text = self._git.show(ref, path)
-        config = LayerTable.from_text(text, f"{ref}:{path}") if text else None
+        config = LayerTable.from_text(text, f"{ref}:{path}").config() if text else None
         if config is None and strict:
             where = f"{ref[:10]}:{path}"
             msg = f"no layer config at the base ({where}) but a baseline exists"

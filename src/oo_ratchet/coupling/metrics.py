@@ -6,8 +6,8 @@ import ast
 from itertools import combinations
 from typing import Self
 
+from .class_state import ClassState
 from .imports import ImportResolver
-from .private_state import PrivateState
 
 _TYPE_BASES = frozenset({"Protocol", "TypedDict", "BaseModel"})
 
@@ -170,9 +170,9 @@ class ModuleCouplingMetrics:
         """
         if self._is_type_definition(node):
             return True
-        if self._declares_value_shape(node) and PrivateState.stores_nothing(node):
+        if self._declares_value_shape(node) and ClassState(node).stores_nothing():
             return True
-        return self._stateless_values == "any" and PrivateState.stores_none(node)
+        return self._stateless_values == "any" and ClassState(node).stores_none()
 
     @classmethod
     def _declares_value_shape(cls, node: ast.ClassDef) -> bool:

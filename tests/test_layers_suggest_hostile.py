@@ -142,7 +142,7 @@ class TestPrefixEscape:
         out = repo.run("--suggest")[1]
         adapters = rings(out)["adapters"]
         assert "app.p[[]1].*" in adapters
-        config = LayerTable.from_text(PROJECT + "\n" + out, "t")
+        config = LayerTable.from_text(PROJECT + "\n" + out, "t").config()
         assert config is not None
         assert config.layer("app.p[1].a") == "adapters"
         assert config.layer("app.p[1]") == "adapters"

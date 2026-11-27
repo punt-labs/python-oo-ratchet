@@ -10,7 +10,7 @@ from .declaration import Declaration
 from .layer_imports import LayerImports
 from .modules import Module, ModuleIndex
 from .receiver_bindings import ReceiverBindings
-from .type_reference import TypeReference
+from .type_reference import type_name
 
 
 class ProjectTypes:
@@ -37,7 +37,7 @@ class ProjectTypes:
 
     def resolve(self, module: Module, node: ast.expr | None) -> Declaration | None:
         """Resolve a direct or quoted annotation/name to a project declaration."""
-        name = TypeReference.name(node)
+        name = type_name(node)
         local = f"{self._names.name(module)}.{name}"
         if self._is_ambiguous(local):
             return None
@@ -103,6 +103,6 @@ class ProjectTypes:
                 for a in node.names
             ]
         if isinstance(node, ast.ImportFrom):
-            base = LayerImports._base(module, node, self._names.canonical_name(module))
+            base = self._names.base(module, node)
             return [(a.asname or a.name, f"{base}.{a.name}") for a in node.names]
         return []

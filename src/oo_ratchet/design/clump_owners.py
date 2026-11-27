@@ -34,7 +34,7 @@ class ClumpOwners:
         entries = []
         for owner in declarations:
             parent = self._parent(owner, classes)
-            if self._inventory.eligible(owner) and not self._excluded(owner, parent):
+            if owner.eligible and not self._excluded(owner, parent):
                 family = (owner.module.key, (parent or owner).symbol)
                 entries.append((owner, self._names(owner), family))
         return entries

@@ -13,7 +13,7 @@ from oo_ratchet.core.domain.layer_widening import LayerWidening
 from oo_ratchet.core.domain.modules import ModuleIndex
 from oo_ratchet.source_set import Source, SourceSelection
 
-from .strict import StrictViolations
+from .package_edges import PackageEdges
 
 
 class LayersScanError(Exception):
@@ -55,14 +55,14 @@ class LayerScan:
             names = ", ".join(sorted(str(p) for p in index.skipped))
             msg = f"cannot read or parse: {names}"
             raise LayersScanError(msg)
-        found = StrictViolations(index, self._config)
-        self._modules = tuple(sorted(found.name(m) for m in index.modules()))
+        edges = PackageEdges(index, self._config)
+        self._modules = tuple(edges.names())
         if all("." not in m for m in self._modules):
             msg = f"no modules to check under {src}"
             raise LayersScanError(msg)
-        self._violations = tuple(found.violations())
-        self._unassigned = tuple(found.unassigned())
-        self._unresolvable = tuple(found.unresolvable())
+        self._violations = tuple(edges.violations())
+        self._unassigned = tuple(edges.unassigned())
+        self._unresolvable = tuple(edges.unresolvable())
         self._config_path = LayerTable.nearest(self._src.config_anchor)
         self._package = index.package_name
         return self
@@ -168,7 +168,7 @@ class LayerScan:
 
     @staticmethod
     def _load(src: Source) -> LayerConfig:
-        config = LayerTable.load(SourceSelection(src).config_anchor)
+        config = LayerTable.read(SourceSelection(src).config_anchor).config()
         if config is None:
             msg = f"no [tool.oo-ratchet.layers] table above {src}"
             raise LayerConfigError(msg)

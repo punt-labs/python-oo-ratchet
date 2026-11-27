@@ -42,9 +42,7 @@ class ClassRules:
                 continue
             for rule, detail in (self._stateless(shape), self._getters(shape)):
                 if rule and not self._skips(module, rule):
-                    out.append(
-                        Finding(rule, str(module.path), shape.line, shape.name, detail)
-                    )
+                    out.append(module.finding(rule, shape.line, shape.name, detail))
         return out
 
     def _stateless(self, shape: ClassShape) -> tuple[str, str]:

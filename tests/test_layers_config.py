@@ -126,7 +126,7 @@ class TestValidation:
         (tmp_path / "pyproject.toml").write_text(
             '[tool.oo-ratchet.layers.kernel]\nprefixes = ["kernel"]\n'
         )
-        config = LayerTable.load(tmp_path)
+        config = LayerTable.read(tmp_path).config()
         assert config is not None
         assert config.layer("app.kernel") == "kernel"
 

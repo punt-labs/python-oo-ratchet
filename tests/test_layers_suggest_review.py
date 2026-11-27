@@ -362,7 +362,7 @@ class TestGlobMetacharacters:
         out, data = roundtrip(repo)
         assert data["violations"] == []
         assert data["unassigned"] == []
-        config = LayerTable.from_text(PROJECT + "\n" + out, "t")
+        config = LayerTable.from_text(PROJECT + "\n" + out, "t").config()
         assert config is not None
         assert config.layer("app.plugin[old]") == "adapters"
         assert config.layer("app.plugino") == "domain"

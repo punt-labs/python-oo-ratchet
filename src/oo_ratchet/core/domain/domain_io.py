@@ -102,9 +102,8 @@ class DomainIO:
         return any(name == io or name.startswith(io + ".") for io in cls.IO)
 
     def _finding(self, node: ast.stmt | ast.expr, symbol: str) -> Finding:
-        return Finding(
+        return self._module.finding(
             Rules.DOMAIN_IO,
-            str(self._module.path),
             node.lineno,
             symbol,
             "domain module depends on IO; use an injected port",

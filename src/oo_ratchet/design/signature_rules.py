@@ -9,7 +9,7 @@ from oo_ratchet.core.domain.declaration import Declaration
 from oo_ratchet.core.domain.findings import Finding, Rules
 from oo_ratchet.core.domain.function_shape import FunctionShape
 from oo_ratchet.core.domain.shape import ClassShape
-from oo_ratchet.core.domain.type_reference import TypeReference
+from oo_ratchet.core.domain.type_reference import type_name
 
 from .data_inventory import DataInventory
 from .tag_switch import TagSwitch
@@ -97,4 +97,4 @@ class SignatureRules:
                 return False
         if isinstance(annotation, ast.Subscript):
             annotation = annotation.value
-        return TypeReference.name(annotation) in {"str", "int", "float", "bool", "dict"}
+        return type_name(annotation) in {"str", "int", "float", "bool", "dict"}

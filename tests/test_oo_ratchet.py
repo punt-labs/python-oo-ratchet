@@ -1187,11 +1187,16 @@ class TestRebaselineFilesGuards:
 
 
 def _branchy(ifs: int) -> str:
-    """Return a module whose one function has max_complexity ``ifs + 1``."""
+    """Return a module with max_complexity ``ifs + 1`` and nothing else over target.
+
+    One branchy function plus six trivial ones keep avg_complexity under 5 and
+    avg_params under 4, so max_complexity is the only metric over target.
+    """
     body = "".join(f"    if n == {i}:\n        return {i}\n" for i in range(ifs))
+    trivial = "".join(f"\n\ndef t{i}() -> int:\n    return {i}\n" for i in range(6))
     return (
         "from __future__ import annotations\n\n\n"
-        f"def pick(n: int) -> int:\n{body}    return -1\n"
+        f"def pick(n: int) -> int:\n{body}    return -1\n{trivial}"
     )
 
 
@@ -1216,11 +1221,23 @@ class Widget:
 # nesting so max_complexity regresses 1 -> 3 (within its target of 10).
 INIT_FIXED_COMPLEXITY_UP = WORSE
 
-# A later change brings the explicit __init__ back, keeping label() as WORSE.
-INIT_BACK_AGAIN = INIT_BASE.replace(
-    'return "pos"',
-    'if self._n > 0:\n            if self._n > 10:\n                return "big"\n'
-    '            return "pos"\n        return "neg"',
+# Two explicit __init__ classes: init_violations 2, label() as WORSE.
+INIT_TWICE = (
+    INIT_BASE.replace(
+        'return "pos"',
+        'if self._n > 0:\n            if self._n > 10:\n                return "big"\n'
+        '            return "pos"\n        return "neg"',
+    )
+    + """
+
+class Gadget:
+    \"\"\"A gadget.\"\"\"
+
+    _n: int
+
+    def __init__(self, n: int) -> None:
+        self._n = n
+"""
 )
 
 
@@ -1272,6 +1289,9 @@ class TestRebaselineFilesBless:
             source=None,
         )
         assert outcome.exit_code == 1
+        refusal = "\n".join(outcome.lines)
+        assert "max_complexity=" in refusal, refusal
+        assert "avg_complexity" not in refusal, refusal
         assert Baseline(fx.root).entries == before
         audit = fx.root / ".oo-audit.jsonl"
         assert "rebaseline-files" not in (audit.read_text() if audit.exists() else "")
@@ -1279,6 +1299,7 @@ class TestRebaselineFilesBless:
     def test_over_cap_unchanged_metric_carries_forward(self, fx: GitFixture) -> None:
         fx.write("sub/w.py", _branchy(11))  # max_complexity 12, already over cap
         fx.snapshot("sub")
+        old_size = Baseline(fx.root).entries["sub/w.py"]["module_size"]
         fx.commit("base")
 
         # Unrelated edit; max_complexity stays 12, so it is carried, not refused.
@@ -1291,9 +1312,17 @@ class TestRebaselineFilesBless:
             source=None,
         )
         assert outcome.exit_code == 0
+        assert "    sub/w.py" in outcome.lines, outcome.lines
         recorded = Baseline(fx.root).get("sub/w.py")
         assert recorded is not None
         assert recorded["max_complexity"] == 12.0
+        assert recorded["module_size"] != old_size  # the edit was written
+        assert (
+            recorded["module_size"]
+            == Baseline.metrics_by_file(fx.scorer().results)["sub/w.py"]["module_size"]
+        )
+        audit_lines = (fx.root / ".oo-audit.jsonl").read_text().splitlines()
+        assert json.loads(audit_lines[-1])["verdict"] == "rebaseline-files"
 
     def test_new_file_with_no_baseline_entry_over_cap_is_refused(
         self, fx: GitFixture
@@ -1312,6 +1341,9 @@ class TestRebaselineFilesBless:
             source=None,
         )
         assert outcome.exit_code == 1
+        refusal = "\n".join(outcome.lines)
+        assert "max_complexity=" in refusal, refusal
+        assert "avg_complexity" not in refusal, refusal
         assert Baseline(fx.root).entries == before
         audit = fx.root / ".oo-audit.jsonl"
         assert "rebaseline-files" not in (audit.read_text() if audit.exists() else "")
@@ -1327,7 +1359,7 @@ class TestRebaselineFilesBless:
         """
         fx.write("sub/w.py", INIT_BASE)
         fx.snapshot("sub")  # init_violations 1, max_complexity 1
-        fx.commit("base")
+        before_bless = fx.commit("base")
 
         fx.write("sub/w.py", INIT_FIXED_COMPLEXITY_UP)
         bless = fx.writer().rebaseline_files(
@@ -1342,24 +1374,27 @@ class TestRebaselineFilesBless:
         assert recorded is not None
         assert recorded["max_complexity"] == 3.0
         assert recorded["init_violations"] == 0.0
+        fx.commit("bless")
 
-        entry = json.loads((fx.root / ".oo-audit.jsonl").read_text().splitlines()[-1])
-        deltas = entry["deltas"]["sub/w.py"]
-        assert deltas["max_complexity"] == [1.0, 3.0]
-        assert "init_violations" not in deltas  # improved: never waivable
+        # Later: two explicit __init__ classes, init_violations 2, worse than
+        # the pre-bless 1. The baseline is re-locked to that value, so only a
+        # waiver in the bless audit entry could turn REGRESSED into RELAXED.
+        fx.write("sub/w.py", INIT_TWICE)
+        fx.snapshot("sub")
+        fx.commit("two __init__ classes")
 
-        blessed = fx.commit("bless")
-        fx.write("sub/w.py", INIT_BACK_AGAIN)
-        fx.commit("bring __init__ back")
-
-        outcome = fx.ratchet().check(fx.scorer(), base_ref=blessed, require_base=True)
-        assert outcome.exit_code == 1
+        # Base is BEFORE the bless, so the bless audit entry is in range.
+        outcome = fx.ratchet().check(
+            fx.scorer(), base_ref=before_bless, require_base=True
+        )
+        assert outcome.exit_code == 1, outcome.lines
         assert any(
             "init_violations" in line and "REGRESSED" in line for line in outcome.lines
         ), outcome.lines
         assert not any(
             "init_violations" in line and "RELAXED" in line for line in outcome.lines
         )
-        assert not any(
-            "max_complexity" in line and "REGRESSED" in line for line in outcome.lines
-        )
+        # The blessed regression is still waived.
+        assert any(
+            "max_complexity" in line and "RELAXED" in line for line in outcome.lines
+        ), outcome.lines

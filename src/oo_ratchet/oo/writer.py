@@ -181,11 +181,7 @@ class BaselineWriter:
                 f"FAIL: {file} has no baseline entry to relax; "
                 "use --update or --reconcile to add a new file"
             )
-        # Record ONLY the metrics this relaxation actually loosened (worse than
-        # the pre-relax baseline). A metric that held or improved is not waivable
-        # -- otherwise relaxing M1 would silently bless a future regression of an
-        # untouched M2 on the same file.
-        loosened = PlanApplier.regressed(entry, base_entry)
+        loosened = self._loosened(entry, base_entry)
         if not loosened:
             # Nothing is worse than the baseline: a relax here would write a
             # no-op "relaxed" line. Refuse instead of recording an empty waiver.
@@ -193,7 +189,7 @@ class BaselineWriter:
                 f"FAIL: nothing to relax for {file} "
                 "(no metric is worse than its baseline)"
             )
-        deltas = {file: {m: [base_entry.get(m, entry[m]), entry[m]] for m in loosened}}
+        deltas = {file: {m: [base_entry[m], entry[m]] for m in loosened}}
         new_baseline = dict(self._baseline.entries)
         new_baseline[file] = entry
         self._baseline.save(new_baseline)
@@ -211,6 +207,17 @@ class BaselineWriter:
             f"\nRelaxed {file} (reason: {justify})",
             f"  baseline: {self._baseline.path}",
         )
+
+    @staticmethod
+    def _loosened(entry: dict[str, float], recorded: dict[str, float]) -> list[str]:
+        """Return the recorded metrics a relax would loosen.
+
+        Only metrics worse than their recorded value are waivable; a metric
+        that held or improved is not, or relaxing M1 would bless a later
+        regression of M2. A metric with no recorded value has nothing to
+        loosen, and relaxing it would audit an invented old value.
+        """
+        return [m for m in PlanApplier.regressed(entry, recorded) if m in recorded]
 
     def rebaseline_files(
         self,

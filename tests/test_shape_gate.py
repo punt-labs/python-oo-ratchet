@@ -331,6 +331,59 @@ class TestBranchComparesAgainstMergeBase:
         )
         assert outcome.exit_code == 0, outcome.lines
 
+    def test_update_refuses_worsening_past_a_relaxed_value(
+        self, fx: GitFixture
+    ) -> None:
+        main = self._relaxed_branch(fx)  # relaxed to WORSE, complexity 3
+        fx.write(
+            "sub/w.py",
+            WORSE.replace("if self._n > 10:", "if self._n > 10 or self._n < -10:"),
+        )
+        updated = fx.writer().update(
+            fx.scorer(),
+            base_ref=main,
+            require_base=True,
+            allow_ci_write=True,
+            source=None,
+        )
+        assert updated.exit_code == 1
+        assert any("max_complexity" in line for line in updated.lines)
+
+    def test_update_rerun_records_no_repeat_improvement(self, fx: GitFixture) -> None:
+        fx.write("sub/w.py", WORSE)
+        fx.snapshot("sub")
+        main = fx.commit("main")
+        fx.set_origin_main(main)
+        fx.checkout_new("feature")
+        fx.write("sub/w.py", GOOD)
+        for _ in range(2):
+            updated = fx.writer().update(
+                fx.scorer(),
+                base_ref=main,
+                require_base=True,
+                allow_ci_write=True,
+                source=None,
+            )
+            assert updated.exit_code == 0, updated.lines
+        audit = (fx.root / ".oo-audit.jsonl").read_text().splitlines()
+        assert json.loads(audit[-2])["files_improved"] == 1
+        assert json.loads(audit[-1])["files_improved"] == 0
+
+    def test_relax_refuses_a_metric_with_no_recorded_value(
+        self, fx: GitFixture
+    ) -> None:
+        fx.write("sub/w.py", GOOD)
+        fx.snapshot("sub")
+        row = json.loads((fx.root / ".oo-baseline.json").read_text())
+        del row["sub/w.py"]["future_annotations"]
+        fx.write_baseline(row)
+        fx.commit("main, row missing future_annotations")
+        fx.write("sub/w.py", GOOD.replace("from __future__ import annotations\n", ""))
+        relaxed = fx.writer().relax(
+            fx.scorer(), "sub/w.py", justify="x", allow_ci_write=True, source=None
+        )
+        assert relaxed.exit_code == 1, relaxed.lines
+
     def test_update_still_refuses_a_regression_against_main(
         self, fx: GitFixture
     ) -> None:

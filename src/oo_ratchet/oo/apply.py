@@ -102,7 +102,9 @@ class PlanApplier:
     ) -> list[str]:
         entry = plan.current[path]
         rows = self._comparison_rows(plan, path)
-        base_entry = rows[0] if rows else None
+        # Deltas record what this write changes: against the in-tree row (last)
+        # when there is one, so a rerun does not re-record the same gain.
+        base_entry = rows[-1] if rows else None
         regressed = self.refusals(entry, rows)
         if regressed:
             # Keep the old rename-source entry so the carried base survives to

@@ -16,8 +16,9 @@ Every module the table assigns by an explicit pattern or by package name keeps
 its ring with the evidence "reaches no IO" (domain, application) or "reaches
 IO" (adapters, entry):
 
-- entry (10): the package root, `__main__`, `gates`, `logging_config`, `usage`
-  and the five `*.cli` modules.
+- entry (9): `__main__`, `gates`, `logging_config`, `usage` and the five `*.cli`
+  modules. The package root is the one module placed by entry evidence (see
+  the summary), not by a declaration.
 - adapters (49): all of `core.adapters.*`, plus the `*.report`, `*.config`,
   `*.tree`, `*.gateinput`, `*.failures`, `*.suggest*`, `*.legacy_shadow`,
   `*.namespace_shadow`, `*.pyproject`, `design.enforcement.output`,
@@ -56,11 +57,14 @@ Sixteen of them are the sixteen source modules of the 30 baselined edges in
 | `design.shape_rules` | chain through `size_rules` | Same. |
 | `design.data_rules` | chain through `shape_rules` | Same. |
 | `design.layers` | chain through `oo.metrics` | Same. |
-| `design.output` | table says adapters, imports `argparse` | Table error, or a misplaced module: it parses and routes the design command line, which is entry work. The table cannot say it, because `oo_ratchet.*.output` is a general adapters pattern. For the lead. |
+| `design.output` | table says adapters, imports `argparse` | It receives parsed arguments rather than parsing them, so the `argparse` import is for a type or a helper. The table cannot place it in entry by pattern, because `oo_ratchet.*.output` is a general adapters pattern, and `LayerConfig.layer` checks entry before adapters, so an exact entry pattern would win. For the lead: whether the import should move or the module should be listed in entry. |
 | `gate_options` | table says adapters, imports `argparse` | Table error: it builds the shared argparse parser (`GateOptions.parser`), which is entry. For the lead. |
 
-Count: 16 baselined real violations, 5 transitive consequences of the `io`
-rule, 2 argparse modules the table puts in the wrong ring.
+Count: 16 modules that are the sources of the 30 baselined edges (2 of them,
+`oo.code_lines` and `suppression.patterns`, only call the in-memory `io.StringIO`
+and are false positives of the `io` rule, not real violations), 5 transitive
+consequences of the `io` rule, 2 argparse modules the table puts in the wrong
+ring.
 
 ## Unclassified (2)
 

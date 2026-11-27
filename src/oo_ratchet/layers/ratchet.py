@@ -103,7 +103,7 @@ class LayersRatchet:
             if base_edges is not None:
                 under_base = sorted(scan.under(config).edges - base_edges - accepted)
             if not allow_config_change:
-                widened = PolicyWidening.found(scan.config, config)
+                widened = PolicyWidening.found(scan.config, config, scan.modules)
         return LayersVerdict(
             scan,
             self._baseline.scoped(scan.package),

@@ -48,6 +48,11 @@
 
 ### Fixed
 
+- `layers --check` now treats moving a module outward (toward `entry`) or out
+  of `domain` in the fixed four-layer table as a policy widening, so
+  promoting a domain module to `adapters` no longer escapes domain-purity
+  enforcement. It needs `--allow-config-change`, like a widened `imports`.
+  Moves toward `domain` and declared layers are unchanged.
 - Reading `[tool.oo-ratchet]` stops at the checkout root. A repository with no
   `pyproject.toml` inside a directory tree that has one adopted the outer
   file's namespace and roots.

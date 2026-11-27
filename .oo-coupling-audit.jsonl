@@ -97,3 +97,8 @@
 {"ts":"2026-11-27T05:14:32Z","commit":"426438a","source":null,"files_scored":139,"files_improved":0,"files_regressed":0,"verdict":"pass","reason":null,"deltas":{}}
 {"ts":"2026-11-27T05:18:26Z","commit":"15c4541","source":null,"files_scored":139,"files_improved":0,"files_regressed":1,"verdict":"fail","reason":null,"deltas":{}}
 {"ts":"2026-11-27T05:18:39Z","commit":"15c4541","source":null,"files_scored":139,"files_improved":0,"files_regressed":0,"verdict":"pass","reason":null,"deltas":{}}
+{"ts":"2026-11-27T05:40:30Z","commit":"67e8659","source":null,"files_scored":140,"files_improved":0,"files_regressed":2,"verdict":"fail","reason":null,"deltas":{},"backfilled":["src/oo_ratchet/layers/assignment.py"]}
+{"ts":"2026-11-27T05:40:56Z","commit":"67e8659","source":null,"files_scored":139,"files_improved":0,"files_regressed":2,"verdict":"fail","reason":null,"deltas":{}}
+{"ts":"2026-11-27T05:41:39Z","commit":"67e8659","source":null,"files_scored":139,"files_improved":0,"files_regressed":1,"verdict":"fail","reason":null,"deltas":{}}
+{"ts":"2026-11-27T05:41:57Z","commit":"67e8659","source":null,"files_scored":139,"files_improved":0,"files_regressed":1,"verdict":"fail","reason":null,"deltas":{}}
+{"ts":"2026-11-27T05:42:42Z","commit":"67e8659","source":null,"files_scored":139,"files_improved":0,"files_regressed":0,"verdict":"pass","reason":null,"deltas":{}}

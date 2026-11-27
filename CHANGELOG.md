@@ -24,8 +24,17 @@ at the time of writing: vox `punt-oo-ratchet==0.4.0`, quarry `==0.4.0`, z-spec
   `layers --update --allow-config-change`, written up in the new README guide).
   The OO gate stopped gating `method_ratio`, `class_to_func_ratio` and
   `classes_per_module`, and `module_size`, `avg_params` and `avg_complexity` are
-  ceilings: the gate passes some changes 0.6.0 refused. Baselines load
-  unchanged. `coupling --update` drops the rows of deleted files.
+  ceilings. That cuts both ways: the gate passes some changes 0.6.0 refused (a
+  ceiling metric growing but staying under its target), and it refuses some
+  that 0.6.0 passed (a touched file whose only movement is under a ceiling's
+  target now has no improvement, so must-improve fails:
+  `FAIL: no metric improved on any touched file`). Replaying each adopter's last
+  15 main commits with `oo --base-ref HEAD~1 --require-base`, that is 0 commits
+  for vox, 1 for quarry, 4 for z-spec and 2 for lux; quarry and lux run main
+  without `--allow-no-improvement`, so those commits would turn their main CI
+  red. Baselines load unchanged
+  (`docs/architecture/b7-adopter-dry-runs.md`). `coupling --update` drops the
+  rows of deleted files.
 - **New commands and flags.** `layers --suggest` (new in this release, so it
   has no 0.6.0 behavior to change: the ring-guessing form was never released,
   and the shipped form takes a ring only from a declaration, a package name or

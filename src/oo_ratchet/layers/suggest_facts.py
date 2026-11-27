@@ -1,22 +1,22 @@
-"""What a ring suggestion reads from each module: IO, entry signals, Protocols."""
+"""What a ring suggestion reads from each module: IO, entry signals, ring markers."""
 
 from __future__ import annotations
 
 import ast
 import re
 import tomllib
-from dataclasses import dataclass, replace
+from dataclasses import replace
 from pathlib import Path
 from typing import Self
 
 from oo_ratchet.core.domain.layer_config import LayerConfig, LayerConfigError
 from oo_ratchet.core.domain.layer_imports import LayerImports
 from oo_ratchet.core.domain.modules import Module, ModuleIndex
-from oo_ratchet.core.domain.protocol_imports import ProtocolImports
 from oo_ratchet.core.domain.targets import ImportTargets
 
 from .io_sites import IoSites
 from .strict import StrictViolations
+from .suggest_model import ModuleFacts
 
 ENTRY_LIBRARIES = ("argparse", "typer")
 _NAME = r"[^\W\d]\w*"
@@ -31,22 +31,6 @@ ENTRY_POINT = re.compile(
     rf"(?P<module>{_DOTTED})(?:\s*:\s*{_DOTTED})?(?:\s*{_EXTRAS})?"
 )
 ROOT_EVIDENCE = "package root (placed in entry by vox, lux and z-spec)"
-
-
-@dataclass(frozen=True, slots=True)
-class ModuleFacts:
-    """The evidence for one module: sorted, so every report is reproducible.
-
-    ``forced`` is why the module cannot be placed at all, when it cannot.
-    """
-
-    name: str
-    io: tuple[str, ...]
-    entry: tuple[str, ...]
-    protocols: tuple[str, ...]
-    imports: tuple[str, ...]
-    forced: str | None = None
-    root: bool = False
 
 
 class ConsoleScripts:
@@ -153,7 +137,7 @@ class PackageFacts:
             sorted(self._index.source.relative_path(m.path).as_posix() for m in mods)
         )
         why = f"shadowed: {len(mods)} files are module {name}: {files}"
-        return ModuleFacts(name, (), (), (), (), why)
+        return ModuleFacts(name, (), (), (), why)
 
     def _of(self, name: str, module: Module, bad: set[str]) -> ModuleFacts:
         io = IoSites(module, self._index.package_name).names()
@@ -163,13 +147,15 @@ class PackageFacts:
             if str(module.path) in bad
             else None
         )
+        marker, problem = self._marker(module)
         return ModuleFacts(
             name,
             tuple(sorted(io)),
             self._entry(name, module),
-            self._protocols(module),
             tuple(sorted(imports)),
             unresolvable,
+            marker=marker,
+            marker_problem=problem,
         )
 
     def _entry(self, name: str, module: Module) -> tuple[str, ...]:
@@ -193,18 +179,70 @@ class PackageFacts:
         return roots
 
     @staticmethod
-    def _protocols(module: Module) -> tuple[str, ...]:
-        """Return top-level classes whose base resolves to typing's Protocol."""
-        markers = ProtocolImports(module).names()
-        return tuple(
-            sorted(
-                node.name
-                for node in module.tree.body
-                if isinstance(node, ast.ClassDef)
-                and any(PackageFacts._base(b) in markers for b in node.bases)
-            )
-        )
+    def _marker(module: Module) -> tuple[str | None, str | None]:
+        """Return the top-level ``__ring__`` string as ``(marker, problem)``.
+
+        The last assignment wins. A value that is not a string literal is a
+        problem, not a ring; the module is never imported.
+        """
+        found: tuple[str | None, str | None] = (None, None)
+        for node in module.tree.body:
+            value = PackageFacts._assigned(node)
+            if value is None:
+                continue
+            if isinstance(value, ast.Constant) and isinstance(value.value, str):
+                found = (value.value, None)
+            else:
+                found = (None, "__ring__ must be a string literal")
+        return found
 
     @staticmethod
-    def _base(base: ast.expr) -> str:
-        return ast.unparse(base.value if isinstance(base, ast.Subscript) else base)
+    def _assigned(node: ast.stmt) -> ast.expr | None:
+        """Return the value a top-level ``__ring__ = ...`` statement assigns."""
+        value: ast.expr | None
+        if isinstance(node, ast.Assign):
+            targets, value = node.targets, node.value
+        elif isinstance(node, ast.AnnAssign):
+            targets, value = [node.target], node.value
+        else:
+            return None
+        named = any(isinstance(t, ast.Name) and t.id == "__ring__" for t in targets)
+        return value if named else None
+
+
+class SuggestNames:
+    """The ``[tool.oo-ratchet.suggest]`` table as written: names per ring.
+
+    ``NameConvention`` checks the keys and values; this only finds the table.
+    """
+
+    _table: dict[str, object]
+
+    def __new__(cls, pyproject: Path | None) -> Self:
+        self = super().__new__(cls)
+        self._table = cls._read(pyproject)
+        return self
+
+    @property
+    def table(self) -> dict[str, object]:
+        """Return the configured names per ring; empty when none are configured."""
+        return self._table
+
+    @classmethod
+    def _read(cls, pyproject: Path | None) -> dict[str, object]:
+        if pyproject is None:
+            return {}
+        try:
+            text = tomllib.loads(pyproject.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, tomllib.TOMLDecodeError) as exc:
+            raise LayerConfigError(f"cannot read {pyproject}: {exc}") from exc
+        node: object = text
+        for key in ("tool", "oo-ratchet", "suggest"):
+            if not isinstance(node, dict) or key not in node:
+                return {}
+            node = node[key]
+        if not isinstance(node, dict):
+            raise LayerConfigError(
+                f"{pyproject}: [tool.oo-ratchet.suggest] is not a table"
+            )
+        return node

@@ -12,7 +12,13 @@ from oo_ratchet.core.domain.layer_table import LayerTable
 from oo_ratchet.layers.cli import main
 from oo_ratchet.layers.suggest_text import SafeText
 from tests.layers_repo import LayersRepo
-from tests.test_layers_suggest import PROJECT, rings, start
+from tests.test_layers_suggest import (
+    MARK_ADAPTERS,
+    MARK_DOMAIN,
+    PROJECT,
+    rings,
+    start,
+)
 
 LS = chr(0x2028)
 HOSTILE = "x\n[tool.other]\nfoo = 1"
@@ -42,7 +48,7 @@ class TestInertOutput:
     def test_carriage_return_and_unicode_separators(self, repo: LayersRepo) -> None:
         start(repo)
         for name in ("a\r[evil]", "b" + LS + "[evil]", "c\x85[evil]", "d\x7f[evil]"):
-            repo.write(f"src/app/{name}.py", "import json\n")
+            repo.write(f"src/app/{name}.py", MARK_ADAPTERS)
         out = repo.run("--suggest")[1]
         assert_inert(out)
         assert "\r" not in out
@@ -128,11 +134,11 @@ class TestPrefixEscape:
         self, repo: LayersRepo
     ) -> None:
         start(repo)
-        repo.write("src/app/p[1]/__init__.py", "import json\n")
-        repo.write("src/app/p[1]/a.py", "import json\n")
-        repo.write("src/app/p[1]/b.py", "import json\n")
-        repo.write("src/app/p1/__init__.py", "")
-        repo.write("src/app/p1/mod.py", "X = 1\n")
+        repo.write("src/app/p[1]/__init__.py", MARK_ADAPTERS)
+        repo.write("src/app/p[1]/a.py", MARK_ADAPTERS)
+        repo.write("src/app/p[1]/b.py", MARK_ADAPTERS)
+        repo.write("src/app/p1/__init__.py", MARK_DOMAIN)
+        repo.write("src/app/p1/mod.py", MARK_DOMAIN)
         out = repo.run("--suggest")[1]
         adapters = rings(out)["adapters"]
         assert "app.p[[]1].*" in adapters
@@ -207,7 +213,9 @@ class TestNonBmpNames:
     @pytest.mark.parametrize("name", ["\U00010400", "é", "a\U00010400b"])
     def test_round_trip(self, repo: LayersRepo, name: str) -> None:
         start(repo)
-        repo.write(f"src/app/{name}.py", "import json\n")
+        for other in ("kernel", "service", "cli"):
+            repo.edit(other, MARK_DOMAIN)
+        repo.write(f"src/app/{name}.py", MARK_ADAPTERS)
         out = repo.run("--suggest")[1]
         assert_inert(out)
         layers = tomllib.loads(out)["tool"]["oo-ratchet"]["layers"]
@@ -231,12 +239,9 @@ class TestRootException:
     def test_header_names_the_exception(self, repo: LayersRepo) -> None:
         start(repo)
         out = repo.run("--suggest")[1]
-        assert "Exception: the package root" in out
-        assert "entry" in out.split("Exception:")[1].splitlines()[0]
-        lines = out.split("Exception:")[1].splitlines()
-        exception = " ".join(ln for ln in lines[:4] if ln.startswith("#"))
-        assert "relative import" in exception
-        assert "non-entry" in exception
+        assert "The package root goes in entry" in out
+        assert "non-entry module imports it" in out
+        assert "relative import above the package" in out
 
     def test_root_with_an_unresolvable_relative_import_is_unclassified(
         self, repo: LayersRepo
@@ -245,4 +250,4 @@ class TestRootException:
         repo.write("src/app/__init__.py", "from .. import x\n")
         out = repo.run("--suggest")[1]
         assert "app" not in rings(out)["entry"]
-        assert "# app: unclassified (unresolvable relative import" in out
+        assert "#   app: unclassified (unresolvable relative import" in out

@@ -37,10 +37,6 @@ class LayerConfig:
             None,
         )
 
-    def when_ordered(self) -> Self | None:
-        """Return this config in the fixed form; declared layers shape no data rules."""
-        return self if self.ORDERED else None
-
     def allowed(self, source: str) -> frozenset[str]:
         """Return the layers ``source`` may import: itself and every inner one."""
         names = list(self._patterns)

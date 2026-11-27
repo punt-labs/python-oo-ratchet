@@ -39,12 +39,20 @@ class Module:
         """Return every ``from ... import`` statement, wherever it sits."""
         return [n for n in ast.walk(self.tree) if isinstance(n, ast.ImportFrom)]
 
+    def climbing(self, depth: int) -> list[str]:
+        """Return ``path:line`` for each relative import that climbs above ``depth``."""
+        return [
+            f"{self.path}:{n.lineno}"
+            for n in ast.walk(self.tree)
+            if isinstance(n, ast.ImportFrom) and n.level > depth
+        ]
+
     def package_parts(self) -> list[str]:
         """Return the dotted parts of the package this file sits in, from its key."""
         if self.import_key == "__init__":
             return []
         parts = self.import_key.split(".")
-        return parts if self.is_package else parts[:-1]
+        return parts if self.path.name == "__init__.py" else parts[:-1]
 
     def reexport(self, name: str) -> tuple[ast.ImportFrom, str] | None:
         """Return the top-level import that binds ``name``, with its source name.

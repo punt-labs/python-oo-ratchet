@@ -73,7 +73,7 @@ class LayerCheck:
         if self._config.EXEMPTS_ROOT and "." not in name:
             return []
         detail = "module matches no layer glob"
-        return [self._finding(module, Rules.UNLAYERED_MODULE, 1, "<module>", detail)]
+        return [module.finding(Rules.UNLAYERED_MODULE, 1, "<module>", detail)]
 
     def _shape(self, module: Module, layer: str) -> list[Finding]:
         if not self._config.ORDERED:
@@ -85,8 +85,7 @@ class LayerCheck:
     def _dependencies(self, module: Module, layer: str) -> list[Finding]:
         way = "outer " if self._config.ORDERED else ""
         return [
-            self._finding(
-                module,
+            module.finding(
                 Rules.LAYER_IMPORT,
                 node.lineno,
                 symbol,
@@ -105,8 +104,7 @@ class LayerCheck:
                 complexity = ModuleMetrics._cyclomatic_complexity(node)
                 if complexity > 4:
                     out.append(
-                        self._finding(
-                            module,
+                        module.finding(
                             Rules.THICK_ENTRY,
                             node.lineno,
                             name[:-1],
@@ -115,9 +113,3 @@ class LayerCheck:
                     )
             out.extend(self._entry(module, node, name))
         return out
-
-    @staticmethod
-    def _finding(
-        module: Module, rule: str, line: int, symbol: str, detail: str
-    ) -> Finding:
-        return module.finding(rule, line, symbol, detail)

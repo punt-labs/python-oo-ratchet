@@ -35,19 +35,22 @@ class SizeRules:
             f for d in self._inventory.declarations() for f in self._declaration(d)
         ]
 
-    @staticmethod
-    def _module(module: Module) -> list[Finding]:
-        try:
-            count = CodeLines(
-                module.path.read_text(encoding="utf-8"), module.tree
-            ).count
-        except (OSError, UnicodeError):
-            return []
+    @classmethod
+    def _module(cls, module: Module) -> list[Finding]:
+        count = cls._lines(module)
         if count <= 400:
             return []
         return [
             module.finding(Rules.SIZE_CAP, 1, "<module>", f"module_size={count} > 400")
         ]
+
+    @staticmethod
+    def _lines(module: Module) -> int:
+        try:
+            text = module.path.read_text(encoding="utf-8")
+        except (OSError, UnicodeError):
+            return 0
+        return CodeLines(text, module.tree).count
 
     @classmethod
     def _declaration(cls, owner: Declaration) -> list[Finding]:

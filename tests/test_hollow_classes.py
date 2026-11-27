@@ -45,6 +45,9 @@ def own_findings() -> frozenset[tuple[str, str]]:
         (Rules.SPLIT_COHESION, "StrictViolations"),
         (Rules.ENVIED_DATA, "Module"),
         (Rules.ENVIED_DATA, "ModuleFacts"),
+        (Rules.SPLIT_COHESION, "Module"),
+        (Rules.SPLIT_COHESION, "LayerConfig"),
+        (Rules.FEATURE_ENVY, "SizeRules._module"),
     ],
 )
 def test_hollow_class_is_not_reported(rule: str, symbol: str) -> None:

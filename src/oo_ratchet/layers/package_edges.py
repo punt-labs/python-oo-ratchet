@@ -48,9 +48,5 @@ class PackageEdges:
         for module in self._index.modules():
             parts = self._found.name(module).split(".")
             depth = len(parts) if module.is_package else len(parts) - 1
-            found.extend(
-                f"{module.path}:{node.lineno}"
-                for node in module.import_froms()
-                if node.level > depth
-            )
+            found.extend(module.climbing(depth))
         return sorted(found)

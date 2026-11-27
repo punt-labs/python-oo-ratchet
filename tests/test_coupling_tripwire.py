@@ -15,7 +15,9 @@ from typing import TYPE_CHECKING
 import pytest
 
 import oo_ratchet.coupling
-from oo_ratchet.coupling import CouplingScorer, CouplingThresholds, GitError, GitRepo
+from oo_ratchet.core.adapters.gitrepo import GitRepo
+from oo_ratchet.core.domain.errors import StateError
+from oo_ratchet.coupling import CouplingScorer, CouplingThresholds
 
 if TYPE_CHECKING:
     from tests.conftest import GitSandbox
@@ -23,7 +25,7 @@ if TYPE_CHECKING:
 
 def test_module_is_importable_as_package() -> None:
     """The package resolves as ``oo_ratchet.coupling`` (regular-package path)."""
-    assert "CouplingRatchet" in oo_ratchet.coupling.__all__
+    assert "CouplingScorer" in oo_ratchet.coupling.__all__
 
 
 class TestThresholds:
@@ -224,13 +226,17 @@ class TestPushTripwireAdoption:
 class TestFailClosed:
     """A corrupt base coupling baseline blob fails closed, not open."""
 
-    def test_non_dict_blob_raises_git_error(self, git_sandbox: GitSandbox) -> None:
+    def test_non_dict_blob_raises_state_error(self, git_sandbox: GitSandbox) -> None:
         git_sandbox.write("src/pkg/a.py", "x = 1\n")
         git_sandbox.write(".oo-coupling-baseline.json", "[]\n")
         sha = git_sandbox.commit("corrupt baseline")
-        git = GitRepo(git_sandbox.root)
-        with pytest.raises(GitError, match="non-dict"):
-            git.show_baseline(sha)
+        git = GitRepo(
+            git_sandbox.root,
+            ".oo-coupling-baseline.json",
+            ".oo-coupling-audit.jsonl",
+        )
+        with pytest.raises(StateError, match="non-dict"):
+            git.baseline_at(sha)
 
 
 class TestScorerKeys:

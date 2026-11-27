@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from collections.abc import Collection, Iterable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 
 from oo_ratchet.core.domain.metrics import Metric
 from oo_ratchet.core.domain.verdicts import FileReview, MetricRow, Waiver
+
+from .pathtargets import PathTargets
 
 Row = Mapping[str, float]
 
@@ -20,26 +22,39 @@ class GatePolicy:
     judged by the metric's target; otherwise it is only informational.
     ``lock_rows``: the in-tree baseline must equal the scores of every touched
     or rewritten file.
+    ``in_tree_only``: an update compares with the in-tree rows alone and never
+    reads the merge-base baseline, and counts every file it writes a delta for
+    as improved, a new file included.
+    ``detailed_refusals``: a refused bless names each metric's value and the
+    target it broke.
+    ``targets``: per-file replacements for a metric's target (see
+    ``for_path``).
     """
 
     metrics: tuple[Metric, ...]
     must_improve: bool = True
     absolute_targets: bool = True
     lock_rows: bool = True
+    in_tree_only: bool = False
+    detailed_refusals: bool = False
+    targets: PathTargets = field(default_factory=PathTargets)
 
     @classmethod
     def from_table(
         cls,
         table: Mapping[str, tuple[str, float]],
         ceilings: Collection[str] = (),
-        **flags: bool,
+        *,
+        must_improve: bool = True,
+        absolute_targets: bool = True,
+        lock_rows: bool = True,
     ) -> GatePolicy:
         """Build a policy from an ``{name: (op, target)}`` table."""
         metrics = tuple(
             Metric(name, op, target, name in ceilings)
             for name, (op, target) in table.items()
         )
-        return cls(metrics, **flags)
+        return cls(metrics, must_improve, absolute_targets, lock_rows)
 
     @property
     def names(self) -> tuple[str, ...]:
@@ -49,6 +64,13 @@ class GatePolicy:
     def metric(self, name: str) -> Metric:
         """Return the named metric."""
         return next(m for m in self.metrics if m.name == name)
+
+    def for_path(self, path: str) -> GatePolicy:
+        """Return this policy with ``path``'s own targets, as it is judged."""
+        if not self.targets.names(path):
+            return self
+        metrics = self.targets.metrics_for(path, self.metrics)
+        return replace(self, metrics=metrics, targets=PathTargets())
 
     def changed_rows(
         self, rows: Mapping[str, Row], base: Mapping[str, Row]
@@ -120,6 +142,16 @@ class GatePolicy:
             if not self.metric(m).meets(value)
             and (base is None or m not in base or self._worse(m, value, base))
         ]
+
+    def refusal(self, entry: Row, gated: Sequence[str]) -> str:
+        """Return why a bless refused the metrics ``gated``."""
+        if not self.detailed_refusals:
+            return f"{', '.join(gated)} over cap and regressed"
+        return "; ".join(
+            f"{m}={entry[m]:g} fails {self.metric(m).op} "
+            f"{self.metric(m).target:g} (over cap and regressed)"
+            for m in gated
+        )
 
     def improved_count(self, deltas: Mapping[str, Mapping[str, list[float]]]) -> int:
         """Return the files with a metric strictly better than before."""
@@ -224,7 +256,7 @@ class GatePolicy:
         m = self.metric(name)
         if name in base:
             return not m.better_or_equal(value, base[name])
-        return not m.meets(value)
+        return self.absolute_targets and not m.meets(value)
 
     def unknown(self, names: Iterable[str]) -> list[str]:
         """Return the names that are not tracked metrics."""

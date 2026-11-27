@@ -1,25 +1,26 @@
-"""Command-line entry point: parse arguments and dispatch to the ratchet."""
+"""Command-line entry point: parse arguments and dispatch to the gate."""
 
 from __future__ import annotations
 
 import argparse
 import sys
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Self
 
+from oo_ratchet.core.adapters.metricgate import MetricFiles, MetricGate
+from oo_ratchet.core.domain.errors import StateError
 from oo_ratchet.source_set import Source, SourceSet
 
-from .audit import CouplingAuditError
-from .baseline import CouplingBaseline, CouplingBaselineError
-from .bless import CouplingBless
 from .config import CouplingConfig, CouplingConfigError
-from .gitio import GitError, GitRepo
-from .outcome import Outcome
-from .ratchet import CouplingRatchet
+from .gateinput import GateInput
 from .report import CouplingReport
 from .scorer import CouplingScorer
-from .writer import CouplingWriter
+
+_FILES = MetricFiles(".oo-coupling-baseline.json", ".oo-coupling-audit.jsonl")
+_GUARDS = {
+    "paths": "FAIL: --rebaseline-files requires at least one path",
+    "reason": "FAIL: --rebaseline-files requires --reason <text>",
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -118,124 +119,122 @@ class Options:
         return parser
 
 
+_Report = tuple[list[str], int]
+
+
 class Cli:
-    """Score the target and route the request to the ratchet or writer."""
+    """Score the target and route the request to the gate or a view."""
 
     _opts: Options
-    _git: GitRepo
-    _root: Path
+    _gate: MetricGate
 
     def __new__(cls, options: Options) -> Self:
         self = super().__new__(cls)
         self._opts = options
-        self._git = GitRepo()
-        self._root = self._git.root or Path.cwd()
+        self._gate = MetricGate(_FILES)
         return self
 
     def run(self) -> int:
         """Execute the requested operation and return its exit code."""
         guard = self._rebaseline_files_guard()
         if guard is not None:
-            return self._emit(guard)
+            return self._emit([guard], 1)
         if not SourceSet.path(self._opts.src).exists():
-            return self._emit(Outcome.failed(f"Not found: {self._opts.src}"))
+            return self._emit([f"Not found: {self._opts.src}"], 1)
         try:
             # Score inside the try: a read/decode failure (OSError,
             # UnicodeDecodeError) or a corrupt in-tree baseline must surface as a
             # clean non-zero, not a traceback.
-            config = CouplingConfig.load(self._root)
-            scorer = CouplingScorer(self._opts.src, self._root, config)
-            action = self._run_action(scorer)
-            outcome = action if action is not None else self._run_view(scorer)
-        except (
-            GitError,
-            CouplingBaselineError,
-            CouplingAuditError,
-            CouplingConfigError,
-            OSError,
-            UnicodeDecodeError,
-        ) as exc:
-            outcome = Outcome.failed(f"FAIL: {exc}")
-        return self._emit(outcome)
+            config = CouplingConfig.load(self._gate.root)
+            scorer = CouplingScorer(self._opts.src, self._gate.root, config)
+            gate_input = GateInput(config, scorer)
+            self._gate.prepare(gate_input.policy, gate_input.measurement)
+            lines, code = self._dispatch(scorer)
+        except (StateError, CouplingConfigError, OSError, UnicodeDecodeError) as exc:
+            lines, code = [f"FAIL: {exc}"], 1
+        return self._emit(lines, code)
 
-    def _rebaseline_files_guard(self) -> Outcome | None:
+    def _rebaseline_files_guard(self) -> str | None:
         """Reject an empty path list or blank ``--reason`` before scoring."""
         if self._opts.rebaseline_files is None:
             return None
         if not self._opts.rebaseline_files:
-            return Outcome.failed("FAIL: --rebaseline-files requires at least one path")
+            return _GUARDS["paths"]
         if not self._opts.reason.strip():
-            return Outcome.failed("FAIL: --rebaseline-files requires --reason <text>")
+            return _GUARDS["reason"]
         return None
 
     @staticmethod
-    def _emit(outcome: Outcome) -> int:
-        sys.stdout.writelines(line + "\n" for line in outcome.lines)
-        return outcome.exit_code
+    def _emit(lines: list[str], code: int) -> int:
+        sys.stdout.writelines(line + "\n" for line in lines)
+        return code
 
-    def _run_action(self, scorer: CouplingScorer) -> Outcome | None:
+    def _dispatch(self, scorer: CouplingScorer) -> _Report:
         opts = self._opts
-        ratchet = CouplingRatchet(self._root, self._git)
-        writer = CouplingWriter(self._root, self._git)
         if opts.check:
-            return ratchet.check(
-                scorer,
+            return self._gate.check(
                 base_ref=opts.base_ref,
                 require_base=opts.require_base,
                 tripwire=opts.tripwire,
             )
+        if opts.log:
+            return self._gate.log()
+        if (
+            opts.update
+            or opts.rebaseline
+            or opts.relax is not None
+            or opts.rebaseline_files is not None
+        ):
+            return self._write()
+        return self._view(scorer)
+
+    def _write(self) -> _Report:
+        opts = self._opts
+        gate = self._gate
         if opts.rebaseline:
-            return writer.rebaseline(
-                scorer,
+            return gate.rebaseline(
+                reason=opts.reason,
                 allow_ci_write=opts.allow_ci_write,
                 source=opts.source,
-                reason=opts.reason,
             )
         if opts.relax is not None:
-            return writer.relax(
-                scorer,
+            return gate.relax(
                 opts.relax,
                 justify=opts.justify,
                 allow_ci_write=opts.allow_ci_write,
                 source=opts.source,
             )
         if opts.rebaseline_files is not None:
-            return CouplingBless(self._root, self._git, scorer.config.caps).apply(
-                CouplingBaseline.metrics_by_file(scorer.results),
+            return gate.bless(
                 list(opts.rebaseline_files),
                 reason=opts.reason,
-                source=opts.source,
                 allow_ci_write=opts.allow_ci_write,
+                source=opts.source,
                 base_ref=opts.base_ref,
                 require_base=opts.require_base,
             )
-        if opts.update:
-            return writer.update(
-                scorer,
-                base_ref=opts.base_ref,
-                require_base=opts.require_base,
-                allow_ci_write=opts.allow_ci_write,
-                source=opts.source,
-            )
-        if opts.log:
-            return ratchet.show_log()
-        return None
+        return gate.update(
+            base_ref=opts.base_ref,
+            require_base=opts.require_base,
+            allow_ci_write=opts.allow_ci_write,
+            source=opts.source,
+        )
 
-    def _run_view(self, scorer: CouplingScorer) -> Outcome:
+    def _view(self, scorer: CouplingScorer) -> _Report:
         report = CouplingReport(scorer)
         code = 1 if scorer.fail_count > 0 else 0
         if self._opts.json:
-            return Outcome(code, (report.to_json(),))
+            return [report.to_json()], code
         lines = [*report.render_table(), *report.render_packages()]
         if self._opts.threshold:
             lines.extend(report.render_per_file())
-        return Outcome(code, tuple(lines))
+        return lines, code
 
 
 def main(argv: list[str] | None = None) -> int:
     """Parse arguments and run the coupling ratchet CLI, returning an exit code."""
     try:
         return Cli(Options.parse(argv)).run()
-    except GitError as exc:  # raised while locating the repository root
+    except StateError as exc:  # raised while locating the repository root
         sys.stdout.write(f"FAIL: {exc}\n")
         return 1

@@ -16,13 +16,18 @@ from typing import Self
 
 import pytest
 
-from oo_ratchet.coupling.audit import CouplingAudit, CouplingAuditError
-from oo_ratchet.coupling.baseline import CouplingBaseline, CouplingBaselineError
+from oo_ratchet.core.adapters.auditview import AuditView
+from oo_ratchet.core.adapters.gitrepo import GitRepo
+from oo_ratchet.core.adapters.jsonstore import JsonBaselineStore
+from oo_ratchet.core.domain.errors import GitError, StateError
 from oo_ratchet.coupling.cli import main
-from oo_ratchet.coupling.gitio import GitError, GitRepo
-from oo_ratchet.coupling.ratchet import CouplingRatchet
+from oo_ratchet.coupling.config import CouplingConfig
+from oo_ratchet.coupling.gateinput import GateInput
+from oo_ratchet.coupling.outcome import Outcome
 from oo_ratchet.coupling.scorer import CouplingScorer
-from oo_ratchet.coupling.writer import CouplingWriter
+
+BASELINE = ".oo-coupling-baseline.json"
+AUDIT = ".oo-coupling-audit.jsonl"
 
 # Every test drives a real git init/commit/checkout sequence plus a real
 # tools/coupling subprocess invocation -- see the marker rationale on
@@ -46,13 +51,103 @@ HIGHER = _BODY + '__all__ = ["x", "y", "z"]\n\nx = 1\ny = 2\nz = 3\n'
 BROKEN = "def oops(:\n    pass\n"
 
 
+class GateRun:
+    """Run the coupling CLI in a fixture repository, as a person would."""
+
+    _fx: GitFixture
+    _capsys: pytest.CaptureFixture[str]
+    _monkeypatch: pytest.MonkeyPatch
+
+    def __new__(
+        cls,
+        fx: GitFixture,
+        capsys: pytest.CaptureFixture[str],
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> Self:
+        self = super().__new__(cls)
+        self._fx = fx
+        self._capsys = capsys
+        self._monkeypatch = monkeypatch
+        return self
+
+    def run(self, *argv: str) -> Outcome:
+        """Run ``oo-ratchet coupling pkg ARGV`` from the repository root."""
+        self._monkeypatch.chdir(self._fx.root)
+        self._capsys.readouterr()
+        code = main(["pkg", *argv])
+        return Outcome(code, tuple(self._capsys.readouterr().out.splitlines()))
+
+    def check(
+        self, *, base_ref: str, require_base: bool, tripwire: bool = False
+    ) -> Outcome:
+        """Run ``--check``."""
+        flags = ["--require-base"] if require_base else []
+        flags += ["--tripwire"] if tripwire else []
+        return self.run("--check", "--base-ref", base_ref, *flags)
+
+    def update(
+        self,
+        *,
+        base_ref: str,
+        require_base: bool,
+        allow_ci_write: bool,
+        source: str | None,
+    ) -> Outcome:
+        """Run ``--update``."""
+        flags = ["--require-base"] if require_base else []
+        flags += ["--allow-ci-write"] if allow_ci_write else []
+        flags += ["--source", source] if source else []
+        return self.run("--update", "--base-ref", base_ref, *flags)
+
+    def relax(
+        self, file: str, *, justify: str, allow_ci_write: bool, source: str | None
+    ) -> Outcome:
+        """Run ``--relax``."""
+        flags = ["--allow-ci-write"] if allow_ci_write else []
+        flags += ["--source", source] if source else []
+        return self.run("--relax", file, "--justify", justify, *flags)
+
+    def rebaseline(
+        self, *, allow_ci_write: bool, source: str | None, reason: str = ""
+    ) -> Outcome:
+        """Run ``--rebaseline``."""
+        flags = ["--allow-ci-write"] if allow_ci_write else []
+        flags += ["--reason", reason] if reason else []
+        flags += ["--source", source] if source else []
+        return self.run("--rebaseline", *flags)
+
+    def bless(
+        self,
+        paths: list[str],
+        *,
+        reason: str = "r",
+        base_ref: str | None = None,
+        require_base: bool = False,
+        allow_ci_write: bool = True,
+    ) -> Outcome:
+        """Run ``--rebaseline-files``."""
+        flags = ["--require-base"] if require_base else []
+        flags += ["--base-ref", base_ref] if base_ref else []
+        flags += ["--allow-ci-write"] if allow_ci_write else []
+        return self.run(
+            "--rebaseline-files", ",".join(paths), "--reason", reason, *flags
+        )
+
+
 class GitFixture:
     """A throwaway git repo for exercising the coupling ratchet end to end."""
 
     _root: Path
+    _gate: GateRun
 
-    def __new__(cls, tmp: Path) -> Self:
+    def __new__(
+        cls,
+        tmp: Path,
+        capsys: pytest.CaptureFixture[str],
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> Self:
         self = super().__new__(cls)
+        self._gate = GateRun(self, capsys, monkeypatch)
         subprocess.run(["git", "init", "-q", "-b", "main"], cwd=tmp, check=True)
         for key, val in (
             ("user.email", "t@example.com"),
@@ -81,13 +176,18 @@ class GitFixture:
         path.write_text(content)
 
     def write_baseline(self, data: dict[str, dict[str, float]]) -> None:
-        (self._root / ".oo-coupling-baseline.json").write_text(
-            json.dumps(data, indent=2) + "\n"
-        )
+        (self._root / BASELINE).write_text(json.dumps(data, indent=2) + "\n")
+
+    def rows(self) -> dict[str, dict[str, float]]:
+        """Return the in-tree baseline rows."""
+        return JsonBaselineStore(self._root / BASELINE).rows()
+
+    def row(self, path: str) -> dict[str, float] | None:
+        """Return the in-tree baseline row of ``path``, ``None`` if untracked."""
+        return self.rows().get(path)
 
     def snapshot(self, subdir: str = "pkg") -> None:
-        scorer = CouplingScorer(self._root / subdir, self._root)
-        self.write_baseline(CouplingBaseline.metrics_by_file(scorer.results))
+        self.write_baseline(self.metrics(subdir))
 
     def commit(self, msg: str) -> str:
         subprocess.run(["git", "add", "-A"], cwd=self._root, check=True)
@@ -123,19 +223,29 @@ class GitFixture:
         )
         return out.stdout.strip()
 
-    def ratchet(self) -> CouplingRatchet:
-        return CouplingRatchet(self._root, GitRepo(self._root))
+    def ratchet(self) -> GateRun:
+        return self._gate
 
-    def writer(self) -> CouplingWriter:
-        return CouplingWriter(self._root, GitRepo(self._root))
+    def writer(self) -> GateRun:
+        return self._gate
+
+    def metrics(self, subdir: str = "pkg") -> dict[str, dict[str, float]]:
+        """Return the scored metrics of ``subdir``, as a baseline holds them."""
+        scorer = CouplingScorer(self._root / subdir, self._root)
+        return GateInput(CouplingConfig(), scorer).measurement.metrics()
 
     def scorer(self, subdir: str = "pkg") -> CouplingScorer:
         return CouplingScorer(self._root / subdir, self._root)
 
 
 @pytest.fixture
-def fx(tmp_path: Path) -> GitFixture:
-    return GitFixture(tmp_path)
+def fx(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> GitFixture:
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    return GitFixture(tmp_path, capsys, monkeypatch)
 
 
 class TestMergeBaseScoping:
@@ -153,7 +263,7 @@ class TestMergeBaseScoping:
         fx.commit("regress a")
         fx.write("pkg/b.py", LOW + "# touched, no metric change\n")
         fx.commit("touch b only")
-        outcome = fx.ratchet().check(fx.scorer(), base_ref=fork, require_base=True)
+        outcome = fx.ratchet().check(base_ref=fork, require_base=True)
         assert outcome.exit_code == 1
         assert any(
             "pkg/a.py" in line and "public_names" in line for line in outcome.lines
@@ -171,7 +281,7 @@ class TestMergeBaseScoping:
         fx.commit("regress a")
         fx.write("pkg/b.py", LOW + "# touched\n")
         fx.commit("touch b only")
-        outcome = fx.ratchet().check(fx.scorer(), base_ref="HEAD~1", require_base=True)
+        outcome = fx.ratchet().check(base_ref="HEAD~1", require_base=True)
         assert outcome.exit_code == 0  # old per-commit scope misses a.py
 
 
@@ -184,7 +294,7 @@ class TestBaseCompare:
         base = fx.commit("base")
         fx.write("pkg/a.py", LOW + "# comment\n")  # no metric change
         fx.commit("touch")
-        outcome = fx.ratchet().check(fx.scorer(), base_ref=base, require_base=True)
+        outcome = fx.ratchet().check(base_ref=base, require_base=True)
         assert outcome.exit_code == 0
 
     def test_regression_fails(self, fx: GitFixture) -> None:
@@ -193,7 +303,7 @@ class TestBaseCompare:
         base = fx.commit("base")
         fx.write("pkg/a.py", HIGH)
         fx.commit("regress")
-        outcome = fx.ratchet().check(fx.scorer(), base_ref=base, require_base=True)
+        outcome = fx.ratchet().check(base_ref=base, require_base=True)
         assert outcome.exit_code == 1
         assert any("regression" in line for line in outcome.lines)
 
@@ -203,7 +313,7 @@ class TestBaseCompare:
         base = fx.commit("base")
         fx.write("pkg/new.py", HIGH)  # new, not in baseline
         fx.commit("add new")
-        outcome = fx.ratchet().check(fx.scorer(), base_ref=base, require_base=True)
+        outcome = fx.ratchet().check(base_ref=base, require_base=True)
         assert outcome.exit_code == 0
 
     def test_no_src_touched_is_trivial_pass(self, fx: GitFixture) -> None:
@@ -212,7 +322,7 @@ class TestBaseCompare:
         base = fx.commit("base")
         fx.write("notes.txt", "unrelated change\n")  # not a scored .py
         fx.commit("touch non-source")
-        outcome = fx.ratchet().check(fx.scorer(), base_ref=base, require_base=True)
+        outcome = fx.ratchet().check(base_ref=base, require_base=True)
         assert outcome.exit_code == 0
         assert any("No scored Python files touched" in line for line in outcome.lines)
 
@@ -230,9 +340,9 @@ class TestBaseCommitAuthoritative:
         fx.snapshot()
         base = fx.commit("base")  # base-commit baseline: a.py public_names=1
         fx.write("pkg/a.py", HIGH)  # regression
-        fx.write_baseline(CouplingBaseline.metrics_by_file(fx.scorer().results))
+        fx.write_baseline(fx.metrics())
         fx.commit("regress and launder the in-tree baseline")
-        outcome = fx.ratchet().check(fx.scorer(), base_ref=base, require_base=True)
+        outcome = fx.ratchet().check(base_ref=base, require_base=True)
         assert outcome.exit_code == 1
         assert any("public_names" in line for line in outcome.lines)
 
@@ -245,7 +355,7 @@ class TestBaseCommitAuthoritative:
         base = fx.commit("base with empty baseline")
         fx.write("pkg/a.py", HIGH)
         fx.commit("regress")
-        outcome = fx.ratchet().check(fx.scorer(), base_ref=base, require_base=True)
+        outcome = fx.ratchet().check(base_ref=base, require_base=True)
         assert outcome.exit_code == 1
         assert any("empty" in line for line in outcome.lines)
 
@@ -258,7 +368,7 @@ class TestBaseCommitAuthoritative:
         base = fx.commit("base with empty baseline")
         fx.write("pkg/a.py", HIGH)  # changed, but new-vs-empty-base is INFO
         fx.commit("change")
-        outcome = fx.ratchet().check(fx.scorer(), base_ref=base, require_base=False)
+        outcome = fx.ratchet().check(base_ref=base, require_base=False)
         assert outcome.exit_code == 0
 
     def test_empty_base_baseline_local_still_parses(self, fx: GitFixture) -> None:
@@ -269,7 +379,7 @@ class TestBaseCommitAuthoritative:
         base = fx.commit("base with empty baseline")
         fx.write("pkg/a.py", BROKEN)  # unparseable, touched
         fx.commit("break")
-        outcome = fx.ratchet().check(fx.scorer(), base_ref=base, require_base=False)
+        outcome = fx.ratchet().check(base_ref=base, require_base=False)
         assert outcome.exit_code == 1
         assert any("failed to parse" in line for line in outcome.lines)
 
@@ -283,14 +393,13 @@ class TestScopedUpdate:
         base = fx.commit("base")
         fx.write("pkg/a.py", HIGH)  # worse than the in-tree baseline
         outcome = fx.writer().update(
-            fx.scorer(),
             base_ref=base,
             require_base=False,
             allow_ci_write=True,
             source=None,
         )
         assert outcome.exit_code == 1
-        entry = CouplingBaseline(fx.root).get("pkg/a.py")
+        entry = fx.row("pkg/a.py")
         assert entry is not None
         assert entry["public_names"] == 1.0  # unloosened
 
@@ -300,14 +409,13 @@ class TestScopedUpdate:
         base = fx.commit("base")
         fx.write("pkg/a.py", LOW)  # improved (fewer public names)
         outcome = fx.writer().update(
-            fx.scorer(),
             base_ref=base,
             require_base=False,
             allow_ci_write=True,
             source=None,
         )
         assert outcome.exit_code == 0
-        entry = CouplingBaseline(fx.root).get("pkg/a.py")
+        entry = fx.row("pkg/a.py")
         assert entry is not None
         assert entry["public_names"] == 1.0
 
@@ -317,9 +425,8 @@ class TestScopedUpdate:
         fx.write("pkg/a.py", LOW)
         fx.snapshot()
         fx.commit("base")
-        before = dict(CouplingBaseline(fx.root).entries)
+        before = dict(fx.rows())
         outcome = fx.writer().update(
-            fx.scorer(),
             base_ref="0" * 40,
             require_base=False,
             allow_ci_write=True,
@@ -327,20 +434,19 @@ class TestScopedUpdate:
         )
         assert outcome.exit_code == 1
         assert any("cannot resolve base" in line for line in outcome.lines)
-        assert CouplingBaseline(fx.root).entries == before  # no whole-tree sweep
+        assert fx.rows() == before  # no whole-tree sweep
 
     def test_update_bootstrap_no_baseline_whole_tree(self, fx: GitFixture) -> None:
         fx.write("pkg/a.py", LOW)
         fx.commit("pre-adoption, no baseline")
         outcome = fx.writer().update(
-            fx.scorer(),
             base_ref="0" * 40,
             require_base=False,
             allow_ci_write=True,
             source=None,
         )
         assert outcome.exit_code == 0
-        assert CouplingBaseline(fx.root).get("pkg/a.py") is not None
+        assert fx.row("pkg/a.py") is not None
 
 
 class TestRelaxWaiver:
@@ -352,7 +458,6 @@ class TestRelaxWaiver:
         base = fx.commit("base")
         fx.write("pkg/a.py", HIGH)  # regresses public_names vs base
         relax = fx.writer().relax(
-            fx.scorer(),
             "pkg/a.py",
             justify="accepted coupling debt",
             allow_ci_write=True,
@@ -360,7 +465,7 @@ class TestRelaxWaiver:
         )
         assert relax.exit_code == 0
         fx.commit("relax")
-        outcome = fx.ratchet().check(fx.scorer(), base_ref=base, require_base=True)
+        outcome = fx.ratchet().check(base_ref=base, require_base=True)
         assert outcome.exit_code == 0
 
     def test_relax_requires_justification(self, fx: GitFixture) -> None:
@@ -368,7 +473,7 @@ class TestRelaxWaiver:
         fx.snapshot()
         fx.commit("base")
         outcome = fx.writer().relax(
-            fx.scorer(), "pkg/a.py", justify="  ", allow_ci_write=True, source=None
+            "pkg/a.py", justify="  ", allow_ci_write=True, source=None
         )
         assert outcome.exit_code == 1
 
@@ -378,13 +483,13 @@ class TestRelaxWaiver:
         fx.write("pkg/a.py", LOW)  # no snapshot -> no baseline entry for a.py
         fx.commit("base")
         outcome = fx.writer().relax(
-            fx.scorer(), "pkg/a.py", justify="x", allow_ci_write=True, source=None
+            "pkg/a.py", justify="x", allow_ci_write=True, source=None
         )
         assert outcome.exit_code == 1
         assert any(
             "--update" in line or "--rebaseline" in line for line in outcome.lines
         )
-        assert CouplingBaseline(fx.root).get("pkg/a.py") is None  # not added
+        assert fx.row("pkg/a.py") is None  # not added
         audit_path = fx.root / ".oo-coupling-audit.jsonl"
         assert not audit_path.exists() or "relaxed" not in audit_path.read_text()
 
@@ -394,13 +499,13 @@ class TestRelaxWaiver:
         fx.write("pkg/a.py", LOW)
         fx.snapshot()  # baseline == current, nothing worse
         fx.commit("base")
-        before = dict(CouplingBaseline(fx.root).entries)
+        before = dict(fx.rows())
         outcome = fx.writer().relax(
-            fx.scorer(), "pkg/a.py", justify="x", allow_ci_write=True, source=None
+            "pkg/a.py", justify="x", allow_ci_write=True, source=None
         )
         assert outcome.exit_code == 1
         assert any("nothing to relax" in line for line in outcome.lines)
-        assert CouplingBaseline(fx.root).entries == before  # unchanged
+        assert fx.rows() == before  # unchanged
         audit_path = fx.root / ".oo-coupling-audit.jsonl"
         assert not audit_path.exists() or "relaxed" not in audit_path.read_text()
 
@@ -413,7 +518,6 @@ class TestRelaxWaiver:
         fx.snapshot()  # baseline public_names=1
         fx.write("pkg/a.py", HIGH)  # regresses vs baseline -> relax loosens it
         fx.writer().relax(
-            fx.scorer(),
             "pkg/a.py",
             justify="historical",
             allow_ci_write=True,
@@ -421,9 +525,9 @@ class TestRelaxWaiver:
         )
         base = fx.commit("adopt with historical relaxation")
         fx.write("pkg/a.py", HIGHER)  # fresh regression: public_names 3 vs base 2
-        fx.writer().rebaseline(fx.scorer(), allow_ci_write=True, source=None)
+        fx.writer().rebaseline(allow_ci_write=True, source=None)
         fx.commit("regress then rebaseline")
-        outcome = fx.ratchet().check(fx.scorer(), base_ref=base, require_base=True)
+        outcome = fx.ratchet().check(base_ref=base, require_base=True)
         assert outcome.exit_code == 1
         assert any("regression" in line for line in outcome.lines)
 
@@ -431,7 +535,7 @@ class TestRelaxWaiver:
         # Relax M1 (public_names); a fresh regression of M2 (efferent_coupling) on
         # the same file, though locked in-tree, must NOT be waived.
         fx.write("pkg/a.py", HIGH)
-        current = CouplingBaseline.metrics_by_file(fx.scorer().results)["pkg/a.py"]
+        current = fx.metrics()["pkg/a.py"]
         base_metrics = {
             **current,
             "public_names": current["public_names"] - 1,
@@ -458,7 +562,7 @@ class TestRelaxWaiver:
         }
         fx.write(".oo-coupling-audit.jsonl", json.dumps(relaxed) + "\n")
         fx.commit("lock and relax public_names only")
-        outcome = fx.ratchet().check(fx.scorer(), base_ref=base, require_base=True)
+        outcome = fx.ratchet().check(base_ref=base, require_base=True)
         assert outcome.exit_code == 1
         assert any("efferent_coupling" in line for line in outcome.lines)
 
@@ -476,7 +580,7 @@ class TestRenameCarry:
         fx.move("pkg/old.py", "pkg/new.py")
         fx.write("pkg/new.py", HIGH)  # worsened during the rename
         fx.commit("rename and worsen")
-        outcome = fx.ratchet().check(fx.scorer(), base_ref=base, require_base=True)
+        outcome = fx.ratchet().check(base_ref=base, require_base=True)
         assert outcome.exit_code == 1
         assert any("public_names" in line for line in outcome.lines)
 
@@ -492,7 +596,6 @@ class TestRenameCarry:
         fx.move("pkg/old.py", "pkg/new.py")
         fx.write("pkg/new.py", HIGH)  # regressed vs old.py's carried baseline
         first = fx.writer().update(
-            fx.scorer(),
             base_ref=base,
             require_base=False,
             allow_ci_write=True,
@@ -500,17 +603,16 @@ class TestRenameCarry:
         )
         assert first.exit_code == 1
         assert any("regressed" in line for line in first.lines)
-        assert CouplingBaseline(fx.root).get("pkg/new.py") is None  # not written
-        assert CouplingBaseline(fx.root).get("pkg/old.py") is not None  # carry kept
+        assert fx.row("pkg/new.py") is None  # not written
+        assert fx.row("pkg/old.py") is not None  # carry kept
         second = fx.writer().update(
-            fx.scorer(),
             base_ref=base,
             require_base=False,
             allow_ci_write=True,
             source=None,
         )
         assert second.exit_code == 1  # still refuses on a second pass
-        assert CouplingBaseline(fx.root).get("pkg/new.py") is None
+        assert fx.row("pkg/new.py") is None
 
 
 class TestCiWriteGuard:
@@ -524,7 +626,6 @@ class TestCiWriteGuard:
         fx.snapshot()
         base = fx.commit("base")
         outcome = fx.writer().update(
-            fx.scorer(),
             base_ref=base,
             require_base=False,
             allow_ci_write=False,
@@ -541,7 +642,6 @@ class TestCiWriteGuard:
         fx.snapshot()
         base = fx.commit("base")
         outcome = fx.writer().update(
-            fx.scorer(),
             base_ref=base,
             require_base=False,
             allow_ci_write=True,
@@ -559,7 +659,7 @@ class TestTouchedParseError:
         base = fx.commit("base")
         fx.write("pkg/a.py", BROKEN)  # now unparseable, still touched
         fx.commit("break")
-        outcome = fx.ratchet().check(fx.scorer(), base_ref=base, require_base=True)
+        outcome = fx.ratchet().check(base_ref=base, require_base=True)
         assert outcome.exit_code == 1
         assert any("failed to parse" in line for line in outcome.lines)
 
@@ -567,16 +667,20 @@ class TestTouchedParseError:
 class TestFailClosed:
     """A failed git command or corrupt baseline fails closed, not silent."""
 
+    @staticmethod
+    def _git(fx: GitFixture) -> GitRepo:
+        return GitRepo(fx.root, BASELINE, AUDIT)
+
     def test_diff_failure_raises(self, fx: GitFixture) -> None:
         fx.write("pkg/a.py", LOW)
         fx.commit("base")
         with pytest.raises(GitError):
-            GitRepo(fx.root).diff("refs/does/not/exist")
+            self._git(fx).changes_since("refs/does/not/exist")
 
     def test_empty_diff_is_not_a_failure(self, fx: GitFixture) -> None:
         fx.write("pkg/a.py", LOW)
         head = fx.commit("base")
-        diff = GitRepo(fx.root).diff(head)  # HEAD vs work tree: no changes
+        diff = self._git(fx).changes_since(head)  # HEAD vs work tree: no changes
         assert diff.touched == frozenset()
 
     def test_unresolvable_base_with_require_fails_closed(self, fx: GitFixture) -> None:
@@ -585,7 +689,7 @@ class TestFailClosed:
         fx.write("pkg/a.py", LOW)
         fx.snapshot()
         fx.commit("base")
-        outcome = fx.ratchet().check(fx.scorer(), base_ref="0" * 40, require_base=True)
+        outcome = fx.ratchet().check(base_ref="0" * 40, require_base=True)
         assert outcome.exit_code == 1
         assert any("--require-base" in line for line in outcome.lines)
 
@@ -597,14 +701,14 @@ class TestFailClosed:
         fx.snapshot()
         fx.commit("base")
         fx.write("pkg/a.py", HIGH)  # a regression the soft path would have caught
-        outcome = fx.ratchet().check(fx.scorer(), base_ref="0" * 40, require_base=False)
+        outcome = fx.ratchet().check(base_ref="0" * 40, require_base=False)
         assert outcome.exit_code == 1
         assert any("origin/main" in line for line in outcome.lines)
 
     def test_unresolvable_base_no_baseline_is_pass(self, fx: GitFixture) -> None:
         fx.write("pkg/a.py", LOW)  # no baseline committed
         fx.commit("pre-adoption")
-        outcome = fx.ratchet().check(fx.scorer(), base_ref="0" * 40, require_base=False)
+        outcome = fx.ratchet().check(base_ref="0" * 40, require_base=False)
         assert outcome.exit_code == 0
 
     def test_absent_base_baseline_unresolvable_tip_fails_closed(
@@ -617,114 +721,87 @@ class TestFailClosed:
         base = fx.commit("base without baseline")  # no baseline blob at base
         fx.snapshot()  # in-tree baseline now present
         fx.commit("add in-tree baseline")
-        outcome = fx.ratchet().check(fx.scorer(), base_ref=base, require_base=False)
+        outcome = fx.ratchet().check(base_ref=base, require_base=False)
         assert outcome.exit_code == 1
         assert any("origin/main" in line for line in outcome.lines)
 
     def test_corrupt_in_tree_baseline_is_controlled_nonzero(
-        self, fx: GitFixture, monkeypatch: pytest.MonkeyPatch
+        self, fx: GitFixture
     ) -> None:
         # A corrupt .oo-coupling-baseline.json surfaces as a clean non-zero exit
         # through the CLI, not a JSONDecodeError traceback.
         fx.write("pkg/a.py", LOW)
-        fx.write(".oo-coupling-baseline.json", "{ not valid json")
+        fx.write(BASELINE, "{ not valid json")
         fx.commit("corrupt baseline")
-        monkeypatch.chdir(fx.root)
-        assert main(["pkg", "--check"]) == 1
+        assert fx.ratchet().run("--check").exit_code == 1
 
-    def test_corrupt_baseline_raises_typed_error(self, fx: GitFixture) -> None:
-        fx.write(".oo-coupling-baseline.json", "{ not valid json")
-        with pytest.raises(CouplingBaselineError):
-            CouplingBaseline(fx.root)
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "{ not valid json",
+            "[1, 2, 3]",
+            '{"pkg/a.py": "garbage"}',
+            '{"pkg/a.py": {"efferent_coupling": "5"}}',
+            '{"pkg/a.py": {"efferent_coupling": true}}',
+        ],
+    )
+    def test_malformed_in_tree_baseline_raises_a_state_error(
+        self, fx: GitFixture, text: str
+    ) -> None:
+        # A non-dict row would make `metric not in row` a substring test and a
+        # bool would compare as 0 or 1: either would skip a regression.
+        fx.write(BASELINE, text)
+        with pytest.raises(StateError):
+            fx.rows()
 
-    def test_non_utf8_in_tree_baseline_raises_typed_error(self, fx: GitFixture) -> None:
-        # A non-UTF8 baseline file raises UnicodeDecodeError on read_text; _load
-        # must turn it into the typed error.
-        (fx.root / ".oo-coupling-baseline.json").write_bytes(b"\xff\xfe\x00")
-        with pytest.raises(CouplingBaselineError):
-            CouplingBaseline(fx.root)
+    def test_non_utf8_in_tree_baseline_raises_a_state_error(
+        self, fx: GitFixture
+    ) -> None:
+        (fx.root / BASELINE).write_bytes(b"\xff\xfe\x00")
+        with pytest.raises(StateError):
+            fx.rows()
 
     def test_non_utf8_base_baseline_blob_raises_giterror(self, fx: GitFixture) -> None:
         # A committed non-UTF8 baseline blob makes git show's text decode fail;
-        # show_baseline must fail closed with GitError, not a traceback.
+        # baseline_at must fail closed with GitError, not a traceback.
         fx.write("pkg/a.py", LOW)
-        (fx.root / ".oo-coupling-baseline.json").write_bytes(b"\xff\xfe\x00")
+        (fx.root / BASELINE).write_bytes(b"\xff\xfe\x00")
         head = fx.commit("non-utf8 baseline blob")
         with pytest.raises(GitError):
-            GitRepo(fx.root).show_baseline(head)
+            self._git(fx).baseline_at(head)
 
-    def test_non_dict_base_baseline_raises_giterror(self, fx: GitFixture) -> None:
-        # A committed baseline that is valid JSON but not an object (a list)
-        # is a controlled GitError, not an AttributeError on .get().
-        fx.write("pkg/a.py", LOW)
-        fx.write(".oo-coupling-baseline.json", "[1, 2, 3]")
-        head = fx.commit("non-dict baseline blob")
-        with pytest.raises(GitError):
-            GitRepo(fx.root).show_baseline(head)
-
-    def test_non_dict_in_tree_baseline_raises_typed_error(self, fx: GitFixture) -> None:
-        fx.write(".oo-coupling-baseline.json", "[1, 2, 3]")
-        with pytest.raises(CouplingBaselineError):
-            CouplingBaseline(fx.root)
-
-    def test_nested_non_dict_base_baseline_raises_giterror(
-        self, fx: GitFixture
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "[1, 2, 3]",
+            '{"pkg/a.py": "garbage"}',
+            '{"pkg/a.py": {"efferent_coupling": true}}',
+        ],
+    )
+    def test_malformed_base_baseline_raises_a_state_error(
+        self, fx: GitFixture, text: str
     ) -> None:
-        # {"pkg/a.py": "garbage"} passes the top-level dict check but the value
-        # is not a metric dict; without the nested guard `metric not in "garbage"`
-        # is a substring test that skips every metric -> fail-OPEN. Reject it.
+        # Valid JSON that is not a baseline would fail open if it were read.
         fx.write("pkg/a.py", LOW)
-        fx.write(".oo-coupling-baseline.json", '{"pkg/a.py": "garbage"}')
-        head = fx.commit("nested non-dict baseline blob")
-        with pytest.raises(GitError):
-            GitRepo(fx.root).show_baseline(head)
-
-    def test_nested_non_dict_in_tree_baseline_raises_typed_error(
-        self, fx: GitFixture
-    ) -> None:
-        fx.write(".oo-coupling-baseline.json", '{"pkg/a.py": "garbage"}')
-        with pytest.raises(CouplingBaselineError):
-            CouplingBaseline(fx.root)
+        fx.write(BASELINE, text)
+        head = fx.commit("malformed baseline blob")
+        with pytest.raises(StateError):
+            self._git(fx).baseline_at(head)
 
     def test_nested_non_dict_base_baseline_fails_closed_via_cli(
-        self, fx: GitFixture, monkeypatch: pytest.MonkeyPatch
+        self, fx: GitFixture
     ) -> None:
         # End-to-end: a nested-malformed base baseline must fail the gate, not
         # let a real regression pass. The in-tree baseline at HEAD is valid, so
-        # only the base blob is malformed; the CLI catches the GitError as a
+        # only the base blob is malformed; the CLI catches the error as a
         # controlled non-zero.
         fx.write("pkg/a.py", LOW)
-        fx.write(".oo-coupling-baseline.json", '{"pkg/a.py": "garbage"}')
+        fx.write(BASELINE, '{"pkg/a.py": "garbage"}')
         base = fx.commit("nested non-dict base baseline")
         fx.snapshot()  # overwrite with a valid in-tree baseline
         fx.write("pkg/a.py", HIGH)  # a regression that must not slip through
         fx.commit("valid in-tree baseline and regress")
-        monkeypatch.chdir(fx.root)
-        assert main(["pkg", "--check", "--base-ref", base, "--require-base"]) == 1
-
-    def test_bool_metric_base_baseline_raises_giterror(self, fx: GitFixture) -> None:
-        # A bool metric value (`true`) is an int subclass that would compare as
-        # 0/1 -- fail-open. Reject it at the source with GitError.
-        fx.write("pkg/a.py", LOW)
-        fx.write(
-            ".oo-coupling-baseline.json",
-            '{"pkg/a.py": {"efferent_coupling": true}}',
-        )
-        head = fx.commit("bool metric baseline blob")
-        with pytest.raises(GitError):
-            GitRepo(fx.root).show_baseline(head)
-
-    def test_string_metric_in_tree_baseline_raises_typed_error(
-        self, fx: GitFixture
-    ) -> None:
-        # A string metric value would raise TypeError in the numeric comparison;
-        # reject it at load with the typed error instead.
-        fx.write(
-            ".oo-coupling-baseline.json",
-            '{"pkg/a.py": {"efferent_coupling": "5"}}',
-        )
-        with pytest.raises(CouplingBaselineError):
-            CouplingBaseline(fx.root)
+        assert fx.ratchet().check(base_ref=base, require_base=True).exit_code == 1
 
     def test_non_utf8_touched_file_fails(self, fx: GitFixture) -> None:
         # A touched .py file that cannot be decoded is scored as an error (like a
@@ -734,32 +811,30 @@ class TestFailClosed:
         base = fx.commit("base")
         (fx.root / "pkg" / "a.py").write_bytes(b"\xff\xfe# noqa\n")  # non-UTF8, touched
         fx.commit("break encoding")
-        outcome = fx.ratchet().check(fx.scorer(), base_ref=base, require_base=True)
+        outcome = fx.ratchet().check(base_ref=base, require_base=True)
         assert outcome.exit_code == 1
         assert any("failed to parse" in line for line in outcome.lines)
 
-    def test_render_log_raises_on_corrupt_audit(self, fx: GitFixture) -> None:
-        fx.write(".oo-coupling-audit.jsonl", "not json\n")
-        with pytest.raises(CouplingAuditError):
-            CouplingAudit(fx.root).render_log()
+    def test_audit_view_raises_on_corrupt_audit(self, fx: GitFixture) -> None:
+        fx.write(AUDIT, "not json\n")
+        with pytest.raises(StateError):
+            AuditView(fx.root / AUDIT, "coupling").lines()
 
     def test_corrupt_audit_log_is_controlled_nonzero_via_cli(
-        self, fx: GitFixture, monkeypatch: pytest.MonkeyPatch
+        self, fx: GitFixture
     ) -> None:
         # The --log view over a corrupt audit log surfaces a controlled non-zero,
         # not a JSONDecodeError traceback.
         fx.write("pkg/a.py", LOW)
         fx.snapshot()
-        fx.write(".oo-coupling-audit.jsonl", "<<<< merge conflict not json\n")
+        fx.write(AUDIT, "<<<< merge conflict not json\n")
         fx.commit("corrupt audit")
-        monkeypatch.chdir(fx.root)
-        assert main(["pkg", "--log"]) == 1
+        assert fx.ratchet().run("--log").exit_code == 1
 
     def test_git_degrades_to_none_without_a_repo(self) -> None:
-        gr = GitRepo(Path("/nonexistent-coupling-ratchet-xyz"))
+        gr = GitRepo(Path("/nonexistent-coupling-ratchet-xyz"), BASELINE, AUDIT)
         assert gr.root is None
-        assert gr.available is False
-        assert gr.resolve_base(None) is None
+        assert gr.resolve(None) is None
 
 
 class TestUpdateDropsDeletedRows:
@@ -769,14 +844,13 @@ class TestUpdateDropsDeletedRows:
         """Baseline holds a row for ``pkg/gone.py``, which no diff to base names."""
         fx.write("pkg/a.py", LOW)
         fx.snapshot()
-        data = dict(CouplingBaseline(fx.root).entries)
+        data = dict(fx.rows())
         data["pkg/gone.py"] = {"public_names": 3.0}
         fx.write_baseline(data)
         return fx.commit("base")
 
     def _update(self, fx: GitFixture, base: str) -> tuple[str, ...]:
         outcome = fx.writer().update(
-            fx.scorer(),
             base_ref=base,
             require_base=False,
             allow_ci_write=True,
@@ -788,15 +862,15 @@ class TestUpdateDropsDeletedRows:
     def test_row_of_deleted_file_is_dropped_and_reported(self, fx: GitFixture) -> None:
         base = self._stale_row_repo(fx)
         lines = self._update(fx, base)
-        assert CouplingBaseline(fx.root).get("pkg/gone.py") is None
+        assert fx.row("pkg/gone.py") is None
         assert "  files removed:  1" in lines
-        last = CouplingAudit(fx.root).path.read_text().splitlines()[-1]
+        last = (fx.root / ".oo-coupling-audit.jsonl").read_text().splitlines()[-1]
         assert json.loads(last)["removed"] == ["pkg/gone.py"]
 
     def test_row_of_existing_file_is_kept(self, fx: GitFixture) -> None:
         base = self._stale_row_repo(fx)
         self._update(fx, base)
-        assert CouplingBaseline(fx.root).get("pkg/a.py") is not None
+        assert fx.row("pkg/a.py") is not None
 
     def test_row_of_unparseable_existing_file_is_kept(self, fx: GitFixture) -> None:
         fx.write("pkg/a.py", LOW)
@@ -805,11 +879,10 @@ class TestUpdateDropsDeletedRows:
         base = fx.commit("base")
         fx.write("pkg/b.py", BROKEN)
         outcome = fx.writer().update(
-            fx.scorer(),
             base_ref=base,
             require_base=False,
             allow_ci_write=True,
             source=None,
         )
         assert outcome.exit_code == 1
-        assert CouplingBaseline(fx.root).get("pkg/b.py") is not None
+        assert fx.row("pkg/b.py") is not None

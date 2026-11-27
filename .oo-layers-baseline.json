@@ -1,21 +1,6 @@
 {
   "oo_ratchet.coupling": [
-    "oo_ratchet.coupling.audit",
-    "oo_ratchet.coupling.baseline",
-    "oo_ratchet.coupling.cli",
-    "oo_ratchet.coupling.compare",
-    "oo_ratchet.coupling.gitio",
-    "oo_ratchet.coupling.layout",
-    "oo_ratchet.coupling.outcome",
-    "oo_ratchet.coupling.ratchet",
-    "oo_ratchet.coupling.report",
-    "oo_ratchet.coupling.writer"
-  ],
-  "oo_ratchet.coupling.bless": [
-    "oo_ratchet.coupling.audit",
-    "oo_ratchet.coupling.baseline",
-    "oo_ratchet.coupling.gitio",
-    "oo_ratchet.coupling.outcome"
+    "oo_ratchet.coupling.cli"
   ],
   "oo_ratchet.coupling.graph": [
     "oo_ratchet.coupling.layout"
@@ -24,24 +9,12 @@
     "oo_ratchet.coupling.layout",
     "pathlib"
   ],
-  "oo_ratchet.coupling.ratchet": [
-    "oo_ratchet.coupling.audit",
-    "oo_ratchet.coupling.baseline",
-    "oo_ratchet.coupling.gitio",
-    "oo_ratchet.coupling.outcome"
-  ],
   "oo_ratchet.coupling.scorer": [
     "oo_ratchet.coupling.config",
     "oo_ratchet.coupling.layout",
     "oo_ratchet.coupling.tree",
     "oo_ratchet.source_set",
     "pathlib"
-  ],
-  "oo_ratchet.coupling.writer": [
-    "oo_ratchet.coupling.audit",
-    "oo_ratchet.coupling.baseline",
-    "oo_ratchet.coupling.gitio",
-    "oo_ratchet.coupling.outcome"
   ],
   "oo_ratchet.design.layer_table": [
     "oo_ratchet.source_set",

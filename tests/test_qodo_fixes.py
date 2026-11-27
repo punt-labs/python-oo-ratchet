@@ -16,7 +16,6 @@ from oo_ratchet.core.adapters.formats import AuditFormat
 from oo_ratchet.core.adapters.gitrepo import GitRepo
 from oo_ratchet.core.domain.errors import GitError, StateError
 from oo_ratchet.core.domain.tallies import Tally
-from oo_ratchet.coupling.audit import CouplingAudit, CouplingAuditError
 from oo_ratchet.coupling.gitio import GitError as CouplingGitError
 from oo_ratchet.coupling.gitio import GitRepo as CouplingGitRepo
 from oo_ratchet.coupling.imports import ImportResolver
@@ -63,7 +62,7 @@ def test_scanner_honors_a_coding_cookie(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize(
     ("parse", "error"),
-    [(AuditFormat.decode, StateError), (CouplingAudit._parse, CouplingAuditError)],
+    [(AuditFormat.decode, StateError)],
 )
 def test_non_object_audit_line_is_a_controlled_audit_error(
     parse: object, error: type[Exception]

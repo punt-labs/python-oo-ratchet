@@ -8,6 +8,7 @@ from typing import Self
 
 from oo_ratchet.design.layer_edges import Violation
 
+from .diagram import LayerDiagram
 from .scan import LayerScan
 
 
@@ -54,6 +55,7 @@ class LayersReport:
                     for v in self._scan.violations
                 ],
                 "unassigned": list(self._scan.unassigned),
+                **LayerDiagram(self._scan).as_json(),
             },
             indent=2,
         )

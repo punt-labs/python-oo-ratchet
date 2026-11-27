@@ -5,6 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import NamedTuple, Self
 
+from .tallies import TallyRecord
+from .totals import TotalReview
+
 
 class Waiver(NamedTuple):
     """An audited permission for one file's metric to be worse than its base."""
@@ -93,6 +96,8 @@ class Verdict:
     improved: int = 0
     removed: tuple[str, ...] = ()
     written: tuple[str, ...] = ()
+    totals: TotalReview | None = None
+    record: TallyRecord | None = None
 
     @property
     def passed(self) -> bool:

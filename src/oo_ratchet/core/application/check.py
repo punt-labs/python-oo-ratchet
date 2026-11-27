@@ -26,7 +26,11 @@ class Check(Operation):
         tripwire: bool = False,
     ) -> Verdict:
         """Return the verdict for the change from the base to the work tree."""
-        bases = Bases(self._history, self._store)
+        bases = Bases(
+            self._history.resolve,
+            lambda tip: self._history.baseline_at(tip) is not None,
+            self._store.exists,
+        )
         base = self._history.resolve(base_ref)
         if base is None:
             return bases.unresolved(require_base=require_base)

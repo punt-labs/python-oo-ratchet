@@ -3,16 +3,18 @@
 from __future__ import annotations
 
 import ast
-from typing import Self
+from typing import TYPE_CHECKING, Self
 
-from oo_ratchet.design.domain_io import DomainIO
-from oo_ratchet.design.layer_config import LayerConfig
-from oo_ratchet.design.layer_edges import Edge, Violation
 from oo_ratchet.design.layer_violations import LayerViolations, Site
 from oo_ratchet.design.modules import Module, ModuleIndex
 
 from .chain import ExportChain
 from .dynamic import DynamicImports
+from .module_violations import ModuleViolations
+
+if TYPE_CHECKING:
+    from oo_ratchet.design.layer_config import LayerConfig
+    from oo_ratchet.design.layer_edges import Violation
 
 
 class StrictViolations(LayerViolations):
@@ -51,21 +53,8 @@ class StrictViolations(LayerViolations):
 
     def violations(self) -> list[Violation]:
         """Return every refused edge, one per source and target module."""
-        found: set[Violation] = set()
-        for module in self._index.modules():
-            source = self._config.layer(self.name(module))
-            if source is None:
-                continue
-            found.update(
-                Violation(Edge(self.name(module), target), source, imported)
-                for _, _, target, imported in self.refused(module, source)
-            )
-            if self._config.ORDERED and source == "domain":
-                found.update(
-                    Violation(Edge(self.name(module), io), source, "io")
-                    for io in DomainIO(module).targets()
-                )
-        return sorted(found)
+        per_module = ModuleViolations(self, self._config)
+        return sorted(set().union(*(per_module.of(m) for m in self._index.modules())))
 
     def unassigned(self) -> list[str]:
         """Return the non-root modules that match no layer."""

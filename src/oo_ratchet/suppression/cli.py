@@ -181,7 +181,7 @@ class SuppressionCommand:
 
     @staticmethod
     def _count_report(report: SuppressionReport) -> Tally:
-        return Tally(report.by_category, report.by_file)
+        return report.tally
 
     @staticmethod
     def _emit(lines: list[str], code: int) -> int:

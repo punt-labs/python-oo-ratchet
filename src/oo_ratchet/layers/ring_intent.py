@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import ClassVar, Self
 
-from oo_ratchet.design.layer_config import LayerConfig, LayerConfigError
+from oo_ratchet.core.domain.layer_config import LayerConfig, LayerConfigError
 
 from .suggest_model import ModuleFacts
 

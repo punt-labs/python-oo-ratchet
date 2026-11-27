@@ -6,7 +6,7 @@ import re
 
 import pytest
 
-from oo_ratchet.design.layer_config import LayerConfig
+from oo_ratchet.core.domain.layer_config import LayerConfig
 from tests.layers_repo import LayersRepo
 from tests.test_layers_suggest import PROJECT, rings, start
 

@@ -19,8 +19,8 @@ Four rings. Imports point only inward, and the domain imports no IO.
 |------|-------|------------|
 | `domain` | metric values, rules, baseline rows, reviews and verdicts, design findings, audit records | nothing outside the domain; no `subprocess`, `os`, `pathlib`, `json`, sockets |
 | `application` | the operations (`Check`, `Update`, `Relax`, `RebaselineFiles`, `Rebaseline`), written once for every gate; the ports as `Protocol`s (`History`, `BaselineStore`, `AuditSink`, `SourceReader`); `GatePolicy` | `domain` |
-| `adapters` | `GitRepo` (implements `History`), the JSON baseline and audit files, config readers, the CLI and report rendering | `application`, `domain` |
-| `entry` | `__main__`, wiring each gate's adapters to its operations | everything |
+| `adapters` | `GitRepo` (implements `History`), the JSON baseline and audit files, config readers, report rendering | `application`, `domain` |
+| `entry` | `__main__`, each gate's CLI, wiring each gate's adapters to its operations | everything |
 
 Each gate is a vertical slice through the rings:
 
@@ -82,17 +82,17 @@ Measured with this repo's own tool:
 ### Ring counts
 
 The four-ring table for `src/oo_ratchet` is `architecture/four-rings.toml`.
-Each module is placed by its role: `*.cli`, `*.gitio`, `*.baseline`,
-`*.audit`, `*.writer`, `*.report`, `*.outcome` and the `source_*` modules are
-adapters; `*.ratchet`, `*.compare`, `*.bless`, `*.relax`, `*.rescan`, `*.apply`,
-`*.scan`, `backfill` are application; `__main__`, `gates`, `usage` and
-`logging_config` are entry; every other module is domain. Measured with
-`oo-ratchet design src/oo_ratchet/ --layers architecture/four-rings.toml
---json` (137 files scanned, 215 findings):
+Each module is placed by its role: `*.gitio`, `*.baseline`,
+`*.audit`, `*.report`, `*.outcome` and the `source_*` modules are
+adapters; `*.ratchet`, `*.compare`, `*.bless`, `*.relax`, `*.writer`, `*.rescan`,
+`*.apply`, `*.scan`, `backfill` are application; `__main__`, `gates`, `usage`,
+`logging_config` and `*.cli` are entry; every other module is domain. Measured with
+`oo-ratchet design src/oo_ratchet/ --layers docs/architecture/four-rings.toml
+--json`, run from the repository root (137 files scanned, 243 findings):
 
 | Rule | Count |
 |------|-------|
-| `layer-import` | 117 |
+| `layer-import` | 130 |
 | `concrete-cross-package-import` | 40 |
 | `size-cap` | 10 |
 | `domain-io` | 9 |
@@ -104,31 +104,37 @@ adapters; `*.ratchet`, `*.compare`, `*.bless`, `*.relax`, `*.rescan`, `*.apply`,
 | `split-cohesion` | 3 |
 | `middle-man` | 2 |
 | `envied-data` | 1 |
+| `thick-entry` | 9 |
+| `data-clump` | 6 |
 | `tag-switch` | 1 |
-| `unlayered-module`, `thick-entry`, `data-clump`, `misplaced-function` | 0 |
+| `unlayered-module`, `misplaced-function` | 0 |
 
-The 117 `layer-import` violations by importing ring and the ring imported:
+The 130 `layer-import` violations by importing ring and the ring imported:
 
 | From | Imports | Count |
 |------|---------|-------|
-| domain | adapters | 57 |
-| domain | application | 18 |
-| application | adapters | 42 |
+| domain | adapters | 42 |
+| domain | entry | 12 |
+| domain | application | 21 |
+| application | adapters | 55 |
 
-Entry and adapters have none. 54 of the 117 are in the four package
+Entry and adapters import nothing outward. 54 of the 130 are in the four package
 `__init__.py` files (`oo`, `coupling`, `layers`, `suppression`), which are
 domain by the table and re-export every module of their package. The most
-imported outer modules are `source_set` (17), `oo/compare` (6), `oo/baseline`
-(6), `coupling/gitio` (5), `coupling/layout` (5) and `coupling/outcome` (5).
+imported outer modules are `source_set` (17), `coupling/outcome` (7),
+`oo/baseline` (7), `coupling/gitio` (6), `oo/compare` (6), `oo/audit` (6) and
+`oo/gitio` (6).
 
-The 9 `domain-io` findings are in 8 modules: 6 import `pathlib`
+The 9 `thick-entry` findings are methods of the five `cli.py` modules whose
+complexity exceeds 4 (`oo/cli.py` `Cli._run_action` is 10). The 9 `domain-io`
+findings are in 8 modules: 6 import `pathlib`
 (`coupling/packages`, `coupling/scorer`, `design/layer_table`,
 `design/modules`, `oo/scorer`, `suppression/scanner`), 2 import `io`
 (`oo/code_lines`, `suppression/patterns`) and `oo/scorer` also imports `json`.
 
 With layers configured, `primitive-params` applies only to domain modules
 (9, against 43 without layers), `feature-envy` is 7 (13 without) and
-`data-clump` is 0 (24 without), because entry and adapter modules are
+`data-clump` is 6 (24 without), because entry and adapter modules are
 excluded.
 
 `adopter_shape.py src/oo_ratchet` reports, without layers: 131 modules

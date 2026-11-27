@@ -8,13 +8,12 @@ entry = [
   "oo_ratchet.gates",
   "oo_ratchet.logging_config",
   "oo_ratchet.usage",
+  "oo_ratchet.*.cli",
 ]
 adapters = [
-  "oo_ratchet.*.cli",
   "oo_ratchet.*.gitio",
   "oo_ratchet.*.baseline",
   "oo_ratchet.*.audit",
-  "oo_ratchet.*.writer",
   "oo_ratchet.*.report",
   "oo_ratchet.*.outcome",
   "oo_ratchet.*.persist",
@@ -43,6 +42,7 @@ application = [
   "oo_ratchet.*.compare",
   "oo_ratchet.*.bless",
   "oo_ratchet.*.relax",
+  "oo_ratchet.*.writer",
   "oo_ratchet.*.rescan",
   "oo_ratchet.*.apply",
   "oo_ratchet.*.adoption",

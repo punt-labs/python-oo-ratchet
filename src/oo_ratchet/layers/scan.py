@@ -12,6 +12,7 @@ from oo_ratchet.core.domain.layer_table import LayerTable
 from oo_ratchet.core.domain.modules import ModuleIndex
 from oo_ratchet.source_set import Source, SourceSet
 
+from .package_edges import PackageEdges
 from .strict import StrictViolations
 
 
@@ -55,13 +56,14 @@ class LayerScan:
             msg = f"cannot read or parse: {names}"
             raise LayersScanError(msg)
         found = StrictViolations(index, self._config)
+        edges = PackageEdges(found, index, self._config)
         self._modules = tuple(sorted(found.name(m) for m in index.modules()))
         if all("." not in m for m in self._modules):
             msg = f"no modules to check under {src}"
             raise LayersScanError(msg)
-        self._violations = tuple(found.violations())
-        self._unassigned = tuple(found.unassigned())
-        self._unresolvable = tuple(found.unresolvable())
+        self._violations = tuple(edges.violations())
+        self._unassigned = tuple(edges.unassigned())
+        self._unresolvable = tuple(edges.unresolvable())
         self._config_path = LayerTable.nearest(self._src.config_anchor)
         self._package = index.package_name
         return self

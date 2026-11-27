@@ -15,6 +15,7 @@ from oo_ratchet.core.domain.modules import Module, ModuleIndex
 from oo_ratchet.core.domain.targets import ImportTargets
 
 from .io_sites import IoSites
+from .package_edges import PackageEdges
 from .strict import StrictViolations
 from .suggest_model import ModuleFacts
 
@@ -94,13 +95,16 @@ class PackageFacts:
 
     _index: ModuleIndex
     _edges: StrictViolations
+    _packaged: PackageEdges
     _names: LayerImports
     _scripts: ConsoleScripts
 
     def __new__(cls, index: ModuleIndex, scripts: ConsoleScripts) -> Self:
         self = super().__new__(cls)
         self._index = index
-        self._edges = StrictViolations(index, LayerConfig({}))
+        config = LayerConfig({})
+        self._edges = StrictViolations(index, config)
+        self._packaged = PackageEdges(self._edges, index, config)
         self._names = LayerImports(index)
         self._scripts = scripts
         return self
@@ -113,7 +117,7 @@ class PackageFacts:
         under that name, listing every file; none of them is placed.
         """
         package = self._index.package_name
-        bad = {row.rsplit(":", 1)[0] for row in self._edges.unresolvable()}
+        bad = {row.rsplit(":", 1)[0] for row in self._packaged.unresolvable()}
         groups: dict[str, list[Module]] = {}
         for module in self._index.modules():
             name = self._names.canonical_name(module)

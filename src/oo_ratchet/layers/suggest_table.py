@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import glob
-import json
 from typing import ClassVar, Self
+
+from .suggest_text import SafeText
 
 
 class RingTable:
@@ -36,7 +37,7 @@ class RingTable:
                 lines.append(f"{ring} = []")
                 continue
             lines.append(f"{ring} = [")
-            lines.extend(f"    {json.dumps(e)}," for e in entries)
+            lines.extend(f"    {SafeText.quoted(e)}," for e in entries)
             lines.append("]")
         return lines
 

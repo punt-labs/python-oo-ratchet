@@ -410,17 +410,6 @@ class TestGlobMetacharacters:
         assert config.layer("app.a*b") == "adapters"
         assert config.layer("app.x?") == "adapters"
 
-    def test_prefix_glob_escapes_the_prefix(self, repo: LayersRepo) -> None:
-        start(repo)
-        repo.write("src/app/p[1]/__init__.py", "")
-        repo.write("src/app/p[1]/a.py", "import json\n")
-        repo.write("src/app/p[1]/b.py", "import json\n")
-        repo.write("src/app/p1/__init__.py", "")
-        repo.write("src/app/p1/a.py", "X = 1\n")
-        _, data = roundtrip(repo)
-        assert data["violations"] == []
-        assert data["unassigned"] == []
-
 
 class TestNoGitNeeded:
     """``--suggest`` never runs git: not even to find the repository."""

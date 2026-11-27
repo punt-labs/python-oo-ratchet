@@ -16,7 +16,9 @@
   The package root goes in `entry` (unclassified if a non-entry module imports
   it), Protocol bases resolve through the module's imports, and every script
   name targeting a module is kept. Names with glob characters are escaped, and
-  a namespace root with one module and no `__init__.py` is accepted.
+  a namespace root with one module and no `__init__.py` is accepted. Names and
+  reasons are escaped so no dynamic text can start an active TOML line, and a
+  `[project.scripts]` value must be a valid entry point.
 
 ### Changed
 

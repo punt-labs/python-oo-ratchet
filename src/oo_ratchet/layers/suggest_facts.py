@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import re
 import tomllib
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -18,6 +19,10 @@ from .io_sites import IoSites
 from .strict import StrictViolations
 
 ENTRY_LIBRARIES = ("argparse", "typer")
+_NAME = r"[^\W\d]\w*"
+ENTRY_POINT = re.compile(
+    rf"(?P<module>{_NAME}(?:\.{_NAME})*)(?::{_NAME}(?:\.{_NAME})*)?(?:\s*\[[^\]]*\])?"
+)
 ROOT_EVIDENCE = "package root (placed in entry by vox, lux and z-spec)"
 
 
@@ -58,6 +63,14 @@ class ConsoleScripts:
         """Return the sorted names of the scripts whose target is ``module``."""
         return sorted(self._targets.get(module, []))
 
+    @staticmethod
+    def _module(target: object) -> str | None:
+        """Return the module of a ``module[:object] [extras]`` value, or ``None``."""
+        match = (
+            ENTRY_POINT.fullmatch(target.strip()) if isinstance(target, str) else None
+        )
+        return match.group("module") if match else None
+
     @classmethod
     def _read(cls, pyproject: Path | None) -> dict[str, list[str]]:
         if pyproject is None:
@@ -72,10 +85,11 @@ class ConsoleScripts:
             raise LayerConfigError(f"{pyproject}: [project.scripts] must be a table")
         found: dict[str, list[str]] = {}
         for name, target in scripts.items():
-            if not isinstance(target, str):
-                msg = f"{pyproject}: [project.scripts] {name} must be a string"
-                raise LayerConfigError(msg)
-            found.setdefault(target.split(":")[0].strip(), []).append(name)
+            module = cls._module(target)
+            if module is None:
+                msg = f"{pyproject}: [project.scripts] {name!r}: {target!r} is not"
+                raise LayerConfigError(f"{msg} an entry point (module[:object])")
+            found.setdefault(module, []).append(name)
         return found
 
 

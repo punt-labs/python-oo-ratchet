@@ -13,6 +13,7 @@ from .scan import LayersScanError
 from .suggest_facts import ConsoleScripts, ModuleFacts, PackageFacts
 from .suggest_rules import RingRules, Verdict
 from .suggest_table import RingTable
+from .suggest_text import SafeText
 
 HEADER = (
     "# oo-ratchet layers --suggest {package}: a starting point, never applied.",
@@ -74,14 +75,16 @@ class Suggestion:
         """Return the table and the reasons; the exit code is always 0."""
         rings = {n: v.ring for n, v in self._verdicts.items() if v.ring}
         table = RingTable(list(self._modules), rings).render()
-        header = tuple(line.format(package=self._package) for line in HEADER)
+        header = tuple(
+            line.format(package=SafeText.comment(self._package)) for line in HEADER
+        )
         missing = () if self._scripts else (NO_PYPROJECT,)
         return Outcome.passed(*header, *missing, *table, *self._notes())
 
     def _notes(self) -> list[str]:
         lines = ["", "# Unclassified (assign by hand, then add to the table):"]
         unknown = [n for n in self._modules if self._verdicts[n].ring is None]
-        lines.extend(f"# {n}: unclassified ({self._verdicts[n].why})" for n in unknown)
+        lines.extend(self._unclassified(n) for n in unknown)
         if not unknown:
             lines.append("#   none")
         lines.extend(("", "# Reasons:"))
@@ -91,9 +94,15 @@ class Suggestion:
             lines.append("#   none")
         return lines
 
+    def _unclassified(self, name: str) -> str:
+        why = SafeText.comment(self._verdicts[name].why)
+        return f"# {SafeText.comment(name)}: unclassified ({why})"
+
     def _reason(self, name: str) -> str:
         verdict = self._verdicts[name]
-        text = f"# {name}: {verdict.ring} ({verdict.why})"
+        text = f"# {SafeText.comment(name)}: {verdict.ring} "
+        text += f"({SafeText.comment(verdict.why)})"
         if verdict.also:
-            text += f"; rings it also matched: {', '.join(verdict.also)}"
+            also = ", ".join(SafeText.comment(a) for a in verdict.also)
+            text += f"; rings it also matched: {also}"
         return text

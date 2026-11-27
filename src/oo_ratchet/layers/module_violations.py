@@ -23,11 +23,13 @@ class ModuleViolations:
 
     _found: LayerViolations
     _config: LayerConfig
+    _package: str
 
-    def __new__(cls, found: LayerViolations, config: LayerConfig) -> Self:
+    def __new__(cls, found: LayerViolations, config: LayerConfig, package: str) -> Self:
         self = super().__new__(cls)
         self._found = found
         self._config = config
+        self._package = package
         return self
 
     def of(self, module: Module) -> set[Violation]:
@@ -43,6 +45,6 @@ class ModuleViolations:
         if self._config.ORDERED and source == "domain":
             edges.update(
                 Violation(Edge(name, io), source, "io")
-                for io in IoSites(module).names()
+                for io in IoSites(module, self._package).names()
             )
         return edges

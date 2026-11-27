@@ -106,7 +106,11 @@ class LayersWriter:
             if rows:
                 return Outcome(
                     1,
-                    (f"FAIL: refusing to baseline {what}:", *(f"  {r}" for r in rows)),
+                    (
+                        f"FAIL: refusing to baseline {what}:",
+                        *(f"  {r}" for r in rows),
+                        *scan.purity_help(rows, scan.io_edges),
+                    ),
                 )
         return None
 

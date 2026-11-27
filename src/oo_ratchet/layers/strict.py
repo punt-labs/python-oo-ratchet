@@ -53,7 +53,7 @@ class StrictViolations(LayerViolations):
 
     def violations(self) -> list[Violation]:
         """Return every refused edge, one per source and target module."""
-        per_module = ModuleViolations(self, self._config)
+        per_module = ModuleViolations(self, self._config, self._index.package_name)
         return sorted(set().union(*(per_module.of(m) for m in self._index.modules())))
 
     def unassigned(self) -> list[str]:

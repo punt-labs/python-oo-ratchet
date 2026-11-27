@@ -71,7 +71,11 @@ class LayersVerdict:
             line
             for title, rows in sections
             if rows
-            for line in (f"FAIL: {title}", *(f"  {row}" for row in rows))
+            for line in (
+                f"FAIL: {title}",
+                *(f"  {row}" for row in rows),
+                *self._scan.purity_help(rows, self._scan.io_edges),
+            )
         ]
         return Outcome(1, tuple(lines)) if lines else self._passed(len(found))
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Self
 
@@ -86,8 +87,28 @@ class LayerScan:
 
     @property
     def io_edges(self) -> frozenset[Edge]:
-        """Return the domain-purity edges: a domain module's IO imports."""
-        return frozenset(v.edge for v in self._violations if v.target_layer == "io")
+        """Return the domain-purity edges: edges that are only a domain IO import.
+
+        Purity edges exist in the fixed four-layer form alone, where no layer is
+        named ``io``. An edge that also breaks a layer rule is not one.
+        """
+        if not self._config.ORDERED:
+            return frozenset()
+        other = {v.edge for v in self._violations if v.target_layer != "io"}
+        return frozenset(v.edge for v in self._violations if v.edge not in other)
+
+    @staticmethod
+    def purity_help(shown: Iterable[str], purity: frozenset[Edge]) -> tuple[str, ...]:
+        """Return a guidance line if any ``shown`` edge text is a purity edge."""
+        texts = {str(e) for e in purity}
+        if not any(row.split("  (")[0] in texts for row in shown):
+            return ()
+        text = (
+            "  domain purity: move the IO behind a port in the application layer, "
+            "implemented in an adapter; or accept the edge once with "
+            "`oo-ratchet layers --update --allow-config-change --source <ref>`"
+        )
+        return (text,)
 
     @property
     def unassigned(self) -> tuple[str, ...]:

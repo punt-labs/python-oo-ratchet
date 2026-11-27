@@ -32,7 +32,10 @@
   and `--check` does not count them as growth over the base. Any other new
   edge is still refused. Without the flag nothing changes. Literal
   `importlib.import_module("subprocess")` and `__import__` calls and
-  `builtins.open(...)` in a domain module are edges too.
+  `builtins.open(...)` (also `import builtins as b`, `from builtins import
+  open`) in a domain module are edges too; none count under `TYPE_CHECKING`,
+  and names inside the scanned package are never IO. Failures that list a
+  purity edge name the way out.
 - OO `--update` compares rows against the baseline at the merge base, as
   `--check` does, not against the in-tree baseline. A later commit on a branch
   is no longer refused for giving back part of an earlier commit's gain while

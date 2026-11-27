@@ -82,6 +82,6 @@ class Thresholds:
         """Return the metric's badness function; lower is better."""
         op, target = cls.TABLE[metric]
         badness = cls._BADNESS[op]
-        if metric in cls.CEILINGS:
-            return lambda value: badness(max(value, target), target)
-        return lambda value: badness(value, target)
+        # A ceiling ranks every value under its target the same; others have no floor.
+        floor = (float("-inf"), target)[metric in cls.CEILINGS]
+        return lambda value: badness(max(value, floor), target)

@@ -1486,9 +1486,9 @@
   "src/oo_ratchet/oo/thresholds.py": {
     "encapsulation_ratio": 1.0,
     "avg_params": 1.67,
-    "max_complexity": 2.0,
-    "avg_complexity": 1.17,
-    "module_size": 52.0,
+    "max_complexity": 1.0,
+    "avg_complexity": 1.0,
+    "module_size": 53.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0

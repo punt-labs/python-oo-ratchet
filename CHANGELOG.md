@@ -2,6 +2,46 @@
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-27
+
+This release breaks things, so read it before you bump a pin. Adopters pinned
+at the time of writing: vox `punt-oo-ratchet==0.4.0`, quarry `==0.4.0`, z-spec
+`==0.4.0` and lux `==0.6.0`. None has moved to 0.7.0.
+
+- **The Python modules are not a public API.** The package is a command line
+  tool; only the `oo-ratchet` command, its flags, its output and the baseline
+  and audit file formats are supported. Between 0.6.0 and 0.7.0 the code moved
+  onto a shared core (`oo_ratchet.core`: domain types, ports, operations and
+  adapters), and 43 module paths under `src/oo_ratchet` no longer exist, among
+  them the per-gate `audit`, `baseline`, `gitio`, `ratchet`, `writer`, `bless`
+  and `compare` modules of `oo`, `coupling` and `layers`,
+  `suppression.baseline`, `suppression.gitio`, `design.findings`,
+  `design.shadow_snapshot`, `source_options` and `source_rescan`. Anything that imported `oo_ratchet.*` directly (rather than
+  running the command) will break; there is no shim.
+- **Gate behavior adopters will see.** The `layers` gate now baselines domain
+  purity (an IO import from a `domain` module is an edge, so an adopter with the
+  fixed four-layer table gets new edges on its first run; the adoption path is
+  `layers --update --allow-config-change`, written up in the new README guide).
+  The OO gate stopped gating `method_ratio`, `class_to_func_ratio` and
+  `classes_per_module`, and `module_size`, `avg_params` and `avg_complexity` are
+  ceilings. That cuts both ways: the gate passes some changes 0.6.0 refused (a
+  ceiling metric growing but staying under its target), and it refuses some
+  that 0.6.0 passed (a touched file whose only movement is under a ceiling's
+  target now has no improvement, so must-improve fails:
+  `FAIL: no metric improved on any touched file`). Replaying each adopter's last
+  15 main commits with `oo --base-ref HEAD~1 --require-base`, that is 0 commits
+  for vox, 1 for quarry, 4 for z-spec and 2 for lux; quarry and lux run main
+  without `--allow-no-improvement`, so those commits would turn their main CI
+  red. Baselines load unchanged
+  (`docs/architecture/b7-adopter-dry-runs.md`). `coupling --update` drops the
+  rows of deleted files.
+- **New commands and flags.** `layers --suggest` (new in this release, so it
+  has no 0.6.0 behavior to change: the ring-guessing form was never released,
+  and the shipped form takes a ring only from a declaration, a package name or
+  entry evidence, and prints conflicts), `layers --json` ring keys,
+  `design --shadow-check REF --enforce`, and `make check-layers` and
+  `make check-design` in this repository's own CI.
+
 ### Added
 
 - README guide "Adopting Clean Architecture with oo-ratchet" (PL-1717): the

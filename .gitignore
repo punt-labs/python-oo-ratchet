@@ -5,3 +5,9 @@ dist/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.claude/*
+!.claude/settings.json
+.punt-labs/vox/vox.local.md
+.punt-labs/vox/ephemeral/
+.punt-labs/vox/call/
+.punt-labs/local/

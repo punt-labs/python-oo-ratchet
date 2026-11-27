@@ -67,7 +67,8 @@ are not collected by pytest.
 own gates over `src/oo_ratchet/` only (not `tests/` or `evals/`). Without
 `--base-ref`, `check-oo` and `check-coupling` compare the working tree against
 the merge base of `origin/main` and `HEAD`, so on a clean `main` they see no
-touched files and pass trivially; uncommitted edits are still checked. To
+touched files and pass trivially. Uncommitted edits to tracked files are
+checked; a new, untracked module is not checked until it is staged. To
 check a branch exactly as CI does, get the merge-base SHA with
 `git merge-base origin/main HEAD`, then:
 
@@ -98,11 +99,13 @@ Consequences for any change under `src/oo_ratchet/`:
   `--rebaseline-files PATHS --reason`, `--rebaseline`). Writes refuse under
   `GITHUB_ACTIONS=true` without `--allow-ci-write`.
 
-OO targets new code must meet (`src/oo_ratchet/oo/thresholds.py`): method
-ratio >= 0.8, no public `self.x` assignments, no explicit `__init__` on
-non-dataclass classes, `from __future__ import annotations` in every module,
-<= 300 code lines and <= 3 top-level classes per module, average params <= 4,
-max complexity <= 10. That is why classes here construct in `__new__` with
+OO targets new code must meet, all eleven (`src/oo_ratchet/oo/thresholds.py`,
+tabled in `README.md` under "Targets and counting rules"): method ratio >= 0.8,
+encapsulation ratio >= 1.0, average params <= 4, max complexity <= 10, average
+complexity <= 5, <= 300 code lines and <= 3 top-level classes per module,
+class-to-function ratio >= 0.5, no explicit `__init__` on non-dataclass
+classes, no public `self.x` assignments, and `from __future__ import
+annotations` in every module. That is why classes here construct in `__new__` with
 private, class-level-annotated `_fields` instead of `__init__`, and why logic
 lives in methods rather than free functions. Follow that pattern.
 

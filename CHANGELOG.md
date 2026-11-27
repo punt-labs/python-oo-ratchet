@@ -2,6 +2,27 @@
 
 ## [Unreleased]
 
+### Added
+
+- `oo-ratchet layers src/pkg/ --suggest` prints a starter `[tool.oo-ratchet.layers]`
+  table and a reason for each module's ring (PL-1713): `argparse`, `typer` or a
+  console-script target is `entry`; importing IO is `adapters`; a Protocol with
+  no IO that an adapter imports is `application`; anything pure is `domain`.
+  Modules that fit no rule are printed as comments. It writes nothing and the
+  table is never applied automatically. A module whose imports its ring refuses
+  (domain importing application, adapters, entry or an unclassified module)
+  is unclassified too, so the table does not fail the gate on itself.
+  Imports come from the gate's own edge extractor. It needs no git repository.
+  The package root goes in `entry` (unclassified if a non-entry module imports
+  it), Protocol bases resolve through the module's imports, and every script
+  name targeting a module is kept. Names with glob characters are escaped, and
+  a namespace root with one module and no `__init__.py` is accepted. Names and
+  reasons are escaped so no dynamic text can start an active TOML line, and a
+  `[project.scripts]` value must be a valid entry point (spaces around the
+  colon are fine; extras are PEP 508 names, and an empty `[]` is allowed). Non-BMP module names are written
+  as TOML `\UXXXXXXXX` escapes. The header and README name the package root as
+  an exception to the ring rules.
+
 ### Changed
 
 - The OO gate no longer pushes code into small one-class modules (PL-1685).

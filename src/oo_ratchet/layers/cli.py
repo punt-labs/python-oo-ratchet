@@ -10,14 +10,14 @@ from typing import Self
 
 from oo_ratchet.coupling.gitio import GitError
 from oo_ratchet.coupling.outcome import Outcome
-from oo_ratchet.design.layer_config import LayerConfigError
 from oo_ratchet.source_set import Source, SourceSet
 
-from .baseline import LayersBaselineError
+from .failures import FAILURES
 from .gitio import LayersGit
 from .ratchet import LayersRatchet
 from .report import LayersReport
-from .scan import LayerScan, LayersScanError
+from .scan import LayerScan
+from .suggest import Suggestion
 from .writer import LayersWriter
 
 
@@ -35,16 +35,14 @@ class Options:
     source: str | None
     tripwire: bool
     allow_config_change: bool
+    suggest: bool
 
     @classmethod
     def parse(cls, argv: list[str] | None = None) -> Self:
         """Build options from ``argv`` (defaults to ``sys.argv``)."""
         parser = cls._build_parser()
         ns = SourceSet.parse(parser, argv)
-        if not ns.check and (ns.base_ref is not None or ns.require_base or ns.tripwire):
-            parser.error("--base-ref, --require-base and --tripwire need --check")
-        if ns.allow_config_change and not (ns.check or ns.update):
-            parser.error("--allow-config-change needs --check or --update")
+        cls._validate(parser, ns)
         return cls(
             src=ns.src,
             check=bool(ns.check),
@@ -56,7 +54,19 @@ class Options:
             source=ns.source,
             tripwire=bool(ns.tripwire),
             allow_config_change=bool(ns.allow_config_change),
+            suggest=bool(ns.suggest),
         )
+
+    @classmethod
+    def _validate(cls, parser: argparse.ArgumentParser, ns: argparse.Namespace) -> None:
+        if not ns.check and cls._base_flags(ns):
+            parser.error("--base-ref, --require-base and --tripwire need --check")
+        if ns.allow_config_change and not (ns.check or ns.update):
+            parser.error("--allow-config-change needs --check or --update")
+
+    @staticmethod
+    def _base_flags(ns: argparse.Namespace) -> bool:
+        return ns.base_ref is not None or bool(ns.require_base) or bool(ns.tripwire)
 
     @staticmethod
     def _build_parser() -> argparse.ArgumentParser:
@@ -73,6 +83,12 @@ class Options:
             help="adopt the first baseline, then shrink it; never adds a violation",
         )
         action.add_argument("--json", action="store_true", help="emit JSON report")
+        action.add_argument(
+            "--suggest",
+            action="store_true",
+            help="print a starter ring table and the reasons for each module; "
+            "writes nothing and is never applied automatically",
+        )
         parser.add_argument(
             "--base-ref", metavar="REF", help="comparison base commit (--check)"
         )
@@ -101,43 +117,40 @@ class Cli:
     """Scan the package and route the request to the ratchet, writer or report."""
 
     _opts: Options
-    _git: LayersGit
-    _root: Path | None
 
     def __new__(cls, options: Options) -> Self:
         self = super().__new__(cls)
         self._opts = options
-        src = options.src
-        self._git = LayersGit(SourceSet(src).start_dir)
-        self._root = self._git.root
         return self
 
     def run(self) -> int:
         """Execute the requested operation and return its exit code."""
         if not SourceSet.path(self._opts.src).exists():
             return self._emit(Outcome.failed(f"Not found: {self._opts.src}"))
-        root = self._root
+        if self._opts.suggest:
+            return self._emit(self._suggest())
+        git = LayersGit(SourceSet(self._opts.src).start_dir)
+        root = git.root
         if root is None or not SourceSet(self._opts.src).inside(root):
             msg = f"FAIL: {self._opts.src} is not inside a git repository"
             return self._emit(Outcome.failed(msg))
         try:
-            scan = LayerScan(self._opts.src)
-            outcome = self._dispatch(scan, root)
-        except (
-            GitError,
-            LayersBaselineError,
-            LayerConfigError,
-            LayersScanError,
-            OSError,
-            UnicodeDecodeError,
-        ) as exc:
+            outcome = self._dispatch(LayerScan(self._opts.src), root, git)
+        except FAILURES as exc:
             outcome = Outcome.failed(f"FAIL: {exc}")
         return self._emit(outcome)
 
-    def _dispatch(self, scan: LayerScan, root: Path) -> Outcome:
+    def _suggest(self) -> Outcome:
+        """Print the suggestion; it reads no git state, so no repository is needed."""
+        try:
+            return Suggestion(self._opts.src).outcome()
+        except FAILURES as exc:
+            return Outcome.failed(f"FAIL: {exc}")
+
+    def _dispatch(self, scan: LayerScan, root: Path, git: LayersGit) -> Outcome:
         opts = self._opts
         if opts.check:
-            return LayersRatchet(root, self._git).check(
+            return LayersRatchet(root, git).check(
                 scan,
                 base_ref=opts.base_ref,
                 require_base=opts.require_base,
@@ -145,7 +158,7 @@ class Cli:
                 allow_config_change=opts.allow_config_change,
             )
         if opts.update:
-            return LayersWriter(root, self._git).update(
+            return LayersWriter(root, git).update(
                 scan,
                 allow_ci_write=opts.allow_ci_write,
                 source=opts.source,

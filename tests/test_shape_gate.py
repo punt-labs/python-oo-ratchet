@@ -16,9 +16,7 @@ from typing import ClassVar
 import pytest
 
 from oo_ratchet.core.application.update import PlanApplier, UpdatePlan
-from oo_ratchet.oo.baseline import Baseline
 from oo_ratchet.oo.cli import Cli
-from oo_ratchet.oo.compare import FileReview
 from oo_ratchet.oo.thresholds import Thresholds
 from tests.core.doubles import World
 from tests.test_oo_ratchet import GOOD, WORSE, GitFixture
@@ -204,7 +202,7 @@ class TestMissingBaseMetricFailsClosed:
     """A gated metric absent from a file's base row is judged by its target."""
 
     def test_missing_base_metric_over_target_regresses(self) -> None:
-        review = FileReview(
+        review = Cli.POLICY.review(
             "sub/w.py",
             {"module_size": 5000.0, "avg_params": 1.0},
             {"avg_params": 2.0},
@@ -214,7 +212,7 @@ class TestMissingBaseMetricFailsClosed:
         assert "module_size" in review.regressed
 
     def test_missing_base_metric_within_target_is_no_improvement(self) -> None:
-        review = FileReview(
+        review = Cli.POLICY.review(
             "sub/w.py",
             {"module_size": 50.0, "avg_params": 2.0},
             {"avg_params": 2.0},
@@ -239,7 +237,7 @@ class TestLegacyBaselineFields:
     ) -> None:
         fx.write("sub/w.py", GOOD)
         fx.write("sub/other.py", GOOD)
-        rows = Baseline.metrics_by_file(fx.scorer().results)
+        rows = fx.scorer().rows
         fx.write_baseline({path: {**row, **self.LEGACY} for path, row in rows.items()})
         base = fx.commit("base with legacy fields")
         fx.write("sub/w.py", GROWN)

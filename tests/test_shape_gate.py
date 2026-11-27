@@ -107,6 +107,22 @@ class TestUpdateRecords:
         deltas = {"sub/w.py": {"module_size": [9.0, 10.0]}}
         assert PlanApplier.improved_count(deltas) == 0
 
+    def test_metric_missing_from_base_row_is_judged_by_target(self) -> None:
+        entry = {"module_size": 5000.0, "avg_params": 1.0}
+        assert PlanApplier.regressed(entry, {"avg_params": 2.0}) == ["module_size"]
+        small = {"module_size": 50.0, "avg_params": 1.0}
+        assert PlanApplier.regressed(small, {"avg_params": 2.0}) == []
+
+    def test_refused_only_when_worse_than_every_comparison_row(self) -> None:
+        entry = {"max_complexity": 2.0}
+        assert PlanApplier.refusals(entry, [{"max_complexity": 1.0}]) == [
+            "max_complexity"
+        ]
+        # Worse than the merge base but no worse than the in-tree (relaxed) row.
+        rows = [{"max_complexity": 1.0}, {"max_complexity": 3.0}]
+        assert PlanApplier.refusals(entry, rows) == []
+        assert PlanApplier.refusals(entry, []) == []
+
     def test_a_real_improvement_is_counted(self) -> None:
         deltas = {"sub/w.py": {"module_size": [9.0, 10.0], "avg_params": [3.0, 2.0]}}
         assert PlanApplier.improved_count(deltas) == 1
@@ -268,6 +284,51 @@ class TestBranchComparesAgainstMergeBase:
         assert second.exit_code == 0, second.lines
         fx.commit("second: complexity 1 -> 2, still below main's 3")
         outcome = fx.ratchet().check(fx.scorer(), base_ref=main, require_base=True)
+        assert outcome.exit_code == 0, outcome.lines
+
+    def _relaxed_branch(self, fx: GitFixture) -> str:
+        """Return main's sha after relaxing sub/w.py from GOOD to WORSE on a branch."""
+        fx.write("sub/w.py", GOOD)
+        fx.snapshot("sub")
+        main = fx.commit("main")
+        fx.set_origin_main(main)
+        fx.checkout_new("feature")
+        fx.write("sub/w.py", WORSE)
+        relaxed = fx.writer().relax(
+            fx.scorer(), "sub/w.py", justify="needed", allow_ci_write=True, source=None
+        )
+        assert relaxed.exit_code == 0, relaxed.lines
+        fx.commit("relax w.py")
+        return main
+
+    def test_update_after_a_branch_relax_reruns_clean(self, fx: GitFixture) -> None:
+        main = self._relaxed_branch(fx)
+        rerun = fx.writer().update(
+            fx.scorer(),
+            base_ref=main,
+            require_base=True,
+            allow_ci_write=True,
+            source=None,
+        )
+        assert rerun.exit_code == 0, rerun.lines
+
+    def test_update_accepts_giving_back_part_of_a_relaxed_loss(
+        self, fx: GitFixture
+    ) -> None:
+        main = self._relaxed_branch(fx)
+        fx.write("sub/w.py", MIDDLE)  # complexity 3 -> 2, still worse than main's 1
+        updated = fx.writer().update(
+            fx.scorer(),
+            base_ref=main,
+            require_base=True,
+            allow_ci_write=True,
+            source=None,
+        )
+        assert updated.exit_code == 0, updated.lines
+        fx.commit("partial improvement")
+        outcome = fx.ratchet().check(
+            fx.scorer(), base_ref=main, require_base=True, allow_no_improvement=True
+        )
         assert outcome.exit_code == 0, outcome.lines
 
     def test_update_still_refuses_a_regression_against_main(

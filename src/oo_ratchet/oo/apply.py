@@ -101,8 +101,9 @@ class PlanApplier:
         deltas: dict[str, dict[str, list[float]]],
     ) -> list[str]:
         entry = plan.current[path]
-        base_entry = self._base_for(plan, path)
-        regressed = self.regressed(entry, base_entry)
+        rows = self._comparison_rows(plan, path)
+        base_entry = rows[0] if rows else None
+        regressed = self.refusals(entry, rows)
         if regressed:
             # Keep the old rename-source entry so the carried base survives to
             # the next run -- dropping it would let a later run treat the rename
@@ -115,14 +116,31 @@ class PlanApplier:
             deltas[path] = file_deltas
         return self._drop_rename_source(new_baseline, plan, path)
 
-    def _base_for(self, plan: UpdatePlan, path: str) -> dict[str, float] | None:
-        rows = (
-            self._baseline.entries if plan.base_baseline is None else plan.base_baseline
-        )
-        base_entry = rows.get(path)
-        if base_entry is None and path in plan.renames:
-            return rows.get(plan.renames[path])
-        return base_entry
+    def _comparison_rows(self, plan: UpdatePlan, path: str) -> list[dict[str, float]]:
+        """Return the merge-base row, then the in-tree row, for ``path``.
+
+        A rename target falls back to its source's row in each baseline.
+        """
+        sources = [plan.base_baseline or {}, self._baseline.entries]
+        old = plan.renames.get(path, path)
+        found = (rows.get(path) or rows.get(old) for rows in sources)
+        return [row for row in found if row is not None]
+
+    @classmethod
+    def refusals(
+        cls, entry: dict[str, float], rows: list[dict[str, float]]
+    ) -> list[str]:
+        """Return the metrics worse than every comparison row.
+
+        The merge-base row is what ``check`` enforces; the in-tree row may
+        hold an audited relaxation made earlier on the branch. A metric no
+        worse than either is accepted, and ``check`` still rejects a
+        regression against the merge base that no relaxation waives.
+        """
+        if not rows:
+            return []
+        worse = [set(cls.regressed(entry, row)) for row in rows]
+        return [m for m in entry if all(m in w for w in worse)]
 
     def _drop_rename_source(
         self, new_baseline: dict[str, dict[str, float]], plan: UpdatePlan, path: str
@@ -174,13 +192,20 @@ class PlanApplier:
 
     @staticmethod
     def regressed(entry: dict[str, float], base: dict[str, float] | None) -> list[str]:
-        """Return the metrics in ``entry`` worse than ``base`` (empty if new)."""
+        """Return the metrics in ``entry`` worse than ``base`` (empty if new).
+
+        A metric missing from ``base`` is judged by its target, never skipped.
+        """
         if base is None:
             return []
         return [
             m
             for m in entry
-            if m in base and not Thresholds.better_or_equal(m, entry[m], base[m])
+            if not (
+                Thresholds.better_or_equal(m, entry[m], base[m])
+                if m in base
+                else Thresholds.meets(m, entry[m])
+            )
         ]
 
     @staticmethod

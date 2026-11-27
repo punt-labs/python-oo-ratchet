@@ -379,7 +379,10 @@ Module shape is not gated. `--json` still reports `method_ratio`,
 to them and baselines do not record them: requiring classes over functions and
 few classes per module pushed code into one-class modules and functions
 wrapped in stateless classes. The advisory `design` check reports those shapes
-directly (`stateless-single-method`, `stateless-function-bag`).
+directly (`stateless-single-method`, `stateless-function-bag`), along with
+responsibility problems such as `envied-data` and `feature-envy`. Those
+findings measure design better than module size or shape does; they remain
+advisory until their precision on adopter repositories is measured (PL-1685).
 
 Parameter counts include positional-only, ordinary and keyword-only arguments,
 exclude `*args` / `**kwargs`, and subtract a leading `self` or `cls`; no

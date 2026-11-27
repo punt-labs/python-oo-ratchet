@@ -79,3 +79,4 @@
 {"ts":"2026-11-27T01:21:23Z","commit":"04cf444","source":null,"files_scored":137,"files_improved":0,"files_regressed":1,"verdict":"fail","reason":null,"deltas":{}}
 {"ts":"2026-11-27T01:21:47Z","commit":"04cf444","source":"PL-1685","files_scored":137,"files_improved":0,"files_regressed":1,"verdict":"relaxed","reason":"PL-1685: stale baseline row. writer.py scores max_lcom/avg_lcom 0.222 on unchanged main (16ece51); the baseline still records 0.071. This change adds one self._git call and does not change the score.","deltas":{"src/oo_ratchet/oo/writer.py":{"max_lcom":[0.071,0.222],"avg_lcom":[0.071,0.222]}}}
 {"ts":"2026-11-27T01:21:49Z","commit":"04cf444","source":null,"files_scored":137,"files_improved":0,"files_regressed":0,"verdict":"pass","reason":null,"deltas":{}}
+{"ts":"2026-11-27T01:30:12Z","commit":"debb5f7","source":null,"files_scored":137,"files_improved":0,"files_regressed":0,"verdict":"pass","reason":null,"deltas":{}}

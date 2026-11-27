@@ -1,47 +1,33 @@
-"""Build a lux draw element: the four rings, their modules and the layer violations.
+"""Build a lux draw element: the rings, their modules and the layer violations.
 
-Usage: layers_diagram.py <repo> <out.json> [rings.toml]
+Usage: layers_diagram.py <repo> <out.json> [src/pkg]
 
-Reads ``oo-ratchet layers --json`` (module_rings, ring_edges, marked_violations)
-instead of scanning imports itself. The ring table is
-docs/architecture/four-rings.toml unless a third argument names another; it is
-copied with the package into a scratch git repository, so the repo's own
-pyproject.toml is never read or changed. Run with ``uv run --directory <repo>
-python ...`` (it calls ``oo-ratchet``).
+Reads ``oo-ratchet layers <src/pkg> --json`` (module_rings, ring_edges,
+marked_violations) run from the repo root, so the repo's own pyproject
+``[tool.oo-ratchet.layers]`` table applies. ``src/pkg`` defaults to
+``src/oo_ratchet``. Run with ``uv run --directory <repo> python ...``.
 """
 
 from __future__ import annotations
 
 import json
-import shutil
 import subprocess
 import sys
-import tempfile
 from collections import Counter
 from pathlib import Path
 
 REPO = Path(sys.argv[1]).resolve()
 OUT = Path(sys.argv[2])
-RINGS = Path(sys.argv[3]) if len(sys.argv) > 3 else REPO / "docs/architecture/four-rings.toml"
-PACKAGE = "oo_ratchet"
+SRC = sys.argv[3] if len(sys.argv) > 3 else "src/oo_ratchet"
+PACKAGE = Path(SRC).name
 
 
 def layers_json() -> dict[str, object]:
-    """Run ``oo-ratchet layers --json`` on a scratch copy carrying the ring table."""
-    with tempfile.TemporaryDirectory() as tmp:
-        scratch = Path(tmp)
-        shutil.copytree(
-            REPO / "src" / PACKAGE,
-            scratch / "src" / PACKAGE,
-            ignore=shutil.ignore_patterns("__pycache__"),
-        )
-        shutil.copy(RINGS, scratch / "pyproject.toml")
-        subprocess.run(["git", "init", "-q"], cwd=scratch, check=True)
-        run = subprocess.run(
-            ["uv", "run", "--directory", str(REPO), "oo-ratchet", "layers",
-             str(scratch / "src" / PACKAGE), "--json"],
-            capture_output=True, text=True, check=False,
-        )
+    """Run ``oo-ratchet layers --json`` in the repo and parse its output."""
+    run = subprocess.run(
+        ["uv", "run", "oo-ratchet", "layers", SRC, "--json"],
+        cwd=REPO, capture_output=True, text=True, check=False,
+    )
     try:
         data: dict[str, object] = json.loads(run.stdout)
     except json.JSONDecodeError:
@@ -55,7 +41,9 @@ rings: dict[str, str | None] = data["module_rings"]  # type: ignore[assignment]
 ring_edges: list[dict[str, object]] = data["ring_edges"]  # type: ignore[assignment]
 marked: list[dict[str, str]] = data["marked_violations"]  # type: ignore[assignment]
 
-ORDER = ["entry", "adapters", "application", "domain"]
+FIXED = ["entry", "adapters", "application", "domain"]
+named = sorted({r for r in rings.values() if r})
+ORDER = FIXED if set(named) <= set(FIXED) else named
 members = Counter(r or "unassigned" for r in rings.values())
 sources: dict[str, Counter[str]] = {r: Counter() for r in ORDER}
 for v in marked:
@@ -107,7 +95,7 @@ for lane, edge in enumerate(ring_edges):
                  "text": f"{src} -> {dst}: {n}", "color": GOLD})
 
 total = sum(int(str(e["count"])) for e in ring_edges)
-cmds.append({"cmd": "text", "pos": [30, 20], "text": "oo_ratchet: the four rings",
+cmds.append({"cmd": "text", "pos": [30, 20], "text": f"{PACKAGE}: the rings",
              "color": HEAD})
 cmds.append({"cmd": "text", "pos": [30, 42],
              "text": f"red arrow: layer import the rings forbid, {total} in all",

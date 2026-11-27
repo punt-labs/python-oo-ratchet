@@ -229,7 +229,7 @@ generators are in `docs/architecture/tools/`:
 
 | Script | Draws |
 |--------|-------|
-| `layers_diagram.py <repo> <out.json> [rings.toml]` | the current state in the four rings, from `oo-ratchet layers --json` alone (`module_rings`, `ring_edges`, `marked_violations`); the ring table defaults to `docs/architecture/four-rings.toml` and is copied with the package into a scratch git repository, so no pyproject is touched; rerun after each unit |
+| `layers_diagram.py <repo> <out.json> [rings.toml]` | the current state in the four rings, from `oo-ratchet layers --json` alone (`module_rings`, `ring_edges`, `marked_violations`); run from the repo root, it uses the pyproject `[tool.oo-ratchet.layers]` table; an optional third argument names the package directory (default `src/oo_ratchet`); rerun after each unit |
 | `class_diagram.py <repo> <out.json>` | the older current-state view: packages and key classes, from an ad-hoc import scan and `oo-ratchet design --json` |
 | `target_diagram.py <out.json>` | the intermediate target (hand-specified) |
 | `clean_diagram.py <out.json>` | the four-ring target (hand-specified) |
@@ -262,7 +262,7 @@ Run `layers_diagram.py` and `class_diagram.py` with
 
 `layers --json` counts one edge per pair of importing and imported module. The
 design check's `layer-import` rule counts one finding per import site, so its
-totals are larger: on main with `four-rings.toml`, `layers --json` reports
-application to adapters 50, domain to adapters 29, domain to application 15 and
-domain to entry 4 (98 edges), and the design check reports 55, 42, 22 and 12
-(131 sites). Deduplicating the design findings by module pair gives the same 98.
+totals are larger. With the table in `pyproject.toml`, `layers --json` reports
+application to adapters 50, domain to adapters 29, domain to application 14 and
+domain to entry 4: 97 layer edges, plus 9 domain-purity (`io`) edges, 106 in
+all, the number of baselined edges `make check-layers` reports.

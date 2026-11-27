@@ -1026,3 +1026,375 @@ class TestBootstrap:
         fx.commit("pre-adoption")
         outcome = fx.ratchet().check(fx.scorer(), base_ref="0" * 40, require_base=False)
         assert outcome.exit_code == 0
+
+
+class TestMergeBaseRange:
+    """Merge-base range semantics for a multi-commit PR and a push to main."""
+
+    def test_merge_base_catches_regression_in_earlier_pr_commit(
+        self, fx: GitFixture
+    ) -> None:
+        """A multi-commit PR is diffed as a whole range, not its last commit.
+
+        check-coupling's PR trigger computes the same merge-base. Unlike
+        check-coupling, check-oo never had a ``HEAD~1``-only default to fall
+        into -- ``GitRepo.resolve_base``
+        always resolves ``base_ref=None`` to merge-base(origin/main, HEAD),
+        so a regression in the FIRST commit of a PR, never re-touched by the
+        LAST commit, is still inside that range and still caught. This test
+        proves the negative directly: there is no HEAD~1-shaped hole here to
+        fix.
+        """
+        fx.write("sub/w.py", GOOD)
+        fx.snapshot("sub")
+        fork = fx.commit("origin/main tip -- the PR's fork point")
+        fx.set_origin_main(fork)
+
+        fx.checkout_new("feature")
+        fx.write("sub/w.py", WORSE)  # regression: first commit of the PR
+        fx.commit("regress w.py (first commit of the PR)")
+        fx.write("sub/unrelated.py", GOOD.replace("Widget", "Other"))
+        fx.commit("touch an unrelated file (last commit of the PR)")
+
+        # A HEAD~1-only view would see just the "touch unrelated file" commit
+        # and never notice w.py regressed two commits back.
+        outcome = fx.ratchet().check(fx.scorer(), base_ref=None, require_base=True)
+        assert outcome.exit_code == 1
+        assert any("regression" in line for line in outcome.lines)
+
+    def test_merge_base_default_is_vacuous_immediately_after_a_push(
+        self, fx: GitFixture
+    ) -> None:
+        fx.write("sub/w.py", GOOD)
+        fx.snapshot("sub")
+        before = fx.commit("pre-push tip of main")
+
+        fx.write("sub/w.py", WORSE)
+        fx.snapshot("sub")  # in-tree baseline is locked to the regressed value
+        after = fx.commit("the pushed commit")
+
+        # Simulate the push-job checkout: origin/main now points at the same
+        # commit the local HEAD is on (fetched after the push landed).
+        fx.set_origin_main(after)
+
+        # Documented default (CLAUDE.md): base_ref=None resolves
+        # merge-base(origin/main, HEAD) == HEAD == after, an empty diff
+        # against the work tree, so a clean main passes trivially. This is why
+        # CI passes an explicit base on pushes to main.
+        vacuous = fx.ratchet().check(fx.scorer(), base_ref=None, require_base=True)
+        assert vacuous.exit_code == 0
+        assert any("trivial pass" in line for line in vacuous.lines)
+
+        # With an explicit base, the pre-push tip (what CI passes as
+        # ``--base-ref HEAD~1``), the diff is before..HEAD and the regression
+        # is caught.
+        caught = fx.ratchet().check(fx.scorer(), base_ref=before, require_base=True)
+        assert caught.exit_code == 1
+        assert any("regression" in line for line in caught.lines)
+
+
+class TestBaselineRowRemoval:
+    """Update and rebaseline drop rows of files no longer scored, and audit them."""
+
+    def test_update_prunes_row_for_file_born_and_deleted_in_branch(
+        self, fx: GitFixture
+    ) -> None:
+        # A file created and deleted inside the branch never appears in the
+        # merge-base diff, yet its baseline row must leave with it.
+        fx.write("sub/w.py", GOOD)
+        fx.snapshot("sub")
+        fx.commit("base")
+        rows = json.loads((fx.root / ".oo-baseline.json").read_text())
+        rows["sub/gone.py"] = dict(rows["sub/w.py"])
+        fx.write_baseline(rows)
+        outcome = fx.writer().update(
+            fx.scorer(),
+            base_ref="HEAD",
+            require_base=False,
+            allow_ci_write=True,
+            source=None,
+        )
+        assert outcome.exit_code == 0
+        assert Baseline(fx.root).get("sub/gone.py") is None
+        assert "  files removed:  1" in outcome.lines
+        last = (fx.root / ".oo-audit.jsonl").read_text().splitlines()[-1]
+        assert json.loads(last)["removed"] == ["sub/gone.py"]
+
+    def test_rebaseline_audit_names_the_rows_it_removes(self, fx: GitFixture) -> None:
+        # A rebaseline replaces the whole baseline, dropping the row of every
+        # file no longer scored; the audit line must name them, not claim [].
+        fx.write("sub/w.py", GOOD)
+        fx.snapshot("sub")
+        fx.commit("base")
+        rows = json.loads((fx.root / ".oo-baseline.json").read_text())
+        rows["sub/gone.py"] = dict(rows["sub/w.py"])
+        fx.write_baseline(rows)
+        outcome = fx.writer().rebaseline(fx.scorer(), allow_ci_write=True, source=None)
+        assert outcome.exit_code == 0
+        assert Baseline(fx.root).get("sub/gone.py") is None
+        last = (fx.root / ".oo-audit.jsonl").read_text().splitlines()[-1]
+        entry = json.loads(last)
+        assert entry["verdict"] == "rebaseline"
+        assert entry["removed"] == ["sub/gone.py"]
+
+
+class TestRebaselineFilesGuards:
+    """Input guards of --rebaseline-files."""
+
+    def test_missing_reason_errors_before_scoring(
+        self, fx: GitFixture, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Regression guard for the ordering contract: --reason must be
+        # checked before Scorer is even constructed, mirroring the coupling
+        # ratchet's guard. Stubbing Scorer to raise proves the ordering: the
+        # reason check fails first, so the stub is never invoked.
+        fx.write("sub/w.py", GOOD)
+        fx.snapshot("sub")
+        fx.commit("base")
+
+        def _must_not_construct(*_args: object, **_kwargs: object) -> None:
+            raise AssertionError("Scorer must not be constructed before --reason")
+
+        import oo_ratchet.oo.cli as cli_module
+
+        monkeypatch.setattr(cli_module, "Scorer", _must_not_construct)
+        monkeypatch.chdir(fx.root)
+        exit_code = main(["sub", "--rebaseline-files", "sub/w.py"])
+        assert exit_code == 1
+
+    def test_absolute_request_path_lands_on_existing_relative_key(
+        self, fx: GitFixture
+    ) -> None:
+        fx.write("sub/w.py", GOOD)
+        fx.snapshot("sub")
+        fx.commit("base")
+
+        fx.write("sub/w.py", WORSE)
+        absolute_request = str(fx.root / "sub" / "w.py")
+
+        outcome = fx.writer().rebaseline_files(
+            fx.scorer(),
+            [absolute_request],
+            reason="x",
+            allow_ci_write=True,
+            source=None,
+        )
+
+        assert outcome.exit_code == 0
+        entries = Baseline(fx.root).entries
+        assert entries["sub/w.py"]["max_complexity"] == 3.0  # existing relative key
+        assert absolute_request not in entries  # no duplicate absolute key
+
+
+def _branchy(ifs: int) -> str:
+    """Return a module with max_complexity ``ifs + 1`` and nothing else over target.
+
+    One branchy function plus six trivial ones keep avg_complexity under 5 and
+    avg_params under 4, so max_complexity is the only metric over target.
+    """
+    body = "".join(f"    if n == {i}:\n        return {i}\n" for i in range(ifs))
+    trivial = "".join(f"\n\ndef t{i}() -> int:\n    return {i}\n" for i in range(6))
+    return (
+        "from __future__ import annotations\n\n\n"
+        f"def pick(n: int) -> int:\n{body}    return -1\n{trivial}"
+    )
+
+
+# init_violations 1 (an explicit __init__ on a non-dataclass): outside its
+# target of 0. Same label() as WORSE's: max_complexity 3.
+INIT_BASE = '''from __future__ import annotations
+
+
+class Widget:
+    """A widget."""
+
+    _n: int
+
+    def __init__(self, n: int) -> None:
+        self._n = n
+
+    def label(self) -> str:
+        return "pos"
+'''
+
+# Construct in __new__: init_violations improves 1 -> 0, while label() gains
+# nesting so max_complexity regresses 1 -> 3 (within its target of 10).
+INIT_FIXED_COMPLEXITY_UP = WORSE
+
+# Two explicit __init__ classes: init_violations 2, label() as WORSE.
+INIT_TWICE = (
+    INIT_BASE.replace(
+        'return "pos"',
+        'if self._n > 0:\n            if self._n > 10:\n                return "big"\n'
+        '            return "pos"\n        return "neg"',
+    )
+    + """
+
+class Gadget:
+    \"\"\"A gadget.\"\"\"
+
+    _n: int
+
+    def __init__(self, n: int) -> None:
+        self._n = n
+"""
+)
+
+
+class TestRebaselineFilesBless:
+    """--rebaseline-files refuses a metric only if it is over target AND worse."""
+
+    def test_within_cap_regression_blessed_and_subsequent_check_passes(
+        self, fx: GitFixture
+    ) -> None:
+        fx.write("sub/w.py", GOOD)
+        fx.snapshot("sub")  # max_complexity 1
+        base = fx.commit("base")
+
+        fx.write("sub/w.py", WORSE)  # max_complexity 1 -> 3, under the cap of 10
+        bless = fx.writer().rebaseline_files(
+            fx.scorer(),
+            ["sub/w.py"],
+            reason="accepted",
+            allow_ci_write=True,
+            source=None,
+        )
+        assert bless.exit_code == 0
+        recorded = Baseline(fx.root).get("sub/w.py")
+        assert recorded is not None
+        assert recorded["max_complexity"] == 3.0
+        lines = (fx.root / ".oo-audit.jsonl").read_text().splitlines()
+        assert len(lines) == 1
+        entry = json.loads(lines[0])
+        assert entry["verdict"] == "rebaseline-files"
+        assert entry["reason"] == "accepted"
+        assert entry["deltas"]["sub/w.py"]["max_complexity"] == [1.0, 3.0]
+
+        fx.commit("bless")
+        outcome = fx.ratchet().check(fx.scorer(), base_ref=base, require_base=True)
+        assert outcome.exit_code == 0
+
+    def test_over_cap_and_regressed_metric_is_refused(self, fx: GitFixture) -> None:
+        fx.write("sub/w.py", _branchy(11))  # max_complexity 12, over the cap of 10
+        fx.snapshot("sub")
+        before = dict(Baseline(fx.root).entries)
+        fx.commit("base")
+
+        fx.write("sub/w.py", _branchy(13))  # 12 -> 14: over cap and worse
+        outcome = fx.writer().rebaseline_files(
+            fx.scorer(),
+            ["sub/w.py"],
+            reason="x",
+            allow_ci_write=True,
+            source=None,
+        )
+        assert outcome.exit_code == 1
+        refusal = "\n".join(outcome.lines)
+        assert "max_complexity=" in refusal, refusal
+        assert "avg_complexity" not in refusal, refusal
+        assert Baseline(fx.root).entries == before
+        audit = fx.root / ".oo-audit.jsonl"
+        assert "rebaseline-files" not in (audit.read_text() if audit.exists() else "")
+
+    def test_over_cap_unchanged_metric_carries_forward(self, fx: GitFixture) -> None:
+        fx.write("sub/w.py", _branchy(11))  # max_complexity 12, already over cap
+        fx.snapshot("sub")
+        old_size = Baseline(fx.root).entries["sub/w.py"]["module_size"]
+        fx.commit("base")
+
+        # Unrelated edit; max_complexity stays 12, so it is carried, not refused.
+        fx.write("sub/w.py", _branchy(11) + "\n\nVALUE = 1\n")
+        outcome = fx.writer().rebaseline_files(
+            fx.scorer(),
+            ["sub/w.py"],
+            reason="x",
+            allow_ci_write=True,
+            source=None,
+        )
+        assert outcome.exit_code == 0
+        assert "    sub/w.py" in outcome.lines, outcome.lines
+        recorded = Baseline(fx.root).get("sub/w.py")
+        assert recorded is not None
+        assert recorded["max_complexity"] == 12.0
+        assert recorded["module_size"] != old_size  # the edit was written
+        assert (
+            recorded["module_size"]
+            == Baseline.metrics_by_file(fx.scorer().results)["sub/w.py"]["module_size"]
+        )
+        audit_lines = (fx.root / ".oo-audit.jsonl").read_text().splitlines()
+        assert json.loads(audit_lines[-1])["verdict"] == "rebaseline-files"
+
+    def test_new_file_with_no_baseline_entry_over_cap_is_refused(
+        self, fx: GitFixture
+    ) -> None:
+        fx.write("sub/existing.py", GOOD)
+        fx.snapshot("sub")  # baseline covers existing.py only
+        before = dict(Baseline(fx.root).entries)
+        fx.commit("base")
+
+        fx.write("sub/new.py", _branchy(11))  # never baselined; over the cap
+        outcome = fx.writer().rebaseline_files(
+            fx.scorer(),
+            ["sub/new.py"],
+            reason="x",
+            allow_ci_write=True,
+            source=None,
+        )
+        assert outcome.exit_code == 1
+        refusal = "\n".join(outcome.lines)
+        assert "max_complexity=" in refusal, refusal
+        assert "avg_complexity" not in refusal, refusal
+        assert Baseline(fx.root).entries == before
+        audit = fx.root / ".oo-audit.jsonl"
+        assert "rebaseline-files" not in (audit.read_text() if audit.exists() else "")
+
+    def test_improved_metric_is_not_waivable_for_a_later_regression(
+        self, fx: GitFixture
+    ) -> None:
+        """An improved metric in a bless is not a waiver for its later regression.
+
+        max_complexity regresses within its cap and is blessed; init_violations
+        improves 1 -> 0 in the same bless. A later commit regresses
+        init_violations again: check() must report REGRESSED, not RELAXED.
+        """
+        fx.write("sub/w.py", INIT_BASE)
+        fx.snapshot("sub")  # init_violations 1, max_complexity 1
+        before_bless = fx.commit("base")
+
+        fx.write("sub/w.py", INIT_FIXED_COMPLEXITY_UP)
+        bless = fx.writer().rebaseline_files(
+            fx.scorer(),
+            ["sub/w.py"],
+            reason="complexity up, init fixed",
+            allow_ci_write=True,
+            source=None,
+        )
+        assert bless.exit_code == 0
+        recorded = Baseline(fx.root).get("sub/w.py")
+        assert recorded is not None
+        assert recorded["max_complexity"] == 3.0
+        assert recorded["init_violations"] == 0.0
+        fx.commit("bless")
+
+        # Later: two explicit __init__ classes, init_violations 2, worse than
+        # the pre-bless 1. The baseline is re-locked to that value, so only a
+        # waiver in the bless audit entry could turn REGRESSED into RELAXED.
+        fx.write("sub/w.py", INIT_TWICE)
+        fx.snapshot("sub")
+        fx.commit("two __init__ classes")
+
+        # Base is BEFORE the bless, so the bless audit entry is in range.
+        outcome = fx.ratchet().check(
+            fx.scorer(), base_ref=before_bless, require_base=True
+        )
+        assert outcome.exit_code == 1, outcome.lines
+        assert any(
+            "init_violations" in line and "REGRESSED" in line for line in outcome.lines
+        ), outcome.lines
+        assert not any(
+            "init_violations" in line and "RELAXED" in line for line in outcome.lines
+        )
+        # The blessed regression is still waived.
+        assert any(
+            "max_complexity" in line and "RELAXED" in line for line in outcome.lines
+        ), outcome.lines

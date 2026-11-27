@@ -22,6 +22,10 @@ class History(Protocol):
         """Return the baseline committed at ``ref``, ``None`` if absent."""
         ...
 
+    def adopted_at(self, ref: str) -> bool:
+        """Return whether the gate's recorded state exists at ``ref``."""
+        ...
+
     def audit_at(self, ref: str) -> tuple[AuditRecord, ...] | None:
         """Return the audit records committed at ``ref``, ``None`` if absent."""
         ...

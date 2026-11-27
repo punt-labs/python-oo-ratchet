@@ -8,14 +8,26 @@ from pathlib import Path
 import pytest
 
 from oo_ratchet.__main__ import main
+from oo_ratchet.core.adapters.gitrepo import GitRepo
+from oo_ratchet.core.adapters.tallyrepo import TallyRepo
+from oo_ratchet.core.domain.tallies import Tally
 from oo_ratchet.coupling.cli import Options
 from oo_ratchet.layers.trees import BaseTree, WorkingTree
-from oo_ratchet.source_set import SourceSet
-from oo_ratchet.suppression.gitio import GitRepo
-from oo_ratchet.suppression.rescan import BaseRescanner
+from oo_ratchet.source_set import Source, SourceSet
 from oo_ratchet.suppression.scanner import Scanner
 from tests.conftest import GitSandbox
 from tests.test_namespace_sources import CONFIG, HEADER
+
+
+def rescan(root: Path, ref: str, source: Source) -> Tally | None:
+    """Count ``source`` as it stood at ``ref`` through the core's history adapter."""
+    git = GitRepo(root, ".suppression-baseline.json", ".suppression-audit.jsonl")
+
+    def scan(target: Source, project: Path) -> Tally:
+        report = Scanner(target, project).report
+        return Tally(report.by_category, report.by_file)
+
+    return TallyRepo(git, source, root, scan, ".suppression-relax.json").tally_at(ref)
 
 
 @pytest.fixture
@@ -258,9 +270,7 @@ def test_deleted_configured_portion_stays_in_base_suppressions(
     repo.write(deleted, HEADER + "value = 1  # noqa: F841\n")
     base = repo.commit("two configured portions")
     repo.run_git("rm", "-r", "packages/deleted")
-    before = BaseRescanner(GitRepo(repo.root), repo.root).rescan(
-        base, Options.parse([]).src
-    )
+    before = rescan(repo.root, base, Options.parse([]).src)
     assert before is not None
     assert before.total == 1
     assert deleted in before.by_file
@@ -333,10 +343,11 @@ def test_namespace_history_does_not_export_unselected_symlinks(
     repo = workspace
     (repo.root / "outside-link").symlink_to(repo.root.parent / "outside")
     base = repo.commit("unrelated symlink")
-    scanner = BaseRescanner(GitRepo(repo.root), repo.root)
-    legacy = scanner.rescan(base, Path("src/app"))
+    legacy = rescan(repo.root, base, Path("src/app"))
     assert legacy is not None
-    before = scanner.rescan(base, Options.parse(["--namespace", "app", "src/app"]).src)
+    before = rescan(
+        repo.root, base, Options.parse(["--namespace", "app", "src/app"]).src
+    )
     assert before is not None
     assert before.total == legacy.total
 
@@ -348,12 +359,11 @@ def test_export_ignore_is_already_honored_by_legacy_history(
     repo.write(".gitattributes", "src/app/a/core.py export-ignore\n")
     repo.write("src/app/a/core.py", HEADER + "value = 1  # noqa: F841\n")
     base = repo.commit("archive exclusion")
-    scanner = BaseRescanner(GitRepo(repo.root), repo.root)
     for source in (
         Path("src/app"),
         Options.parse(["--namespace", "app", "src/app"]).src,
     ):
-        before = scanner.rescan(base, source)
+        before = rescan(repo.root, base, source)
         assert before is not None
         assert before.total == 0
 
@@ -364,10 +374,7 @@ def test_namespace_history_returns_none_for_an_absent_portion(
     base = workspace.commit("original portions")
     workspace.write("packages/new/src/app/new.py", HEADER)
     source = Options.parse(["--namespace", "app", "packages/new/src/app"]).src
-    assert (
-        BaseRescanner(GitRepo(workspace.root), workspace.root).rescan(base, source)
-        is None
-    )
+    assert rescan(workspace.root, base, source) is None
 
 
 def test_namespace_history_surfaces_directory_listing_failure(
@@ -383,7 +390,7 @@ def test_namespace_history_surfaces_directory_listing_failure(
     monkeypatch.setattr(GitRepo, "_git", fail_listing)
     source = Options.parse(["--namespace", "app", "src/app"]).src
     with pytest.raises(OSError, match="git ls-tree"):
-        BaseRescanner(GitRepo(workspace.root), workspace.root).rescan(base, source)
+        rescan(workspace.root, base, source)
 
 
 def test_nested_namespace_history_keeps_repository_ruff_ignores(
@@ -401,7 +408,7 @@ def test_nested_namespace_history_keeps_repository_ruff_ignores(
     monkeypatch.chdir(repo.root / "nested")
     source = Options.parse(["--namespace", "app", "src/app"]).src
     current = Scanner(source, repo.root).report
-    before = BaseRescanner(GitRepo(repo.root), repo.root).rescan(base, source)
+    before = rescan(repo.root, base, source)
     assert before is not None
     assert before.total == current.total == 1
 
@@ -418,9 +425,7 @@ def test_historical_root_globs_ignore_deleted_namesakes(
     repo.write("portions/other/__init__.py", HEADER)
     base = repo.commit("unrelated glob match")
     repo.run_git("rm", "-r", "portions/other")
-    before = BaseRescanner(GitRepo(repo.root), repo.root).rescan(
-        base, Options.parse([]).src
-    )
+    before = rescan(repo.root, base, Options.parse([]).src)
     assert before is not None
     assert before.total == 0
 
@@ -437,9 +442,7 @@ def test_historical_root_globs_keep_resolved_symlink_portions(
     (repo.root / "members").mkdir()
     (repo.root / "members/app").symlink_to("../actual/app", target_is_directory=True)
     base = repo.commit("symlink-selected namespace")
-    before = BaseRescanner(GitRepo(repo.root), repo.root).rescan(
-        base, Options.parse([]).src
-    )
+    before = rescan(repo.root, base, Options.parse([]).src)
     assert before is not None
     assert before.total == 1
 
@@ -480,7 +483,7 @@ def test_namespace_history_does_not_confuse_config_probe_failure_with_absence(
 
     monkeypatch.setattr(GitRepo, "_git", fail_probe)
     source = Options.parse(["--namespace", "app", "src/app"]).src
-    before = BaseRescanner(GitRepo(repo.root), repo.root).rescan(base, source)
+    before = rescan(repo.root, base, source)
     assert before is not None
     assert before.total == 1
 
@@ -491,7 +494,7 @@ def test_namespace_history_accepts_missing_configuration(
     (workspace.root / "pyproject.toml").unlink()
     base = workspace.commit("namespace without configuration")
     source = Options.parse(["--namespace", "app", "src/app"]).src
-    before = BaseRescanner(GitRepo(workspace.root), workspace.root).rescan(base, source)
+    before = rescan(workspace.root, base, source)
     assert before is not None
     assert before.total == 0
 

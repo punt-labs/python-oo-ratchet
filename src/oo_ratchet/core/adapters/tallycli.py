@@ -5,12 +5,13 @@ from __future__ import annotations
 from typing import ClassVar, Self
 
 from oo_ratchet.core.domain.tallies import TallyRecord
+from oo_ratchet.core.domain.tallyverdicts import TallyVerdict
 from oo_ratchet.core.domain.totals import TotalReview
-from oo_ratchet.core.domain.verdicts import Failure, Verdict
+from oo_ratchet.core.domain.verdicts import Failure
 
 
 class TallyCli:
-    """Render a ``Verdict`` of a total-count gate as report lines.
+    """Render a ``TallyVerdict`` of a total-count gate as report lines.
 
     ``ledger`` names the ceiling ledger a waived total points to.
     """
@@ -69,19 +70,20 @@ class TallyCli:
         return self
 
     @staticmethod
-    def exit_code(verdict: Verdict) -> int:
+    def exit_code(verdict: TallyVerdict) -> int:
         """Return 0 for a passing verdict, 1 for a failing one."""
         return 0 if verdict.passed else 1
 
-    def text(self, verdict: Verdict) -> list[str]:
+    def text(self, result: TallyVerdict) -> list[str]:
         """Return the report lines."""
-        if verdict.totals is not None:
-            return self._totals(verdict.totals, verdict.failures)
-        if verdict.record is not None:
-            return self._written(verdict.record, verdict.written[0])
-        if verdict.failures:
-            return [self._failure(f) for f in verdict.failures]
-        return [self.BOOTSTRAPS.get(verdict.note, verdict.note)]
+        if result.totals is not None:
+            return self._totals(result.totals, result.failures)
+        if result.record is not None:
+            return self._written(result.record, result.verdict.written[0])
+        if result.failures:
+            return [self._failure(f) for f in result.failures]
+        note = result.verdict.note
+        return [self.BOOTSTRAPS.get(note, note)]
 
     def _failure(self, failure: Failure) -> str:
         what = self.MESSAGES.get(failure.kind, failure.kind)

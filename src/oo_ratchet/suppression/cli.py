@@ -6,36 +6,22 @@ import argparse
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import ClassVar, Self
+from typing import Self
 
-from oo_ratchet.core.adapters.gatecli import GateCli
-from oo_ratchet.core.adapters.gitrepo import GitRepo as CoreGit
-from oo_ratchet.core.adapters.tallycli import TallyCli
-from oo_ratchet.core.adapters.tallyfiles import (
-    JsonLedger,
-    JsonTallyStore,
-    TallyAuditFile,
-)
-from oo_ratchet.core.adapters.tallyrepo import TallyRepo
-from oo_ratchet.core.application.tallyops import (
-    TallyCheck,
-    TallyRebaseline,
-    TallyRelax,
-    TallyUpdate,
-)
-from oo_ratchet.core.application.tallyports import TallyPorts
+from oo_ratchet.core.adapters.tallygate import GateFiles, TallyGate
 from oo_ratchet.core.domain.errors import StateError
 from oo_ratchet.core.domain.tallies import Tally
-from oo_ratchet.core.domain.verdicts import Verdict
 from oo_ratchet.source_set import Source, SourceSet
 
-from .baseline import SuppressionBaseline, SuppressionBaselineError
-from .gitio import GitError, GitRepo
-from .outcome import Outcome
 from .pyproject import PyprojectError
-from .relax import SuppressionRelaxError
 from .report import SuppressionReport
 from .scanner import Scanner
+
+_FILES = GateFiles(
+    ".suppression-baseline.json",
+    ".suppression-audit.jsonl",
+    ".suppression-relax.json",
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -56,6 +42,11 @@ class Options:
     require_base: bool
     allow_ci_write: bool
     tripwire: bool
+
+    @property
+    def writes(self) -> bool:
+        """Return whether the request writes the baseline or the ledger."""
+        return self.update or self.rebaseline or self.relax is not None
 
     @classmethod
     def parse(cls, argv: list[str] | None = None) -> Self:
@@ -121,104 +112,12 @@ class Cli:
     """Scan the target and route the request to the ratchet or a view."""
 
     _opts: Options
-    _git: GitRepo
-    _root: Path
+    _gate: TallyGate
 
     def __new__(cls, options: Options) -> Self:
         self = super().__new__(cls)
         self._opts = options
-        self._git = GitRepo()
-        self._root = self._git.root or Path.cwd()
-        return self
-
-    def run(self) -> int:
-        """Execute the requested operation and return its exit code."""
-        if not SourceSet.path(self._opts.src).exists():
-            return self._emit(Outcome.failed(f"not found: {self._opts.src}"))
-        try:
-            # Anchor the scan's project root and the baseline path to the repo
-            # root (via GitRepo), not cwd, so running from a subdirectory still
-            # reads the right pyproject.toml and .suppression-baseline.json.
-            # Scan and construct inside the try: an unreadable .py file (OSError)
-            # or a corrupt in-tree baseline (eager load) must surface as a clean
-            # non-zero, not a traceback.
-            report = Scanner(self._opts.src, self._root).report
-            outcome = self._dispatch(SuppressionBaseline(self._root), report)
-        except (
-            GitError,
-            SuppressionBaselineError,
-            SuppressionRelaxError,
-            PyprojectError,
-            OSError,
-            UnicodeDecodeError,
-        ) as exc:
-            outcome = Outcome.failed(f"FAIL: {exc}")
-        return self._emit(outcome)
-
-    def _dispatch(
-        self, baseline: SuppressionBaseline, report: SuppressionReport
-    ) -> Outcome:
-        opts = self._opts
-        if opts.check:
-            return baseline.check(
-                report,
-                target=opts.src,
-                base_ref=opts.base_ref,
-                require_base=opts.require_base,
-                tripwire=opts.tripwire,
-            )
-        if opts.update:
-            return baseline.update(report, allow_ci_write=opts.allow_ci_write)
-        if opts.rebaseline:
-            return baseline.rebaseline(
-                report,
-                reason=opts.reason,
-                source=opts.source,
-                allow_ci_write=opts.allow_ci_write,
-            )
-        if opts.relax is not None:
-            return baseline.relax(
-                report,
-                target=opts.src,
-                base_ref=opts.base_ref,
-                file=opts.relax,
-                justify=opts.justify,
-                allow_ci_write=opts.allow_ci_write,
-            )
-        if opts.json:
-            return Outcome.passed(report.to_json())
-        lines = list(report.render())
-        if opts.threshold:
-            lines.extend(report.render_threshold())
-        return Outcome.passed(*lines)
-
-    @staticmethod
-    def _emit(outcome: Outcome) -> int:
-        sys.stdout.writelines(line + "\n" for line in outcome.lines)
-        return outcome.exit_code
-
-
-def main(argv: list[str] | None = None) -> int:
-    """Parse arguments and run the suppression ratchet CLI, returning a code."""
-    return Cli(Options.parse(argv)).run()
-
-
-class CoreCli:
-    """Scan the target and route the request through the shared core."""
-
-    BASELINE: ClassVar[str] = ".suppression-baseline.json"
-    AUDIT: ClassVar[str] = ".suppression-audit.jsonl"
-    LEDGER: ClassVar[str] = ".suppression-relax.json"
-
-    _opts: Options
-    _root: Path
-    _git: CoreGit
-
-    def __new__(cls, options: Options) -> Self:
-        self = super().__new__(cls)
-        self._opts = options
-        self._git = CoreGit(Path.cwd(), cls.BASELINE, cls.AUDIT)
-        self._root = self._git.root or Path.cwd()
+        self._gate = TallyGate(_FILES, options.src, cls._count)
         return self
 
     def run(self) -> int:
@@ -226,10 +125,13 @@ class CoreCli:
         if not SourceSet.path(self._opts.src).exists():
             return self._emit([f"not found: {self._opts.src}"], 1)
         try:
-            # Scan and build the ports inside the try: an unreadable .py file,
-            # a corrupt in-tree baseline or ledger (both read when built) must
-            # surface as a clean non-zero, not a traceback.
-            report = Scanner(self._opts.src, self._root).report
+            # Anchor the scan's project root and the state files to the repo
+            # root, not cwd, so running from a subdirectory still reads the
+            # right pyproject.toml and baseline. Scan and read the state inside
+            # the try: an unreadable .py file or a corrupt baseline or ledger
+            # must surface as a clean non-zero, not a traceback.
+            report = Scanner(self._opts.src, self._gate.root).report
+            self._gate.prepare()
             lines, code = self._dispatch(report)
         except (StateError, PyprojectError, OSError, UnicodeDecodeError) as exc:
             lines, code = [f"FAIL: {exc}"], 1
@@ -237,21 +139,16 @@ class CoreCli:
 
     def _dispatch(self, report: SuppressionReport) -> tuple[list[str], int]:
         opts = self._opts
-        ports = self._ports()
-        views = TallyCli(self.LEDGER)
+        tally = self._count_report(report)
         if opts.check:
-            return self._verdict(
-                views,
-                TallyCheck(ports).run(
-                    report.tally,
-                    base_ref=opts.base_ref,
-                    require_base=opts.require_base,
-                    tripwire=opts.tripwire,
-                ),
+            return self._gate.check(
+                tally,
+                base_ref=opts.base_ref,
+                require_base=opts.require_base,
+                tripwire=opts.tripwire,
             )
-        write = self._write(views, report.tally, ports)
-        if write is not None:
-            return write
+        if opts.writes:
+            return self._write(tally)
         if opts.json:
             return [report.to_json()], 0
         lines = list(report.render())
@@ -259,48 +156,32 @@ class CoreCli:
             lines.extend(report.render_threshold())
         return lines, 0
 
-    def _write(
-        self, views: TallyCli, tally: Tally, ports: TallyPorts
-    ) -> tuple[list[str], int] | None:
+    def _write(self, tally: Tally) -> tuple[list[str], int]:
         opts = self._opts
-        if not (opts.update or opts.rebaseline or opts.relax is not None):
-            return None
-        blocked = GateCli.write_blocked(allow_ci_write=opts.allow_ci_write)
-        if blocked is not None:
-            return self._verdict(views, blocked)
         if opts.update:
-            return self._verdict(views, TallyUpdate(ports).run(tally))
+            return self._gate.update(tally, allow_ci_write=opts.allow_ci_write)
         if opts.rebaseline:
-            rebaseline = TallyRebaseline(ports)
-            verdict = rebaseline.run(tally, reason=opts.reason, source=opts.source)
-            return self._verdict(views, verdict)
-        relax = TallyRelax(ports).run(
+            return self._gate.rebaseline(
+                tally,
+                reason=opts.reason,
+                source=opts.source,
+                allow_ci_write=opts.allow_ci_write,
+            )
+        return self._gate.relax(
             tally,
-            target=str(opts.src),
             base_ref=opts.base_ref,
             file=opts.relax or "",
             justify=opts.justify,
-        )
-        return self._verdict(views, relax)
-
-    def _ports(self) -> TallyPorts:
-        history = TallyRepo(
-            self._git, self._opts.src, self._root, self._scan, self.LEDGER
-        )
-        return TallyPorts(
-            history,
-            JsonTallyStore(self._root / self.BASELINE),
-            JsonLedger(self._root / self.LEDGER),
-            TallyAuditFile(self._root / self.AUDIT),
+            allow_ci_write=opts.allow_ci_write,
         )
 
     @staticmethod
-    def _scan(target: Source, project: Path) -> Tally:
-        return Scanner(target, project).report.tally
+    def _count(target: Source, project: Path) -> Tally:
+        return Cli._count_report(Scanner(target, project).report)
 
     @staticmethod
-    def _verdict(views: TallyCli, verdict: Verdict) -> tuple[list[str], int]:
-        return views.text(verdict), views.exit_code(verdict)
+    def _count_report(report: SuppressionReport) -> Tally:
+        return Tally(report.by_category, report.by_file)
 
     @staticmethod
     def _emit(lines: list[str], code: int) -> int:
@@ -308,6 +189,6 @@ class CoreCli:
         return code
 
 
-def core_main(argv: list[str] | None = None) -> int:
-    """Run the suppression ratchet CLI on the shared core, returning a code."""
-    return CoreCli(Options.parse(argv)).run()
+def main(argv: list[str] | None = None) -> int:
+    """Parse arguments and run the suppression ratchet CLI, returning a code."""
+    return Cli(Options.parse(argv)).run()

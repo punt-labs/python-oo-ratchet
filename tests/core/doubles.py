@@ -47,6 +47,10 @@ class FakeHistory:
         """Return the baseline at ``ref``."""
         return copy.deepcopy(self.baselines.get(ref))
 
+    def adopted_at(self, ref: str) -> bool:
+        """Return whether a baseline exists at ``ref``."""
+        return self.baselines.get(ref) is not None
+
     def audit_at(self, ref: str) -> tuple[AuditRecord, ...] | None:
         """Return the audit log at ``ref``."""
         return self.audits.get(ref)

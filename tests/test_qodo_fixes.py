@@ -13,6 +13,7 @@ import pytest
 import oo_ratchet.coupling
 import oo_ratchet.oo
 import oo_ratchet.suppression
+from oo_ratchet.core.domain.tallies import Tally
 from oo_ratchet.coupling.audit import CouplingAudit, CouplingAuditError
 from oo_ratchet.coupling.gitio import GitError as CouplingGitError
 from oo_ratchet.coupling.gitio import GitRepo as CouplingGitRepo
@@ -22,6 +23,7 @@ from oo_ratchet.oo.gitio import GitError as OoGitError
 from oo_ratchet.oo.gitio import GitRepo
 from oo_ratchet.oo.gitio import GitRepo as OoGitRepo
 from oo_ratchet.oo.scorer import Scorer
+from oo_ratchet.source_set import Source
 from oo_ratchet.suppression.patterns import FileSuppressions
 from oo_ratchet.suppression.scanner import Scanner
 
@@ -161,10 +163,16 @@ def test_suppression_rescan_of_dot_target_keys_like_the_live_scan(
     monkeypatch.chdir(git_sandbox.root)
     git_sandbox.write("pkg/a.py", "x = 1  # noqa\n")
     base = git_sandbox.commit("base")
-    from oo_ratchet.suppression.gitio import GitRepo as SuppressionGit
-    from oo_ratchet.suppression.rescan import BaseRescanner
+    from oo_ratchet.core.adapters.gitrepo import GitRepo as CoreGit
+    from oo_ratchet.core.adapters.tallyrepo import TallyRepo
 
-    rescanned = BaseRescanner(SuppressionGit(Path()), Path()).rescan(base, Path())
+    def scan(target: Source, project: Path) -> Tally:
+        report = Scanner(target, project).report
+        return Tally(report.by_category, report.by_file)
+
+    git = CoreGit(Path(), ".suppression-baseline.json", ".suppression-audit.jsonl")
+    history = TallyRepo(git, Path(), Path(), scan, ".suppression-relax.json")
+    rescanned = history.tally_at(base)
     assert rescanned is not None
     assert set(rescanned.by_file) == set(Scanner(Path(), Path()).report.by_file)
 

@@ -1,38 +1,32 @@
-"""The layers gate on the shared core agrees with the live gate, on real git repos.
+"""The layers gate on the shared core gives the answers the per-gate code gave.
 
-Each scenario builds a real repository and runs every step twice from the same
-state: through the live gate (``oo_ratchet.layers.cli.main``) and through the
-core's ``EdgeGate``. The exit code, stdout and the two state files must match
-byte for byte (timestamps, commit hashes and the repository path masked). Each
-step also states the exit code it expects, so two gates that agree on a wrong
-answer still fail.
+Each scenario builds a real git repository and runs ``oo_ratchet.layers.cli.main``
+step by step. Every step's exit code, stdout and state files (timestamps, commit
+hashes and the repository path masked) must equal ``layers_golden.json``, and
+each step also states the exit code it expects.
+
+The golden file is the output of the previous implementation. Commit 1f8a8ae ran
+every step through both that implementation (``layers.ratchet``, ``layers.writer``
+and their git, baseline and audit adapters) and the core's ``EdgeGate``, from the
+same repository state, and the two agreed on all 61 steps byte for byte; the
+file was recorded from that run before the old code was deleted.
 """
 
 from __future__ import annotations
 
 import json
 import re
-import sys
-from collections.abc import Callable
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
 
-from oo_ratchet.core.adapters.edgegate import EdgeGate
-from oo_ratchet.core.domain.errors import StateError
-from oo_ratchet.design.layer_config import LayerConfigError
-from oo_ratchet.layers.cli import Options, main
-from oo_ratchet.layers.scan import LayerScan, LayersScanError
-from oo_ratchet.source_set import SourceSet
-from tests.layers_repo import (
-    BAD_KERNEL,
-    BAD_SERVICE,
-    PYPROJECT,
-    LayersRepo,
-)
+from oo_ratchet.layers.cli import main
+from tests.layers_repo import BAD_KERNEL, BAD_SERVICE, PYPROJECT, LayersRepo
 
 pytestmark = pytest.mark.slow
 
+GOLDEN = json.loads(Path(__file__).with_name("layers_golden.json").read_text())
 STATE = (".oo-layers-baseline.json", ".oo-layers-audit.jsonl")
 STAMP = re.compile(r'("ts":)"[^"]*"')
 HASH = re.compile(r"\b[0-9a-f]{7,40}\b")
@@ -41,101 +35,62 @@ FIXED = '[tool.oo-ratchet.layers]\nentry = ["app.cli"]\ndomain = ["app.domain"]\
 NEW_PACKAGE = "import fresh.service\n"
 
 
-def run_new(argv: list[str]) -> int:
-    """Run the check or update of ``argv`` through the core, as the CLI would."""
-    opts = Options.parse(argv)
-    if not SourceSet.path(opts.src).exists():
-        sys.stdout.write(f"Not found: {opts.src}\n")
-        return 1
-    git = EdgeGate.repo(opts.src)
-    root = git.root
-    if root is None or not SourceSet(opts.src).inside(root):
-        sys.stdout.write(f"FAIL: {opts.src} is not inside a git repository\n")
-        return 1
-    try:
-        gate = EdgeGate(opts.src, LayerScan(opts.src), git)
-        if opts.check:
-            lines, code = gate.check(
-                base_ref=opts.base_ref,
-                require_base=opts.require_base,
-                tripwire=opts.tripwire,
-                allow_config_change=opts.allow_config_change,
-            )
-        else:
-            lines, code = gate.update(
-                allow_ci_write=opts.allow_ci_write,
-                source=opts.source,
-                config_change=opts.allow_config_change,
-            )
-    except (StateError, LayerConfigError, LayersScanError, OSError) as exc:
-        lines, code = [f"FAIL: {exc}"], 1
-    sys.stdout.writelines(line + "\n" for line in lines)
-    return code
-
-
 class Bench:
-    """Run each step through both gates from the same repository state."""
+    """Run each step through the CLI and compare it with the recorded answer."""
 
-    def __init__(self, repo: LayersRepo, capsys: pytest.CaptureFixture[str]) -> None:
+    def __init__(
+        self, repo: LayersRepo, capsys: pytest.CaptureFixture[str], name: str
+    ) -> None:
         self.repo = repo
         self.capsys = capsys
+        self.expected: list[dict[str, object]] = GOLDEN[name]
+        self.steps = 0
 
     def step(self, *argv: str, code: int, on: Path | None = None) -> str:
-        """Run ``argv`` through both gates, compare, and return the new stdout."""
+        """Run ``argv``, compare with the recorded step, return its stdout."""
         src = str(on or self.repo.root / "src" / "app")
-        args = [src, *argv]
-        before = self._files()
-        old = self._run(main, args)
-        old_state = self._state()
-        self._put(before)
-        new = self._run(run_new, args)
-        assert new == old, f"core and live gate differ on {argv}"
-        assert self._state() == old_state, f"state files differ on {argv}"
-        assert new[0] == code, new[1]
-        return new[1]
-
-    def _run(
-        self, runner: Callable[[list[str]], int], args: list[str]
-    ) -> tuple[int, str]:
         self.capsys.readouterr()
         try:
-            status = runner(args)
+            status = main([src, *argv])
         except SystemExit as exc:
             status = int(exc.code or 0)
         raw = self.capsys.readouterr()
-        return status, self._mask(raw.out + raw.err)
+        got = {
+            "code": status,
+            "out": self._mask(raw.out + raw.err, src),
+            "state": self._state(src),
+        }
+        want = {k: v for k, v in self.expected[self.steps].items() if k != "argv"}
+        assert got == want, f"step {self.steps}: {argv}"
+        assert status == code, got["out"]
+        self.steps += 1
+        return str(got["out"])
 
-    def _mask(self, text: str) -> str:
-        text = text.replace(str(self.repo.root), "<ROOT>")
+    def finish(self) -> None:
+        """Fail if the recording holds steps the scenario did not run."""
+        assert self.steps == len(self.expected)
+
+    def _mask(self, text: str, src: str) -> str:
+        text = text.replace(src, "<SRC>").replace(str(self.repo.root), "<ROOT>")
         return HASH.sub("<SHA>", text)
 
-    def _files(self) -> dict[str, bytes | None]:
-        out: dict[str, bytes | None] = {}
+    def _state(self, src: str) -> dict[str, str | None]:
+        out: dict[str, str | None] = {}
         for name in STATE:
             path = self.repo.root / name
-            out[name] = path.read_bytes() if path.exists() else None
+            text = STAMP.sub(r'\1"T"', path.read_text()) if path.exists() else None
+            out[name] = None if text is None else self._mask(text, src)
         return out
-
-    def _put(self, files: dict[str, bytes | None]) -> None:
-        for name, data in files.items():
-            path = self.repo.root / name
-            if data is None:
-                path.unlink(missing_ok=True)
-            else:
-                path.write_bytes(data)
-
-    def _state(self) -> dict[str, str | None]:
-        return {
-            name: (
-                None if data is None else self._mask(STAMP.sub(r'\1"T"', data.decode()))
-            )
-            for name, data in self._files().items()
-        }
 
 
 @pytest.fixture
-def bench(repo: LayersRepo, capsys: pytest.CaptureFixture[str]) -> Bench:
-    return Bench(repo, capsys)
+def bench(
+    repo: LayersRepo, capsys: pytest.CaptureFixture[str], request: pytest.FixtureRequest
+) -> Iterator[Bench]:
+    name = request.node.nodeid.split("::", 1)[1]
+    bench = Bench(repo, capsys, name)
+    yield bench
+    bench.finish()
 
 
 class TestFirstAdoption:

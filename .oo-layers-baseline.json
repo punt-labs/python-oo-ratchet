@@ -72,36 +72,14 @@
     "oo_ratchet.source_set"
   ],
   "oo_ratchet.layers": [
-    "oo_ratchet.layers.baseline",
     "oo_ratchet.layers.cli",
-    "oo_ratchet.layers.ratchet",
-    "oo_ratchet.layers.scan",
-    "oo_ratchet.layers.writer"
-  ],
-  "oo_ratchet.layers.adoption": [
-    "oo_ratchet.layers.trees"
-  ],
-  "oo_ratchet.layers.ratchet": [
-    "oo_ratchet.coupling.outcome",
-    "oo_ratchet.layers.base_config",
-    "oo_ratchet.layers.baseline",
-    "oo_ratchet.layers.gitio"
+    "oo_ratchet.layers.scan"
   ],
   "oo_ratchet.layers.scan": [
     "oo_ratchet.source_set"
   ],
   "oo_ratchet.layers.strict": [
     "oo_ratchet.layers.chain"
-  ],
-  "oo_ratchet.layers.verdict": [
-    "oo_ratchet.coupling.outcome"
-  ],
-  "oo_ratchet.layers.writer": [
-    "oo_ratchet.coupling.outcome",
-    "oo_ratchet.layers.audit",
-    "oo_ratchet.layers.baseline",
-    "oo_ratchet.layers.gitio",
-    "oo_ratchet.layers.trees"
   ],
   "oo_ratchet.oo": [
     "oo_ratchet.oo.apply",

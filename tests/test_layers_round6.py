@@ -9,10 +9,11 @@ from pathlib import Path
 
 import pytest
 
+from oo_ratchet.core.adapters.edgefiles import EdgeAuditFile
+from oo_ratchet.core.adapters.treeviews import BaseTree, WorkingTree
+from oo_ratchet.core.domain.edges import EdgeRecord
 from oo_ratchet.design.layer_edges import Edge
-from oo_ratchet.layers.audit import LayersAudit
 from oo_ratchet.layers.scan import LayerScan
-from oo_ratchet.layers.trees import BaseTree, WorkingTree
 from tests.conftest import GitSandbox
 
 QUOTED = 'weird"dir/app/__init__.py'
@@ -113,7 +114,7 @@ class TestAuditLock:
     """An append holds an exclusive lock on the audit file."""
 
     def test_append_waits_for_a_held_lock(self, tmp_path: Path) -> None:
-        audit = LayersAudit(tmp_path)
+        audit = EdgeAuditFile(tmp_path / ".oo-layers-audit.jsonl")
         path = tmp_path / ".oo-layers-audit.jsonl"
         path.write_text("")
         held = os.open(path, os.O_RDWR)
@@ -121,15 +122,7 @@ class TestAuditLock:
         done = threading.Event()
 
         def append() -> None:
-            audit.append(
-                verdict="pass",
-                modules=1,
-                violations=0,
-                added=frozenset(),
-                removed=frozenset(),
-                commit=None,
-                source=None,
-            )
+            audit.append(EdgeRecord("pass", 1, 0, frozenset(), frozenset(), None, None))
             done.set()
 
         worker = threading.Thread(target=append)

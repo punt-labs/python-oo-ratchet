@@ -21,14 +21,20 @@ class EdgeFormat:
         except json.JSONDecodeError as exc:
             msg = f"unreadable layers baseline {label}: {exc}"
             raise StateError(msg) from exc
-        if not isinstance(loaded, dict) or not all(
-            isinstance(targets, list) and all(isinstance(t, str) for t in targets)
-            for targets in loaded.values()
-        ):
+        if not EdgeFormat._is_module_map(loaded):
             msg = f"layers baseline {label} must map a module to a list of modules"
             raise StateError(msg)
         edges = (Edge(s, t) for s, targets in loaded.items() for t in targets)
         return EdgeBook(frozenset(edges))
+
+    @staticmethod
+    def _is_module_map(loaded: object) -> bool:
+        if not isinstance(loaded, dict):
+            return False
+        return all(
+            isinstance(targets, list) and all(isinstance(t, str) for t in targets)
+            for targets in loaded.values()
+        )
 
     @staticmethod
     def encode(book: EdgeBook) -> str:

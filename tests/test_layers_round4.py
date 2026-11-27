@@ -9,9 +9,9 @@ from pathlib import Path
 
 import pytest
 
-from oo_ratchet.coupling.gitio import GitError
+from oo_ratchet.core.adapters.nullisting import NulListing
+from oo_ratchet.core.domain.errors import GitError
 from oo_ratchet.design.layer_edges import Edge
-from oo_ratchet.layers.listing import NulListing
 from oo_ratchet.layers.scan import LayerScan
 from tests.layers_repo import LayersRepo
 

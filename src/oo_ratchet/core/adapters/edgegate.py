@@ -16,7 +16,7 @@ from .edgefiles import EdgeAuditFile, JsonEdgeStore
 from .edgerepo import EdgeRepo
 from .gatecli import GateCli
 from .gitrepo import GitRepo
-from .packagetrees import WorkingTree
+from .treeviews import WorkingTree
 
 Report = tuple[list[str], int]
 

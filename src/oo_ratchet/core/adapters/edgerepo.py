@@ -14,7 +14,7 @@ from oo_ratchet.source_set import Source, SourceSet
 from .edgeformats import EdgeFormat
 from .edgemodules import BaseModules
 from .gitrepo import GitRepo
-from .packagetrees import BaseTree
+from .treeviews import BaseTree
 
 
 class EdgeRepo:

@@ -8,11 +8,11 @@ from pathlib import Path
 
 import pytest
 
+from oo_ratchet.core.domain.policies import PolicyWidening
 from oo_ratchet.design.declared_layers import DeclaredLayers
 from oo_ratchet.design.layer_config import LayerConfig
 from oo_ratchet.design.layer_edges import Edge
 from oo_ratchet.layers.scan import LayerScan
-from oo_ratchet.layers.widening import PolicyWidening
 from tests.layers_repo import OK_SERVICE, LayersRepo
 
 DECLARED = """\

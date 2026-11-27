@@ -5,20 +5,18 @@ from __future__ import annotations
 import argparse
 import sys
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Self
 
+from oo_ratchet.core.adapters.edgegate import EdgeGate
+from oo_ratchet.core.adapters.gitrepo import GitRepo
+from oo_ratchet.core.domain.errors import StateError
 from oo_ratchet.coupling.outcome import Outcome
 from oo_ratchet.source_set import Source, SourceSet
 
-from .base_modules import BaseModules, GitError
 from .failures import FAILURES
-from .gitio import LayersGit
-from .ratchet import LayersRatchet
 from .report import LayersReport
 from .scan import LayerScan
 from .suggest import Suggestion
-from .writer import LayersWriter
 
 
 @dataclass(frozen=True, slots=True)
@@ -114,7 +112,7 @@ class Options:
 
 
 class Cli:
-    """Scan the package and route the request to the ratchet, writer or report."""
+    """Scan the package and route the request to the gate or a report."""
 
     _opts: Options
 
@@ -129,13 +127,13 @@ class Cli:
             return self._emit(Outcome.failed(f"Not found: {self._opts.src}"))
         if self._opts.suggest:
             return self._emit(self._suggest())
-        git = LayersGit(SourceSet(self._opts.src).start_dir)
+        git = EdgeGate.repo(self._opts.src)
         root = git.root
         if root is None or not SourceSet(self._opts.src).inside(root):
             msg = f"FAIL: {self._opts.src} is not inside a git repository"
             return self._emit(Outcome.failed(msg))
         try:
-            outcome = self._dispatch(LayerScan(self._opts.src), root, git)
+            outcome = self._dispatch(LayerScan(self._opts.src), git)
         except FAILURES as exc:
             outcome = Outcome.failed(f"FAIL: {exc}")
         return self._emit(outcome)
@@ -147,27 +145,30 @@ class Cli:
         except FAILURES as exc:
             return Outcome.failed(f"FAIL: {exc}")
 
-    def _dispatch(self, scan: LayerScan, root: Path, git: LayersGit) -> Outcome:
+    def _dispatch(self, scan: LayerScan, git: GitRepo) -> Outcome:
+        opts = self._opts
+        if opts.check or opts.update:
+            lines, code = self._gate(EdgeGate(opts.src, scan, git))
+            return Outcome(code, tuple(lines))
+        report = LayersReport(scan)
+        if opts.json:
+            return Outcome.passed(report.to_json())
+        return Outcome.passed(*report.render())
+
+    def _gate(self, gate: EdgeGate) -> tuple[list[str], int]:
         opts = self._opts
         if opts.check:
-            return LayersRatchet(root, git, BaseModules(root, opts.src).shared).check(
-                scan,
+            return gate.check(
                 base_ref=opts.base_ref,
                 require_base=opts.require_base,
                 tripwire=opts.tripwire,
                 allow_config_change=opts.allow_config_change,
             )
-        if opts.update:
-            return LayersWriter(root, git).update(
-                scan,
-                allow_ci_write=opts.allow_ci_write,
-                source=opts.source,
-                config_change=opts.allow_config_change,
-            )
-        report = LayersReport(scan)
-        if opts.json:
-            return Outcome.passed(report.to_json())
-        return Outcome.passed(*report.render())
+        return gate.update(
+            allow_ci_write=opts.allow_ci_write,
+            source=opts.source,
+            config_change=opts.allow_config_change,
+        )
 
     @staticmethod
     def _emit(outcome: Outcome) -> int:
@@ -179,6 +180,6 @@ def main(argv: list[str] | None = None) -> int:
     """Parse arguments and run the layers ratchet CLI, returning an exit code."""
     try:
         return Cli(Options.parse(argv)).run()
-    except GitError as exc:  # raised while locating the repository root
+    except StateError as exc:  # raised while locating the repository root
         sys.stdout.write(f"FAIL: {exc}\n")
         return 1

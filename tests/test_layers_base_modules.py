@@ -3,11 +3,7 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 
-from oo_ratchet.layers.gitio import LayersGit
-from oo_ratchet.layers.ratchet import LayersRatchet
-from oo_ratchet.layers.scan import LayerScan
 from tests.layers_repo import LayersRepo
 
 TABLE = """\
@@ -180,19 +176,3 @@ class TestNamespaceMode:
             src, "--namespace", "app", "--check", "--allow-config-change"
         )
         assert waived[0] == 0, waived[1]
-
-
-class TestDirectCallers:
-    """``LayersRatchet`` works without a base-modules callback."""
-
-    def test_default_treats_every_current_module_as_existing(
-        self, repo: LayersRepo
-    ) -> None:
-        _adopted(repo, TABLE)
-        repo.write("pyproject.toml", PROMOTED)
-        src: Path = repo.root / "src" / "app"
-        outcome = LayersRatchet(repo.root, LayersGit(repo.root)).check(
-            LayerScan(src), base_ref="origin/main", require_base=True
-        )
-        assert outcome.exit_code == 1
-        assert any("app.thing" in line for line in outcome.lines)

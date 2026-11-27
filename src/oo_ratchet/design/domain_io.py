@@ -46,10 +46,22 @@ class DomainIO:
         """Return one finding per IO module import, plus bare unbound opens."""
         out = [self._finding(node, name) for node, name in self._imports()]
         out.extend(
-            self._finding(node, "open")
-            for node in BuiltinOpen(self._module.tree).calls()
+            self._finding(node, "open") for node in self._opens(self._module.tree)
         )
         return out
+
+    def targets(self) -> list[str]:
+        """Return the sorted distinct IO targets, a bare ``open`` as builtins.open."""
+        names = {name for _, name in self._imports()}
+        if self._opens(self._module.tree):
+            names.add("builtins.open")
+        return sorted(names)
+
+    @staticmethod
+    def _opens(tree: ast.Module) -> list[ast.Call]:
+        """Return the bare unbound ``open`` calls outside TYPE_CHECKING."""
+        type_only = ImportTargets.type_only(tree)
+        return [call for call in BuiltinOpen(tree).calls() if id(call) not in type_only]
 
     def _imports(self) -> list[tuple[ast.stmt, str]]:
         type_only = ImportTargets.type_only(self._module.tree)
@@ -58,20 +70,32 @@ class DomainIO:
             for node in ast.walk(self._module.tree)
             if isinstance(node, (ast.Import, ast.ImportFrom))
             and id(node) not in type_only
-            for name in dict.fromkeys(self._imported(node))
-            if self._is_io(name)
+            for name in self._io_names(node)
         ]
+
+    @classmethod
+    def _io_names(cls, node: ast.Import | ast.ImportFrom) -> list[str]:
+        return [name for name in dict.fromkeys(cls._imported(node)) if cls._is_io(name)]
 
     @classmethod
     def _imported(cls, node: ast.Import | ast.ImportFrom) -> list[str]:
         if isinstance(node, ast.Import):
             return [alias.name for alias in node.names]
+        return cls._from_names(node)
+
+    @classmethod
+    def _from_names(cls, node: ast.ImportFrom) -> list[str]:
         if node.level:
             return []
         base = node.module or ""
         if cls._is_io(base):
             return [base]
         return [f"{base}.{alias.name}" for alias in node.names]
+
+    @classmethod
+    def is_io(cls, name: str) -> bool:
+        """Return whether the dotted module ``name`` is, or is inside, an IO module."""
+        return cls._is_io(name)
 
     @classmethod
     def _is_io(cls, name: str) -> bool:

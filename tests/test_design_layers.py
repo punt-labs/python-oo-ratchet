@@ -303,6 +303,14 @@ def test_type_checking_io_imports_are_exempt(tmp_path: Path, guard: str) -> None
     assert keys(package(tmp_path, source)) == set()
 
 
+@pytest.mark.parametrize("guard", ["TYPE_CHECKING", "typing.TYPE_CHECKING"])
+def test_type_checking_bare_open_is_exempt(tmp_path: Path, guard: str) -> None:
+    source = (
+        f"import typing\nfrom typing import TYPE_CHECKING\nif {guard}:\n x = open('f')"
+    )
+    assert keys(package(tmp_path, source)) == set()
+
+
 def test_domain_io_once_per_imported_module(tmp_path: Path) -> None:
     root = package(
         tmp_path,

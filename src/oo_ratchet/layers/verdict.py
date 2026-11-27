@@ -19,6 +19,7 @@ class LayersVerdict:
     _base_edges: frozenset[Edge] | None
     _base_config: list[Edge]
     _widened: list[str]
+    _accepted: frozenset[Edge]
     _base: str
 
     def __new__(
@@ -29,6 +30,7 @@ class LayersVerdict:
         base_edges: frozenset[Edge] | None,
         base_config: list[Edge],
         widened: list[str],
+        accepted: frozenset[Edge] = frozenset(),
         base: str,
     ) -> Self:
         self = super().__new__(cls)
@@ -37,6 +39,7 @@ class LayersVerdict:
         self._base_edges = base_edges
         self._base_config = base_config
         self._widened = widened
+        self._accepted = accepted
         self._base = base
         return self
 
@@ -68,14 +71,18 @@ class LayersVerdict:
             line
             for title, rows in sections
             if rows
-            for line in (f"FAIL: {title}", *(f"  {row}" for row in rows))
+            for line in (
+                f"FAIL: {title}",
+                *(f"  {row}" for row in rows),
+                *self._scan.purity_help(rows, self._scan.io_edges),
+            )
         ]
         return Outcome(1, tuple(lines)) if lines else self._passed(len(found))
 
     def _grown(self) -> frozenset[Edge]:
         if self._base_edges is None:
             return frozenset()
-        return self._recorded - self._base_edges
+        return self._recorded - self._base_edges - self._accepted
 
     @staticmethod
     def _edges(edges: Iterable[Edge]) -> list[str]:

@@ -98,9 +98,10 @@ class LayersRatchet:
         config = self._config.read(scan, base, strict=strict) if compare else None
         under_base: list[Edge] = []
         widened: list[str] = []
+        accepted = scan.io_edges if allow_config_change else frozenset()
         if config is not None:
             if base_edges is not None:
-                under_base = sorted(scan.under(config).edges - base_edges)
+                under_base = sorted(scan.under(config).edges - base_edges - accepted)
             if not allow_config_change:
                 widened = PolicyWidening.found(scan.config, config)
         return LayersVerdict(
@@ -109,6 +110,7 @@ class LayersRatchet:
             base_edges=base_edges,
             base_config=under_base,
             widened=widened,
+            accepted=accepted,
             base=base,
         ).outcome()
 

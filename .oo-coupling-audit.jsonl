@@ -86,3 +86,14 @@
 {"ts":"2026-11-27T01:56:50Z","commit":"ceb24fe","source":null,"files_scored":137,"files_improved":0,"files_regressed":0,"verdict":"pass","reason":null,"deltas":{}}
 {"ts":"2026-11-27T04:35:23Z","commit":"aee7c41","source":null,"files_scored":137,"files_improved":0,"files_regressed":0,"verdict":"pass","reason":null,"deltas":{}}
 {"ts":"2026-11-27T04:38:09Z","commit":"a59e315","source":null,"files_scored":137,"files_improved":0,"files_regressed":0,"verdict":"pass","reason":null,"deltas":{}}
+{"ts":"2026-11-27T04:49:42Z","commit":"af2e603","source":null,"files_scored":138,"files_improved":0,"files_regressed":0,"verdict":"pass","reason":null,"deltas":{}}
+{"ts":"2026-11-27T04:50:26Z","commit":"af2e603","source":null,"files_scored":138,"files_improved":0,"files_regressed":0,"verdict":"pass","reason":null,"deltas":{}}
+{"ts":"2026-11-27T04:50:38Z","commit":"af2e603","source":null,"files_scored":138,"files_improved":0,"files_regressed":0,"verdict":"pass","reason":null,"deltas":{}}
+{"ts":"2026-11-27T04:58:45Z","commit":"9826007","source":null,"files_scored":138,"files_improved":0,"files_regressed":1,"verdict":"fail","reason":null,"deltas":{}}
+{"ts":"2026-11-27T04:59:30Z","commit":"9826007","source":null,"files_scored":139,"files_improved":1,"files_regressed":0,"verdict":"pass","reason":null,"deltas":{"src/oo_ratchet/layers/io_sites.py":{"efferent_coupling":[0.0,3.0],"public_names":[0.0,1.0],"circular_imports":[0.0,0.0],"max_lcom":[0.0,0.0],"avg_lcom":[0.0,0.0]}}}
+{"ts":"2026-11-27T05:07:35Z","commit":"51603c8","source":null,"files_scored":139,"files_improved":1,"files_regressed":1,"verdict":"fail","reason":null,"deltas":{"src/oo_ratchet/layers/scan.py":{"max_lcom":[0.727,0.697],"avg_lcom":[0.727,0.697]}}}
+{"ts":"2026-11-27T05:08:12Z","commit":"51603c8","source":null,"files_scored":1,"files_improved":0,"files_regressed":0,"verdict":"rebaseline-files","reason":"io_sites.py is new on this branch (absent at the merge base); its baseline row was written by an earlier commit of the same branch (PL-1711)","deltas":{},"improved":{}}
+{"ts":"2026-11-27T05:08:16Z","commit":"51603c8","source":null,"files_scored":139,"files_improved":0,"files_regressed":0,"verdict":"pass","reason":null,"deltas":{}}
+{"ts":"2026-11-27T05:14:32Z","commit":"426438a","source":null,"files_scored":139,"files_improved":0,"files_regressed":0,"verdict":"pass","reason":null,"deltas":{}}
+{"ts":"2026-11-27T05:18:26Z","commit":"15c4541","source":null,"files_scored":139,"files_improved":0,"files_regressed":1,"verdict":"fail","reason":null,"deltas":{}}
+{"ts":"2026-11-27T05:18:39Z","commit":"15c4541","source":null,"files_scored":139,"files_improved":0,"files_regressed":0,"verdict":"pass","reason":null,"deltas":{}}

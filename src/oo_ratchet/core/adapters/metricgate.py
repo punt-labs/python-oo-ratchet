@@ -32,18 +32,6 @@ class MetricFiles:
     audit: str
 
 
-@dataclass(frozen=True, slots=True)
-class BlessRequest:
-    """One scoped bless: the files, why, and the base they are judged against."""
-
-    paths: list[str]
-    reason: str
-    allow_ci_write: bool
-    source: str | None
-    base_ref: str | None
-    require_base: bool
-
-
 Report = tuple[list[str], int]
 
 
@@ -53,6 +41,17 @@ class MetricGate:
     Each operation returns the report lines and the exit code. ``prepare``
     binds the tree the CLI scored; no operation runs before it.
     """
+
+    @dataclass(frozen=True, slots=True)
+    class BlessRequest:
+        """One scoped bless: the files, why, and the base they are judged on."""
+
+        paths: list[str]
+        reason: str
+        allow_ci_write: bool
+        source: str | None
+        base_ref: str | None
+        require_base: bool
 
     _files: MetricFiles
     _git: GitRepo
@@ -131,7 +130,7 @@ class MetricGate:
             )
         return self._view.rebaseline(verdict), self._code(verdict)
 
-    def bless(self, request: BlessRequest) -> Report:
+    def bless(self, request: MetricGate.BlessRequest) -> Report:
         """Record the named files' scores where they clear their caps."""
         verdict = self._blessed(request)
         return self._view.bless(verdict, request.reason), self._code(verdict)
@@ -141,7 +140,7 @@ class MetricGate:
         view = AuditView(self._root / self._files.audit, "coupling")
         return view.lines(), 0
 
-    def _blessed(self, request: BlessRequest) -> Verdict:
+    def _blessed(self, request: MetricGate.BlessRequest) -> Verdict:
         blocked = GateCli.write_blocked(allow_ci_write=request.allow_ci_write)
         if blocked is not None:
             return blocked

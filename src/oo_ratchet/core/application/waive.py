@@ -10,7 +10,6 @@ from oo_ratchet.core.domain.verdicts import Failure, Verdict
 
 from .blessbase import BlessBase
 from .operation import Operation
-from .policy import GatePolicy, Row
 from .rowchanges import RowChanges
 
 Deltas = dict[str, dict[str, list[float]]]
@@ -25,13 +24,13 @@ class Bless:
     regressed: set[str] = field(default_factory=set)
     improved: set[str] = field(default_factory=set)
 
-    def classify(
-        self, policy: GatePolicy, path: str, entry: Row, old: Row | None
+    def record(
+        self,
+        path: str,
+        waived: dict[str, list[float]],
+        gains: dict[str, list[float]],
     ) -> None:
-        """Record how ``entry`` differs from its base row ``old``, if there is one."""
-        if old is None:
-            return
-        waived, gains = policy.changes(entry, old)
+        """Record the loosenings and gains of ``path`` against its base row."""
         if waived:
             self.waived[path] = waived
             self.regressed.add(path)
@@ -174,7 +173,7 @@ class RebaselineFiles(Operation):
         rows = dict(stored)
         bless = Bless()
         for path in accepted:
-            bless.classify(self._policy, path, current[path], base.row(path))
+            self._classify(path, current[path], base.row(path), bless)
             base.forget_predecessor(rows, path)
             rows[path] = current[path]
         reason, source = meta
@@ -192,3 +191,13 @@ class RebaselineFiles(Operation):
             )
         )
         self._store.save(rows)
+
+    def _classify(
+        self,
+        path: str,
+        entry: dict[str, float],
+        old: dict[str, float] | None,
+        bless: Bless,
+    ) -> None:
+        if old is not None:
+            bless.record(path, *self._policy.changes(entry, old))

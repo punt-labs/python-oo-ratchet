@@ -111,13 +111,18 @@ class Review:
 
         ``gated`` is whether the must-improve gate applies to this run.
         """
-        found: list[Failure] = []
-        if self.has_regression:
-            subjects = tuple(f"{p}: {m}" for p, m in self.regressions)
-            found.append(Failure("regression", subjects))
+        found = (self._regression(), self._unimproved(gated=gated))
+        return tuple(f for f in found if f is not None)
+
+    def _regression(self) -> Failure | None:
+        if not self.has_regression:
+            return None
+        return Failure("regression", tuple(f"{p}: {m}" for p, m in self.regressions))
+
+    def _unimproved(self, *, gated: bool) -> Failure | None:
         if gated and not self.improvement_satisfied:
-            found.append(Failure("no-improvement"))
-        return tuple(found)
+            return Failure("no-improvement")
+        return None
 
 
 @dataclass(frozen=True, slots=True)

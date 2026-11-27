@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from typing import Self
 
-from oo_ratchet.design.layer_edges import Violation
+from oo_ratchet.core.domain.layer_edges import Violation
 
 from .scan import LayerScan
 

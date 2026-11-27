@@ -5,11 +5,12 @@ from __future__ import annotations
 import ast
 from typing import Self
 
+from oo_ratchet.core.domain.declaration import Declaration
+from oo_ratchet.core.domain.function_shape import FunctionShape
+from oo_ratchet.core.domain.shape import ClassShape
+
 from .data_fields import DataFields
 from .data_inventory import DataInventory
-from .declaration import Declaration
-from .function_shape import FunctionShape
-from .shape import ClassShape
 
 
 class ClumpOwners:

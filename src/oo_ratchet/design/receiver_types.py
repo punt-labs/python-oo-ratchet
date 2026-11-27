@@ -6,10 +6,10 @@ import ast
 from collections import Counter
 from typing import Self
 
-from .declaration import Declaration
-from .function_shape import FunctionShape
-from .project_types import ProjectTypes
-from .receiver_bindings import ReceiverBindings
+from oo_ratchet.core.domain.declaration import Declaration
+from oo_ratchet.core.domain.function_shape import FunctionShape
+from oo_ratchet.core.domain.project_types import ProjectTypes
+from oo_ratchet.core.domain.receiver_bindings import ReceiverBindings
 
 
 class ReceiverTypes:

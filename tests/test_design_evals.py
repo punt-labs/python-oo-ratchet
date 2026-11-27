@@ -13,7 +13,7 @@ from typing import TypedDict, cast
 
 import pytest
 
-from oo_ratchet.design.findings import Rules
+from oo_ratchet.core.domain.findings import Rules
 from oo_ratchet.design.scanner import DesignScanner
 
 type Key = tuple[str, str, str]

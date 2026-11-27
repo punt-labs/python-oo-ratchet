@@ -5,10 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Self
 
+from oo_ratchet.core.domain.layer_config import LayerConfigError
 from oo_ratchet.oo.scorer import Scorer
 from oo_ratchet.source_set import Source, SourceSet
 
-from .layer_config import LayerConfigError
 from .scanner import DesignScanner
 from .shadow_keys import DesignKey
 

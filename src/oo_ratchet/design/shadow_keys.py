@@ -6,7 +6,7 @@ from collections import Counter
 from dataclasses import asdict, dataclass
 from typing import ClassVar, Self
 
-from .findings import Rules
+from oo_ratchet.core.domain.findings import Rules
 
 
 @dataclass(frozen=True, order=True, slots=True)

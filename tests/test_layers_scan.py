@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from oo_ratchet.design.layer_config import LayerConfigError
-from oo_ratchet.design.layer_edges import Edge
+from oo_ratchet.core.domain.layer_config import LayerConfigError
+from oo_ratchet.core.domain.layer_edges import Edge
 from oo_ratchet.layers.scan import LayerScan, LayersScanError
 
 DECLARED = """\

@@ -6,8 +6,8 @@ import ast
 from collections.abc import Callable, Mapping
 from typing import Self
 
-from oo_ratchet.design.layer_violations import Site
-from oo_ratchet.design.modules import Module
+from oo_ratchet.core.domain.layer_violations import Site
+from oo_ratchet.core.domain.modules import Module
 
 from .exports import Origin, Reexports
 

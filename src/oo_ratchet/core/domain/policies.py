@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import Self
 
-from oo_ratchet.design.layer_config import LayerConfig
+from oo_ratchet.core.domain.layer_config import LayerConfig
 
 
 class PolicyWidening:

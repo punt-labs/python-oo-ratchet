@@ -16,15 +16,6 @@
     "oo_ratchet.source_set",
     "pathlib"
   ],
-  "oo_ratchet.design.layer_table": [
-    "oo_ratchet.source_set",
-    "pathlib"
-  ],
-  "oo_ratchet.design.modules": [
-    "oo_ratchet.coupling.layout",
-    "oo_ratchet.source_set",
-    "pathlib"
-  ],
   "oo_ratchet.design.scan": [
     "oo_ratchet.design.report",
     "oo_ratchet.source_set"

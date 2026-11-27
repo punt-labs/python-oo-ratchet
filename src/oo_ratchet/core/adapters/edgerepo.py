@@ -7,8 +7,8 @@ from pathlib import Path
 from typing import Self
 
 from oo_ratchet.core.domain.edges import EdgeBook
-from oo_ratchet.design.layer_config import LayerConfig, LayerConfigError
-from oo_ratchet.design.layer_table import LayerTable
+from oo_ratchet.core.domain.layer_config import LayerConfig, LayerConfigError
+from oo_ratchet.core.domain.layer_table import LayerTable
 from oo_ratchet.source_set import Source, SourceSet
 
 from .edgeformats import EdgeFormat

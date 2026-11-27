@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from typing import Self
 
+from oo_ratchet.core.domain.findings import Finding
+from oo_ratchet.core.domain.layer_config import LayerConfig
+from oo_ratchet.core.domain.layer_imports import LayerImports
+from oo_ratchet.core.domain.modules import ModuleIndex
+from oo_ratchet.core.domain.project_types import ProjectTypes
+
 from .class_shape_rules import ClassShapeRules
 from .data_inventory import DataInventory
-from .findings import Finding
-from .layer_config import LayerConfig
-from .layer_imports import LayerImports
-from .modules import ModuleIndex
-from .project_types import ProjectTypes
 from .signature_rules import SignatureRules
 from .size_rules import SizeRules
 

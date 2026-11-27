@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from oo_ratchet.design.layer_table import LayerTable
+from oo_ratchet.core.domain.layer_table import LayerTable
 from oo_ratchet.layers.cli import main
 from oo_ratchet.layers.suggest_text import SafeText
 from tests.layers_repo import LayersRepo

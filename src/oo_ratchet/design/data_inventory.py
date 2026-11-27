@@ -5,10 +5,10 @@ from __future__ import annotations
 import ast
 from typing import Self
 
-from .declaration import Declaration
-from .layer_config import LayerConfig
-from .layer_imports import LayerImports
-from .modules import Module, ModuleIndex
+from oo_ratchet.core.domain.declaration import Declaration
+from oo_ratchet.core.domain.layer_config import LayerConfig
+from oo_ratchet.core.domain.layer_imports import LayerImports
+from oo_ratchet.core.domain.modules import Module, ModuleIndex
 
 
 class DataInventory:

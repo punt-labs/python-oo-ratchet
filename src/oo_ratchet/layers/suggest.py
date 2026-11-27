@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import Self
 
-from oo_ratchet.coupling.outcome import Outcome
-from oo_ratchet.design.layer_table import LayerTable
-from oo_ratchet.design.modules import ModuleIndex
+from oo_ratchet.core.domain.exits import Outcome
+from oo_ratchet.core.domain.layer_table import LayerTable
+from oo_ratchet.core.domain.modules import ModuleIndex
 from oo_ratchet.source_set import Source, SourceSet
 
 from .scan import LayersScanError
@@ -51,7 +51,7 @@ class Suggestion:
         self = super().__new__(cls)
         self._src = src
         index = cls._index(src)
-        scripts = ConsoleScripts(LayerTable.nearest(src))
+        scripts = ConsoleScripts(LayerTable.nearest(SourceSet(src).config_anchor))
         facts = PackageFacts(index, scripts).all()
         cls._require_modules(facts, src)
         self._verdicts = RingRules(facts).verdicts()
@@ -63,7 +63,7 @@ class Suggestion:
     @staticmethod
     def _index(src: Source) -> ModuleIndex:
         SourceSet(src).require_package(LayersScanError)
-        index = ModuleIndex(src)
+        index = ModuleIndex(SourceSet(src))
         if index.skipped:
             names = ", ".join(sorted(str(p) for p in index.skipped))
             raise LayersScanError(f"cannot read or parse: {names}")

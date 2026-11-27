@@ -5,11 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Self
 
-from oo_ratchet.oo.baseline import Baseline
+from oo_ratchet.core.domain.layer_config import LayerConfigError
 from oo_ratchet.oo.scorer import Scorer
 from oo_ratchet.source_set import Source, SourceSet
 
-from .layer_config import LayerConfigError
 from .scanner import DesignScanner
 from .shadow_keys import DesignKey
 
@@ -52,7 +51,7 @@ class ShadowScan:
             )
             for f in report._findings
         )
-        self._metrics = Baseline.metrics_by_file(scorer.results)
+        self._metrics = scorer.rows
         return self
 
     @property

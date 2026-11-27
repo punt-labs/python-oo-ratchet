@@ -3,21 +3,22 @@
 from __future__ import annotations
 
 import tomllib
-from pathlib import Path
-
-from oo_ratchet.source_set import Source, SourceSet
+from typing import TYPE_CHECKING
 
 from .declared_layers import DeclaredLayers
 from .layer_config import LayerConfig, LayerConfigError
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class LayerTable:
     """Read the layers table of a pyproject and build the config it describes."""
 
     @classmethod
-    def load(cls, root: Source, override: Path | None = None) -> LayerConfig | None:
+    def load(cls, anchor: Path, override: Path | None = None) -> LayerConfig | None:
         """Read an explicit file or the nearest ancestor pyproject, if any."""
-        path = override or cls.nearest(root)
+        path = override or cls.nearest(anchor)
         if path is None:
             return None
         return cls._config(cls._read(path), str(path), strict=override is not None)
@@ -58,12 +59,12 @@ class LayerTable:
         return LayerConfig(table)
 
     @staticmethod
-    def nearest(root: Source) -> Path | None:
-        root = SourceSet(root).config_anchor
+    def nearest(anchor: Path) -> Path | None:
+        """Return the pyproject of ``anchor`` or its nearest ancestor, if any."""
         return next(
             (
                 parent / "pyproject.toml"
-                for parent in (root.resolve(), *root.resolve().parents)
+                for parent in (anchor.resolve(), *anchor.resolve().parents)
                 if (parent / "pyproject.toml").is_file()
             ),
             None,

@@ -2,18 +2,21 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING, Self
+
+from oo_ratchet.core.domain.layer_table import LayerTable
+from oo_ratchet.core.domain.modules import ModuleIndex
+from oo_ratchet.source_set import SourceSet
 
 from .boundaries import BoundaryCheck
 from .class_rules import ClassRules
 from .data_rules import DataRules
-from .layer_table import LayerTable
 from .layers import LayerCheck
-from .modules import ModuleIndex
 from .report import DesignReport
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from oo_ratchet.source_set import Source
 
 
@@ -31,9 +34,10 @@ class DesignScanner:
         package_name: str | None = None,
     ) -> Self:
         self = super().__new__(cls)
-        index = ModuleIndex(root, package_name=package_name)
+        source = SourceSet(root)
+        index = ModuleIndex(source, package_name=package_name)
         self._index = index
-        config = LayerTable.load(root, layers)
+        config = LayerTable.load(source.config_anchor, layers)
         skips = LayerCheck.skipper(index, config)
         class_rules = ClassRules(index.interface_methods(), skips)
         findings = [f for m in index.modules() for f in class_rules.findings(m)]

@@ -5,9 +5,9 @@ from __future__ import annotations
 from typing import Self
 
 from oo_ratchet.core.domain.edges import EdgeBook, EdgeRecord, EdgeReview, EdgeVerdict
+from oo_ratchet.core.domain.layer_edges import Edge
 from oo_ratchet.core.domain.policies import PolicyWidening
 from oo_ratchet.core.domain.verdicts import Failure, Verdict
-from oo_ratchet.design.layer_edges import Edge
 
 from .bases import Bases
 from .edgeports import EdgePorts, Survey

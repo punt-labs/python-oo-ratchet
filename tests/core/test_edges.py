@@ -11,9 +11,9 @@ import pytest
 from oo_ratchet.core.application.edgeops import EdgeCheck, EdgeUpdate
 from oo_ratchet.core.application.edgeports import EdgePorts
 from oo_ratchet.core.domain.edges import EdgeBook, EdgeRecord, EdgeVerdict
+from oo_ratchet.core.domain.layer_config import LayerConfig
+from oo_ratchet.core.domain.layer_edges import Edge, Violation
 from oo_ratchet.core.domain.verdicts import Failure
-from oo_ratchet.design.layer_config import LayerConfig
-from oo_ratchet.design.layer_edges import Edge, Violation
 
 BASE = "base0"
 KERNEL = Edge("app.kernel", "app.service")

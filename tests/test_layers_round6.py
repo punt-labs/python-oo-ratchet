@@ -12,7 +12,7 @@ import pytest
 from oo_ratchet.core.adapters.edgefiles import EdgeAuditFile
 from oo_ratchet.core.adapters.treeviews import BaseTree, WorkingTree
 from oo_ratchet.core.domain.edges import EdgeRecord
-from oo_ratchet.design.layer_edges import Edge
+from oo_ratchet.core.domain.layer_edges import Edge
 from oo_ratchet.layers.scan import LayerScan
 from tests.conftest import GitSandbox
 

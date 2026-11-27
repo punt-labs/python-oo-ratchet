@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-from oo_ratchet.oo.compare import FileReview, Review
+from oo_ratchet.core.application.policy import GatePolicy
+from oo_ratchet.core.domain.verdicts import FileReview, Review, Waiver
 from oo_ratchet.oo.thresholds import Thresholds
 
-_NONE: frozenset[tuple[str, str]] = frozenset()
-_WAIVE_W = frozenset({("sub/w.py", "max_complexity")})
-_WAIVE_A = frozenset({("sub/a.py", "max_complexity")})
+POLICY = GatePolicy.from_table(Thresholds.TABLE, Thresholds.CEILINGS)
+_NONE: frozenset[Waiver] = frozenset()
+_WAIVE_W = frozenset({Waiver("sub/w.py", "max_complexity")})
+_WAIVE_A = frozenset({Waiver("sub/a.py", "max_complexity")})
 
 
 class TestThresholds:
@@ -52,7 +54,7 @@ class TestFileReviewTracked:
     """A file present in the base baseline compares metric-by-metric."""
 
     def test_improvement_is_detected(self) -> None:
-        review = FileReview(
+        review = POLICY.review(
             "sub/w.py",
             {"max_complexity": 1.0},
             {"max_complexity": 3.0},
@@ -63,7 +65,7 @@ class TestFileReviewTracked:
         assert not review.regressed
 
     def test_regression_is_detected(self) -> None:
-        review = FileReview(
+        review = POLICY.review(
             "sub/w.py",
             {"max_complexity": 3.0},
             {"max_complexity": 1.0},
@@ -74,7 +76,7 @@ class TestFileReviewTracked:
         assert not review.improved
 
     def test_regression_waived_when_locked_and_relaxed(self) -> None:
-        review = FileReview(
+        review = POLICY.review(
             "sub/w.py",
             {"max_complexity": 3.0},
             {"max_complexity": 1.0},
@@ -85,7 +87,7 @@ class TestFileReviewTracked:
         assert not review.regressed
 
     def test_no_waiver_without_lock(self) -> None:
-        review = FileReview(
+        review = POLICY.review(
             "sub/w.py",
             {"max_complexity": 4.0},
             {"max_complexity": 1.0},
@@ -97,7 +99,7 @@ class TestFileReviewTracked:
 
     def test_no_waiver_when_relaxation_not_in_current_change(self) -> None:
         # Locked to a worse value, but no relaxation scoped to this change.
-        review = FileReview(
+        review = POLICY.review(
             "sub/w.py",
             {"max_complexity": 3.0},
             {"max_complexity": 1.0},
@@ -112,12 +114,12 @@ class TestFileReviewNew:
     """A file absent from the base baseline is judged on absolute thresholds."""
 
     def test_new_file_passing_thresholds(self) -> None:
-        review = FileReview("sub/n.py", {"max_complexity": 2.0}, None, None, _NONE)
+        review = POLICY.review("sub/n.py", {"max_complexity": 2.0}, None, None, _NONE)
         assert review.new_passes
         assert not review.regressed
 
     def test_new_file_failing_thresholds(self) -> None:
-        review = FileReview("sub/n.py", {"max_complexity": 40.0}, None, None, _NONE)
+        review = POLICY.review("sub/n.py", {"max_complexity": 40.0}, None, None, _NONE)
         assert not review.new_passes
         assert review.regressed == ("max_complexity",)
 
@@ -125,7 +127,7 @@ class TestFileReviewNew:
 def _tracked(path: str, *, improved: bool) -> FileReview:
     base = {"max_complexity": 3.0 if improved else 1.0}
     current = {"max_complexity": 1.0}
-    return FileReview(path, current, base, current, _NONE)
+    return POLICY.review(path, current, base, current, _NONE)
 
 
 class TestReviewGate:
@@ -133,7 +135,7 @@ class TestReviewGate:
 
     def test_existing_file_must_improve(self) -> None:
         stagnant = _tracked("sub/a.py", improved=False)
-        new_ok = FileReview("sub/b.py", {"max_complexity": 2.0}, None, None, _NONE)
+        new_ok = POLICY.review("sub/b.py", {"max_complexity": 2.0}, None, None, _NONE)
         review = Review((stagnant, new_ok))
         # An existing file is touched; a passing new file does not satisfy it.
         assert not review.improvement_satisfied
@@ -143,11 +145,11 @@ class TestReviewGate:
         assert Review((improved,)).improvement_satisfied
 
     def test_pure_add_satisfied_by_new_file(self) -> None:
-        new_ok = FileReview("sub/b.py", {"max_complexity": 2.0}, None, None, _NONE)
+        new_ok = POLICY.review("sub/b.py", {"max_complexity": 2.0}, None, None, _NONE)
         assert Review((new_ok,)).improvement_satisfied
 
     def test_waiver_exempts_gate(self) -> None:
-        waived = FileReview(
+        waived = POLICY.review(
             "sub/a.py",
             {"max_complexity": 3.0},
             {"max_complexity": 1.0},

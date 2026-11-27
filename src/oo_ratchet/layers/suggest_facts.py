@@ -9,11 +9,11 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Self
 
-from oo_ratchet.design.layer_config import LayerConfig, LayerConfigError
-from oo_ratchet.design.layer_imports import LayerImports
-from oo_ratchet.design.modules import Module, ModuleIndex
-from oo_ratchet.design.protocol_imports import ProtocolImports
-from oo_ratchet.design.targets import ImportTargets
+from oo_ratchet.core.domain.layer_config import LayerConfig, LayerConfigError
+from oo_ratchet.core.domain.layer_imports import LayerImports
+from oo_ratchet.core.domain.modules import Module, ModuleIndex
+from oo_ratchet.core.domain.protocol_imports import ProtocolImports
+from oo_ratchet.core.domain.targets import ImportTargets
 
 from .io_sites import IoSites
 from .strict import StrictViolations
@@ -150,7 +150,7 @@ class PackageFacts:
 
     def _shadowed(self, name: str, mods: list[Module]) -> ModuleFacts:
         files = ", ".join(
-            sorted(self._index.layout.relative_path(m.path).as_posix() for m in mods)
+            sorted(self._index.source.relative_path(m.path).as_posix() for m in mods)
         )
         why = f"shadowed: {len(mods)} files are module {name}: {files}"
         return ModuleFacts(name, (), (), (), (), why)

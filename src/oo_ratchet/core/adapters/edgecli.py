@@ -5,8 +5,8 @@ from __future__ import annotations
 from typing import ClassVar
 
 from oo_ratchet.core.domain.edges import EdgeVerdict
+from oo_ratchet.core.domain.layer_edges import Edge
 from oo_ratchet.core.domain.verdicts import Failure
-from oo_ratchet.design.layer_edges import Edge
 
 
 class EdgeCli:

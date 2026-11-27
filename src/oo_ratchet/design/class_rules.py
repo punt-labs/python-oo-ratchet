@@ -5,9 +5,9 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import ClassVar, Self
 
-from .findings import Finding, Rules
-from .modules import Module
-from .shape import ClassShape
+from oo_ratchet.core.domain.findings import Finding, Rules
+from oo_ratchet.core.domain.modules import Module
+from oo_ratchet.core.domain.shape import ClassShape
 
 
 class ClassRules:

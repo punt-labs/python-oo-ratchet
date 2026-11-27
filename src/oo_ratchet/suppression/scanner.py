@@ -23,9 +23,10 @@ class Scanner:
         root = project_root if project_root is not None else Path.cwd()
         file_results = self._collect_files(target)
         pfi = PerFileIgnoresCounter(root / "pyproject.toml")
-        self._report = SuppressionReport(file_results, pfi.total, pfi.breakdown)
         self._report = SourceSet(target).report_paths(
-            self._report, root, SuppressionReport.rebased
+            SuppressionReport.from_files(file_results, pfi.total, pfi.breakdown),
+            root,
+            SuppressionReport.rebased,
         )
         return self
 

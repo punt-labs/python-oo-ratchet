@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
+from oo_ratchet.core.domain.findings import Rules
 from oo_ratchet.design.cli import main
-from oo_ratchet.design.findings import Rules
 from oo_ratchet.design.scanner import DesignScanner
 
 RINGS = """[tool.oo-ratchet.layers]

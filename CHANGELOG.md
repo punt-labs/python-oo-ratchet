@@ -4,6 +4,11 @@
 
 ### Added
 
+- README guide "Adopting Clean Architecture with oo-ratchet" (PL-1717): the
+  path from `layers --suggest` through the table, the baseline and its
+  shrinking, to the design gate and CI wiring, with every command run against
+  a scratch package. `tests/test_readme_guide.py` checks that each command in
+  it names a real gate and only flags that gate's parser accepts.
 - `oo-ratchet design --shadow-check REF --enforce` exits 1 when the comparison
   adds a finding of a gate-capable rule: `layer-import`, `unlayered-module`,
   `thick-entry`, `size-cap` or `stateless-single-method` (PL-1716). These were

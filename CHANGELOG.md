@@ -4,6 +4,12 @@
 
 ### Added
 
+- `oo-ratchet design --shadow-check REF --enforce` exits 1 when the comparison
+  adds a finding of a gate-capable rule: `layer-import`, `unlayered-module`,
+  `thick-entry`, `size-cap` or `stateless-single-method` (PL-1716). These were
+  at least 90% precise on vox, quarry, lux and z-spec; the README gives each
+  rule's measured precision and `docs/architecture/b4-design-precision.md` the
+  raw labels. Off by default: without `--enforce` the exit status is unchanged.
 - `oo-ratchet layers src/pkg/ --suggest` prints a starter `[tool.oo-ratchet.layers]`
   table and a reason for each module's ring (PL-1713): `argparse`, `typer` or a
   console-script target is `entry`; importing IO is `adapters`; a Protocol with

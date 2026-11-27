@@ -1,0 +1,97 @@
+{
+ "bad-layers": {
+  "code": 2,
+  "err": "oo-ratchet design: cannot read <ROOT>/missing.toml: [Errno 2] No such file or directory: '<ROOT>/missing.toml'\n",
+  "out": ""
+ },
+ "divergent-ref": {
+  "code": 0,
+  "err": "",
+  "out": "neutral (shadow; advisory)\nmerge-base: <SHA>\ntier0 added (0):\ntier0 removed (0):\ntier1 added (0):\ntier1 removed (0):\ntier2 deltas:\n"
+ },
+ "empty": {
+  "code": 0,
+  "err": "",
+  "out": "neutral (shadow; advisory)\nmerge-base: <SHA>\ntier0 added (0):\ntier0 removed (0):\ntier1 added (0):\ntier1 removed (0):\ntier2 deltas:\n"
+ },
+ "encoding-error": {
+  "code": 2,
+  "err": "oo-ratchet design: unreadable or unparseable Python: pkg/model.py\n",
+  "out": ""
+ },
+ "improvement": {
+  "code": 0,
+  "err": "",
+  "out": "good-deed (shadow; advisory)\nmerge-base: <SHA>\ntier0 added (0):\ntier0 removed (0):\ntier1 added (0):\ntier1 removed (0):\ntier2 deltas:\npkg/model.py                             max_complexity                  2.000      1.000   -1.000   IMPROVED\npkg/model.py                             avg_complexity                  2.000      1.000   -1.000       PASS\npkg/model.py                             module_size                     4.000      1.000   -3.000       PASS\n"
+ },
+ "missing-ref": {
+  "code": 2,
+  "err": "oo-ratchet design: --shadow-check ref has no resolvable merge base with HEAD\n",
+  "out": ""
+ },
+ "no-shadow-report": {
+  "code": 0,
+  "err": "",
+  "out": "oo-ratchet design (advisory, never fails): 1 finding(s) in 1 file(s)\n\nstateless-single-method (0): stateless class with one public method: a function-object\n\nstateless-function-bag (0): stateless class with several public methods: a namespace\n\ngetter-heavy (0): most public members only return a stored field\n\nconcrete-cross-package-import (0): stateful concrete class imported across packages, not a Protocol/ABC\n\nlayer-import (0): module imports a layer further out\n\ndomain-io (0): domain module imports IO or calls builtin open\n\nunlayered-module (0): module matches no declared layer\n\nthick-entry (0): entry function has cyclomatic complexity greater than four\n\nenvied-data (0): data class fields are read together in another module\n\nfeature-envy (0): a typed parameter's attributes dominate a function\n\ndata-clump (0): four or more names shared by at least three owners\n\nmisplaced-function (0): public function belongs on a project class\n\nprimitive-params (1): public signature has at least two primitive parameters\n  <ROOT>/pkg/model.py:2  f  -- primitive parameters=2\n\ntag-switch (0): three or more arms dispatch on the same tag\n\nmiddle-man (0): public methods only forward to one collaborator\n\nsplit-cohesion (0): instance methods form disconnected LCOM4 components\n\nsize-cap (0): symbol exceeds a Tier 0 size or complexity ceiling\n"
+ },
+ "regression-json": {
+  "code": 0,
+  "err": "",
+  "out": "{\n  \"advisory\": true,\n  \"base\": \"<SHA>\",\n  \"tier0\": {\n    \"added\": [],\n    \"removed\": []\n  },\n  \"tier1\": {\n    \"added\": [],\n    \"removed\": []\n  },\n  \"tier2\": {\n    \"accepted\": [],\n    \"deltas\": [\n      {\n        \"baseline\": \"1.000\",\n        \"current\": \"2.000\",\n        \"delta\": \"+1.000\",\n        \"file\": \"pkg/model.py\",\n        \"metric\": \"max_complexity\",\n        \"status\": \"REGRESSED\"\n      },\n      {\n        \"baseline\": \"1.000\",\n        \"current\": \"2.000\",\n        \"delta\": \"+1.000\",\n        \"file\": \"pkg/model.py\",\n        \"metric\": \"avg_complexity\",\n        \"status\": \"PASS\"\n      },\n      {\n        \"baseline\": \"1.000\",\n        \"current\": \"4.000\",\n        \"delta\": \"+3.000\",\n        \"file\": \"pkg/model.py\",\n        \"metric\": \"module_size\",\n        \"status\": \"PASS\"\n      }\n    ],\n    \"improved\": [],\n    \"regressed\": [\n      [\n        \"pkg/model.py\",\n        \"max_complexity\"\n      ]\n    ]\n  },\n  \"verdict\": \"would-fail: tier2\"\n}\n"
+ },
+ "rename": {
+  "code": 0,
+  "err": "",
+  "out": "would-fail: tier1 (shadow; advisory)\nmerge-base: <SHA>\ntier0 added (0):\ntier0 removed (0):\ntier1 added (1):\n  (primitive-params, pkg.new, f)\ntier1 removed (1):\n  (primitive-params, pkg.old, f)\ntier2 deltas:\npkg/new.py                               encapsulation_ratio               NEW      1.000       --       PASS\npkg/new.py                               avg_params                        NEW      2.000       --       PASS\npkg/new.py                               max_complexity                    NEW      1.000       --       PASS\npkg/new.py                               avg_complexity                    NEW      1.000       --       PASS\npkg/new.py                               module_size                       NEW      1.000       --       PASS\npkg/new.py                               init_violations                   NEW      0.000       --       PASS\npkg/new.py                               public_attr_violations            NEW      0.000       --       PASS\npkg/new.py                               future_annotations                NEW      0.000       --       FAIL\n"
+ },
+ "syntax-error": {
+  "code": 2,
+  "err": "oo-ratchet design: unreadable or unparseable Python: pkg/model.py\n",
+  "out": ""
+ },
+ "tier0-domain-io": {
+  "code": 0,
+  "err": "",
+  "out": "would-fail: tier0 (shadow; advisory)\nmerge-base: <SHA>\ntier0 added (1):\n  (domain-io, pkg.model, os)\ntier0 removed (0):\ntier1 added (0):\ntier1 removed (0):\ntier2 deltas:\n"
+ },
+ "tier0-removed-neutral": {
+  "code": 0,
+  "err": "",
+  "out": "neutral (shadow; advisory)\nmerge-base: <SHA>\ntier0 added (0):\ntier0 removed (1):\n  (domain-io, pkg.model, os)\ntier1 added (0):\ntier1 removed (0):\ntier2 deltas:\n"
+ },
+ "tier0-size-cap": {
+  "code": 0,
+  "err": "",
+  "out": "would-fail: tier0 (shadow; advisory)\nmerge-base: <SHA>\ntier0 added (1):\n  (size-cap, pkg.model, <module>)\ntier0 removed (0):\ntier1 added (0):\ntier1 removed (0):\ntier2 deltas:\npkg/model.py                             max_complexity                  1.000      0.000   -1.000   IMPROVED\npkg/model.py                             avg_complexity                  1.000      0.000   -1.000       PASS\npkg/model.py                             module_size                     1.000    401.000 +400.000  REGRESSED\n"
+ },
+ "tier1-added": {
+  "code": 0,
+  "err": "",
+  "out": "would-fail: tier1 (shadow; advisory)\nmerge-base: <SHA>\ntier0 added (0):\ntier0 removed (0):\ntier1 added (1):\n  (primitive-params, pkg.model, f)\ntier1 removed (0):\ntier2 deltas:\n"
+ },
+ "tier1-trade": {
+  "code": 0,
+  "err": "",
+  "out": "good-deed: trade (shadow; advisory)\nmerge-base: <SHA>\ntier0 added (0):\ntier0 removed (0):\ntier1 added (0):\ntier1 removed (1):\n  (primitive-params, pkg.model, f)\ntier2 deltas:\ntier2 accepted regressions:\n"
+ },
+ "tier2-regression": {
+  "code": 0,
+  "err": "",
+  "out": "would-fail: tier2 (shadow; advisory)\nmerge-base: <SHA>\ntier0 added (0):\ntier0 removed (0):\ntier1 added (0):\ntier1 removed (0):\ntier2 deltas:\npkg/model.py                             max_complexity                  1.000      2.000   +1.000  REGRESSED\npkg/model.py                             avg_complexity                  1.000      2.000   +1.000       PASS\npkg/model.py                             module_size                     1.000      4.000   +3.000       PASS\n"
+ },
+ "unchanged": {
+  "code": 0,
+  "err": "",
+  "out": "neutral (shadow; advisory)\nmerge-base: <SHA>\ntier0 added (0):\ntier0 removed (0):\ntier1 added (0):\ntier1 removed (0):\ntier2 deltas:\n"
+ },
+ "unchanged-json": {
+  "code": 0,
+  "err": "",
+  "out": "{\n  \"advisory\": true,\n  \"base\": \"<SHA>\",\n  \"tier0\": {\n    \"added\": [],\n    \"removed\": []\n  },\n  \"tier1\": {\n    \"added\": [],\n    \"removed\": []\n  },\n  \"tier2\": {\n    \"accepted\": [],\n    \"deltas\": [],\n    \"improved\": [],\n    \"regressed\": []\n  },\n  \"verdict\": \"neutral\"\n}\n"
+ },
+ "unrelated-history": {
+  "code": 2,
+  "err": "oo-ratchet design: --shadow-check ref has no resolvable merge base with HEAD\n",
+  "out": ""
+ }
+}

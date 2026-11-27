@@ -41,10 +41,26 @@ class GitRepo:
         self._audit_file = audit_file
         return self
 
+    @classmethod
+    def stateless(cls, start: Path) -> Self:
+        """Return a repository handle for a gate that commits no state files.
+
+        ``baseline_at``, ``audit_at`` and ``adopted_at`` are meaningless on it.
+        """
+        return cls(start, "", "")
+
     @property
     def root(self) -> Path | None:
         """Return the repository root, or ``None`` outside a repo."""
         return self._root
+
+    def run(self, args: list[str], timeout: float = TIMEOUT) -> str | None:
+        """Run one git command in the repository: stdout, or ``None`` on failure."""
+        if self._root is None:
+            return None
+        return self._run(
+            ["git", "-c", "core.quotePath=false", *args], self._root, timeout
+        )
 
     def resolve(self, ref: str | None) -> str | None:
         """Return the comparison base: ``ref`` as a commit, else the merge base."""
@@ -153,10 +169,10 @@ class GitRepo:
         return self._run(["git", "-c", "core.quotePath=false", *args], self._root)
 
     @staticmethod
-    def _run(args: list[str], cwd: Path) -> str | None:
+    def _run(args: list[str], cwd: Path, timeout: float = TIMEOUT) -> str | None:
         try:
             result = subprocess.run(
-                args, capture_output=True, text=True, timeout=TIMEOUT, cwd=cwd
+                args, capture_output=True, text=True, timeout=timeout, cwd=cwd
             )
         except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
             logger.warning("git did not run (%s); treating it as unavailable", exc)

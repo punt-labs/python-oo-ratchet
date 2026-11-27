@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 from typing import Self
 
-from oo_ratchet.oo.gitio import GitError
+from oo_ratchet.core.domain.errors import GitError
 from oo_ratchet.source_set import Source, SourceSet
 
 from .scanner import DesignScanner

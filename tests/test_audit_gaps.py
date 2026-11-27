@@ -7,7 +7,6 @@ from pathlib import Path
 
 import pytest
 
-from oo_ratchet.oo.audit import AuditLog
 
 from .test_coupling_config import _HEADER, _frozen, _hub, _max_lcom
 from .test_coupling_ratchet import AUDIT, GitFixture
@@ -61,7 +60,7 @@ def test_oo_rebaseline_files_audits_improvements(tmp_path: Path) -> None:
         fx.scorer(), ["sub/w.py"], reason="r", allow_ci_write=True, source=None
     )
     assert outcome.exit_code == 0
-    entry = _last(fx.root / AuditLog.FILENAME)
+    entry = _last(fx.root / ".oo-audit.jsonl")
     assert entry["deltas"] == {}
     assert entry["improved"] == {"sub/w.py": {"max_complexity": [3.0, 1.0]}}
 

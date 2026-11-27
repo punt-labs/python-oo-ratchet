@@ -15,12 +15,12 @@ from typing import Self
 
 import pytest
 
+import oo_ratchet.oo.cli as cli_module
+from oo_ratchet.core.adapters.gitrepo import GitRepo
+from oo_ratchet.core.domain.errors import GitError, StateError
 from oo_ratchet.oo.baseline import Baseline
 from oo_ratchet.oo.cli import main
-from oo_ratchet.oo.gitio import GitError, GitRepo
-from oo_ratchet.oo.ratchet import Ratchet
-from oo_ratchet.oo.scorer import Scorer
-from oo_ratchet.oo.writer import BaselineWriter
+from tests.gate_runs import Ratchet, Scored, Writer
 
 # Every test drives a real ``git init``/``commit``/``checkout`` sequence plus a
 # real ``tools/oo_ratchet`` subprocess invocation per assertion -- genuinely
@@ -118,7 +118,7 @@ class GitFixture:
         (self._root / ".oo-baseline.json").write_text(json.dumps(data, indent=2) + "\n")
 
     def snapshot(self, subdir: str) -> None:
-        scorer = Scorer(self._root / subdir, self._root)
+        scorer = self.scorer(subdir)
         self.write_baseline(Baseline.metrics_by_file(scorer.results))
 
     def commit(self, msg: str) -> str:
@@ -156,13 +156,35 @@ class GitFixture:
         return out.stdout.strip()
 
     def ratchet(self) -> Ratchet:
-        return Ratchet(self._root, GitRepo(self._root))
+        return Ratchet(self._root)
 
-    def writer(self) -> BaselineWriter:
-        return BaselineWriter(self._root, GitRepo(self._root))
+    def writer(self) -> Writer:
+        return Writer(self._root)
 
-    def scorer(self, subdir: str = "sub") -> Scorer:
-        return Scorer(self._root / subdir, self._root)
+    def git(self) -> GitRepo:
+        return GitRepo(self._root, ".oo-baseline.json", ".oo-audit.jsonl")
+
+    def scorer(self, subdir: str = "sub") -> Scored:
+        return Scored(self._root / subdir, self._root)
+
+
+class Stored:
+    """The in-tree baseline file, read as the gate wrote it."""
+
+    _entries: dict[str, dict[str, float]]
+
+    def __new__(cls, root: Path) -> Self:
+        self = super().__new__(cls)
+        path = root / ".oo-baseline.json"
+        self._entries = json.loads(path.read_text()) if path.exists() else {}
+        return self
+
+    @property
+    def entries(self) -> dict[str, dict[str, float]]:
+        return self._entries
+
+    def get(self, path: str) -> dict[str, float] | None:
+        return self._entries.get(path)
 
 
 @pytest.fixture
@@ -347,7 +369,7 @@ class TestScopedUpdate:
         )
         assert outcome.exit_code == 1
         # baseline still holds the good (unloosened) value
-        entry = Baseline(fx.root).get("sub/w.py")
+        entry = Stored(fx.root).get("sub/w.py")
         assert entry is not None
         assert entry["max_complexity"] == 1.0
 
@@ -364,7 +386,7 @@ class TestScopedUpdate:
             source=None,
         )
         assert outcome.exit_code == 0
-        entry = Baseline(fx.root).get("sub/w.py")
+        entry = Stored(fx.root).get("sub/w.py")
         assert entry is not None
         assert entry["max_complexity"] == 1.0
 
@@ -384,7 +406,7 @@ class TestScopedUpdate:
         )
         assert outcome.exit_code == 1
         assert any("parse error" in line for line in outcome.lines)
-        assert Baseline(fx.root).get("sub/w.py") is not None
+        assert Stored(fx.root).get("sub/w.py") is not None
 
     def test_reconcile_preserves_broken_file_baseline(self, fx: GitFixture) -> None:
         # Whole-tree reconcile must not prune a broken-on-disk file's baseline.
@@ -396,7 +418,7 @@ class TestScopedUpdate:
         fx.write("sub/w.py", BROKEN)
         outcome = fx.writer().reconcile(fx.scorer(), allow_ci_write=True, source=None)
         assert outcome.exit_code == 1
-        assert Baseline(fx.root).get("sub/w.py") is not None
+        assert Stored(fx.root).get("sub/w.py") is not None
 
     def test_reconcile_unresolvable_base_with_baseline_fails_closed(
         self, fx: GitFixture
@@ -407,11 +429,11 @@ class TestScopedUpdate:
         fx.write("sub/w.py", GOOD)
         fx.snapshot("sub")
         fx.commit("base")  # no origin/main set -> merge-base unresolvable
-        before = dict(Baseline(fx.root).entries)
+        before = dict(Stored(fx.root).entries)
         outcome = fx.writer().reconcile(fx.scorer(), allow_ci_write=True, source=None)
         assert outcome.exit_code == 1
         assert any("cannot resolve base" in line for line in outcome.lines)
-        assert Baseline(fx.root).entries == before  # no write
+        assert Stored(fx.root).entries == before  # no write
 
     def test_update_unresolvable_base_with_baseline_fails_closed(
         self, fx: GitFixture
@@ -422,7 +444,7 @@ class TestScopedUpdate:
         fx.snapshot("sub")
         fx.commit("base")
         fx.write("sub/other.py", WORSE)  # a new file a whole-tree sweep would add
-        before = dict(Baseline(fx.root).entries)
+        before = dict(Stored(fx.root).entries)
         outcome = fx.writer().update(
             fx.scorer(),
             base_ref="0" * 40,
@@ -432,7 +454,7 @@ class TestScopedUpdate:
         )
         assert outcome.exit_code == 1
         assert any("cannot resolve base" in line for line in outcome.lines)
-        assert Baseline(fx.root).entries == before  # no whole-tree sweep
+        assert Stored(fx.root).entries == before  # no whole-tree sweep
 
     def test_update_require_base_unresolvable_fails(self, fx: GitFixture) -> None:
         fx.write("sub/w.py", GOOD)
@@ -460,7 +482,7 @@ class TestScopedUpdate:
             source=None,
         )
         assert outcome.exit_code == 0
-        assert Baseline(fx.root).get("sub/w.py") is not None
+        assert Stored(fx.root).get("sub/w.py") is not None
 
 
 class TestRelaxWaiver:
@@ -503,7 +525,7 @@ class TestRelaxWaiver:
         assert outcome.exit_code == 1
         hint = "--update"
         assert any(hint in line or "--reconcile" in line for line in outcome.lines)
-        assert Baseline(fx.root).get("sub/w.py") is None  # not added
+        assert Stored(fx.root).get("sub/w.py") is None  # not added
         audit_path = fx.root / ".oo-audit.jsonl"
         assert not audit_path.exists() or "relaxed" not in audit_path.read_text()
 
@@ -513,13 +535,13 @@ class TestRelaxWaiver:
         fx.write("sub/w.py", GOOD)
         fx.snapshot("sub")  # baseline == current, nothing worse
         fx.commit("base")
-        before = dict(Baseline(fx.root).entries)
+        before = dict(Stored(fx.root).entries)
         outcome = fx.writer().relax(
             fx.scorer(), "sub/w.py", justify="x", allow_ci_write=True, source=None
         )
         assert outcome.exit_code == 1
         assert any("nothing to relax" in line for line in outcome.lines)
-        assert Baseline(fx.root).entries == before  # unchanged
+        assert Stored(fx.root).entries == before  # unchanged
         audit_path = fx.root / ".oo-audit.jsonl"
         assert not audit_path.exists() or "relaxed" not in audit_path.read_text()
 
@@ -640,7 +662,7 @@ class TestRenameCarry:
         assert outcome.exit_code == 1
         assert any("regressed" in line for line in outcome.lines)
         # the worse value was NOT written under the new path
-        entry = Baseline(fx.root).get("sub/new.py")
+        entry = Stored(fx.root).get("sub/new.py")
         assert entry is None or entry["max_complexity"] == 1.0
 
     def test_refused_rename_keeps_old_entry_and_still_refuses(
@@ -662,8 +684,8 @@ class TestRenameCarry:
         )
         assert first.exit_code == 1
         # the old rename-source entry survives the refusal
-        assert Baseline(fx.root).get("sub/old.py") is not None
-        assert Baseline(fx.root).get("sub/new.py") is None
+        assert Stored(fx.root).get("sub/old.py") is not None
+        assert Stored(fx.root).get("sub/new.py") is None
         # a second pass still refuses -- no laundering on run two
         second = fx.writer().update(
             fx.scorer(),
@@ -673,7 +695,7 @@ class TestRenameCarry:
             source=None,
         )
         assert second.exit_code == 1
-        assert Baseline(fx.root).get("sub/new.py") is None
+        assert Stored(fx.root).get("sub/new.py") is None
 
     def test_rename_to_unparseable_target_keeps_old_entry(self, fx: GitFixture) -> None:
         # rename old->new where new is unparseable must NOT drop old's row: the
@@ -694,8 +716,8 @@ class TestRenameCarry:
         )
         assert outcome.exit_code == 1
         assert any("parse error" in line for line in outcome.lines)
-        assert Baseline(fx.root).get("sub/old.py") is not None
-        assert Baseline(fx.root).get("sub/new.py") is None
+        assert Stored(fx.root).get("sub/old.py") is not None
+        assert Stored(fx.root).get("sub/new.py") is None
 
     def test_reconcile_refuses_regressed_rename_and_keeps_carry(
         self, fx: GitFixture
@@ -714,8 +736,8 @@ class TestRenameCarry:
             fx.scorer(), allow_ci_write=True, source=None
         )
         assert reconciled.exit_code == 1
-        assert Baseline(fx.root).get("sub/old.py") is not None  # carry preserved
-        assert Baseline(fx.root).get("sub/new.py") is None  # regression not added
+        assert Stored(fx.root).get("sub/old.py") is not None  # carry preserved
+        assert Stored(fx.root).get("sub/new.py") is None  # regression not added
         # a subsequent scoped update still refuses -- carry survived reconcile
         second = fx.writer().update(
             fx.scorer(),
@@ -725,7 +747,7 @@ class TestRenameCarry:
             source=None,
         )
         assert second.exit_code == 1
-        assert Baseline(fx.root).get("sub/new.py") is None
+        assert Stored(fx.root).get("sub/new.py") is None
 
     def test_reconcile_rename_to_unparseable_keeps_old_row(
         self, fx: GitFixture
@@ -744,7 +766,7 @@ class TestRenameCarry:
         outcome = fx.writer().reconcile(fx.scorer(), allow_ci_write=True, source=None)
         assert outcome.exit_code == 1  # fails on the parse error
         assert any("parse error" in line for line in outcome.lines)
-        assert Baseline(fx.root).get("sub/old.py") is not None  # carry preserved
+        assert Stored(fx.root).get("sub/old.py") is not None  # carry preserved
 
 
 class TestCompleteness:
@@ -829,12 +851,12 @@ class TestGitFailClosed:
         fx.write("sub/w.py", GOOD)
         fx.commit("base")
         with pytest.raises(GitError):
-            GitRepo(fx.root).diff("refs/does/not/exist")
+            fx.git().changes_since("refs/does/not/exist")
 
     def test_empty_diff_is_not_a_failure(self, fx: GitFixture) -> None:
         fx.write("sub/w.py", GOOD)
         head = fx.commit("base")
-        diff = GitRepo(fx.root).diff(head)  # HEAD vs work tree: no changes
+        diff = fx.git().changes_since(head)  # HEAD vs work tree: no changes
         assert diff.touched == frozenset()
 
     def test_corrupt_base_baseline_raises_giterror(self, fx: GitFixture) -> None:
@@ -845,8 +867,8 @@ class TestGitFailClosed:
         fx.commit("valid base")
         fx.write(".oo-baseline.json", "{ this is not json")
         head = fx.commit("corrupt the baseline blob")
-        with pytest.raises(GitError):
-            GitRepo(fx.root).show_baseline(head)
+        with pytest.raises(StateError):
+            fx.git().baseline_at(head)
 
     def test_non_utf8_base_baseline_blob_raises_giterror(self, fx: GitFixture) -> None:
         # A committed non-UTF8 baseline blob makes git show's text decode fail;
@@ -855,7 +877,7 @@ class TestGitFailClosed:
         (fx.root / ".oo-baseline.json").write_bytes(b"\xff\xfe\x00")
         head = fx.commit("non-utf8 baseline blob")
         with pytest.raises(GitError):
-            GitRepo(fx.root).show_baseline(head)
+            fx.git().baseline_at(head)
 
     def test_non_dict_base_baseline_raises_giterror(self, fx: GitFixture) -> None:
         # A committed baseline that is valid JSON but not an object (a list) is a
@@ -863,8 +885,8 @@ class TestGitFailClosed:
         fx.write("sub/w.py", GOOD)
         fx.write(".oo-baseline.json", "[1, 2, 3]")
         head = fx.commit("non-dict baseline blob")
-        with pytest.raises(GitError):
-            GitRepo(fx.root).show_baseline(head)
+        with pytest.raises(StateError):
+            fx.git().baseline_at(head)
 
     def test_nested_non_dict_base_baseline_raises_giterror(
         self, fx: GitFixture
@@ -875,8 +897,8 @@ class TestGitFailClosed:
         fx.write("sub/w.py", GOOD)
         fx.write(".oo-baseline.json", '{"sub/w.py": "garbage"}')
         head = fx.commit("nested non-dict baseline blob")
-        with pytest.raises(GitError):
-            GitRepo(fx.root).show_baseline(head)
+        with pytest.raises(StateError):
+            fx.git().baseline_at(head)
 
     def test_bool_metric_base_baseline_raises_giterror(self, fx: GitFixture) -> None:
         # A bool metric value (`true`) is an int subclass that would compare as
@@ -884,8 +906,8 @@ class TestGitFailClosed:
         fx.write("sub/w.py", GOOD)
         fx.write(".oo-baseline.json", '{"sub/w.py": {"module_size": true}}')
         head = fx.commit("bool metric baseline blob")
-        with pytest.raises(GitError):
-            GitRepo(fx.root).show_baseline(head)
+        with pytest.raises(StateError):
+            fx.git().baseline_at(head)
 
     def test_nested_non_dict_base_baseline_fails_closed_via_cli(
         self, fx: GitFixture, monkeypatch: pytest.MonkeyPatch
@@ -907,8 +929,8 @@ class TestGitFailClosed:
         # A path genuinely missing at a readable commit is trusted absence.
         fx.write("sub/w.py", GOOD)  # no baseline committed
         head = fx.commit("base without baseline")
-        assert GitRepo(fx.root).show_baseline(head) is None
-        assert GitRepo(fx.root).show_audit(head) is None
+        assert fx.git().baseline_at(head) is None
+        assert fx.git().audit_at(head) is None
 
     def test_git_error_on_show_is_not_silent_absence(self, fx: GitFixture) -> None:
         # A non-absence git failure (invalid object name) fails closed, not None:
@@ -916,18 +938,17 @@ class TestGitFailClosed:
         fx.write("sub/w.py", GOOD)
         fx.commit("base")
         with pytest.raises(GitError):
-            GitRepo(fx.root).show_baseline("nonexistent-ref-xyz")
+            fx.git().baseline_at("nonexistent-ref-xyz")
         with pytest.raises(GitError):
-            GitRepo(fx.root).show_audit("nonexistent-ref-xyz")
+            fx.git().audit_at("nonexistent-ref-xyz")
 
     def test_git_degrades_to_none_without_a_repo(self) -> None:
         # A nonexistent start dir -> _root is None -> git commands must degrade
         # to None, never run against the process's ambient CWD (a real repo).
-        gr = GitRepo(Path("/nonexistent-oo-ratchet-xyz"))
+        gr = GitRepo(Path("/nonexistent-oo-ratchet-xyz"), ".b", ".a")
         assert gr.root is None
-        assert gr.available is False
-        assert gr._git(["rev-parse", "HEAD"]) is None
-        assert gr.show_baseline("HEAD") is None
+        assert gr.head() is None
+        assert gr.baseline_at("HEAD") is None
 
     def test_corrupt_audit_line_is_controlled_nonzero(
         self, fx: GitFixture, monkeypatch: pytest.MonkeyPatch
@@ -1115,7 +1136,7 @@ class TestBaselineRowRemoval:
             source=None,
         )
         assert outcome.exit_code == 0
-        assert Baseline(fx.root).get("sub/gone.py") is None
+        assert Stored(fx.root).get("sub/gone.py") is None
         assert "  files removed:  1" in outcome.lines
         last = (fx.root / ".oo-audit.jsonl").read_text().splitlines()[-1]
         assert json.loads(last)["removed"] == ["sub/gone.py"]
@@ -1131,7 +1152,7 @@ class TestBaselineRowRemoval:
         fx.write_baseline(rows)
         outcome = fx.writer().rebaseline(fx.scorer(), allow_ci_write=True, source=None)
         assert outcome.exit_code == 0
-        assert Baseline(fx.root).get("sub/gone.py") is None
+        assert Stored(fx.root).get("sub/gone.py") is None
         last = (fx.root / ".oo-audit.jsonl").read_text().splitlines()[-1]
         entry = json.loads(last)
         assert entry["verdict"] == "rebaseline"
@@ -1154,8 +1175,6 @@ class TestRebaselineFilesGuards:
 
         def _must_not_construct(*_args: object, **_kwargs: object) -> None:
             raise AssertionError("Scorer must not be constructed before --reason")
-
-        import oo_ratchet.oo.cli as cli_module
 
         monkeypatch.setattr(cli_module, "Scorer", _must_not_construct)
         monkeypatch.chdir(fx.root)
@@ -1181,7 +1200,7 @@ class TestRebaselineFilesGuards:
         )
 
         assert outcome.exit_code == 0
-        entries = Baseline(fx.root).entries
+        entries = Stored(fx.root).entries
         assert entries["sub/w.py"]["max_complexity"] == 3.0  # existing relative key
         assert absolute_request not in entries  # no duplicate absolute key
 
@@ -1260,7 +1279,7 @@ class TestRebaselineFilesBless:
             source=None,
         )
         assert bless.exit_code == 0
-        recorded = Baseline(fx.root).get("sub/w.py")
+        recorded = Stored(fx.root).get("sub/w.py")
         assert recorded is not None
         assert recorded["max_complexity"] == 3.0
         lines = (fx.root / ".oo-audit.jsonl").read_text().splitlines()
@@ -1277,7 +1296,7 @@ class TestRebaselineFilesBless:
     def test_over_cap_and_regressed_metric_is_refused(self, fx: GitFixture) -> None:
         fx.write("sub/w.py", _branchy(11))  # max_complexity 12, over the cap of 10
         fx.snapshot("sub")
-        before = dict(Baseline(fx.root).entries)
+        before = dict(Stored(fx.root).entries)
         fx.commit("base")
 
         fx.write("sub/w.py", _branchy(13))  # 12 -> 14: over cap and worse
@@ -1292,14 +1311,14 @@ class TestRebaselineFilesBless:
         refusal = "\n".join(outcome.lines)
         assert "max_complexity=" in refusal, refusal
         assert "avg_complexity" not in refusal, refusal
-        assert Baseline(fx.root).entries == before
+        assert Stored(fx.root).entries == before
         audit = fx.root / ".oo-audit.jsonl"
         assert "rebaseline-files" not in (audit.read_text() if audit.exists() else "")
 
     def test_over_cap_unchanged_metric_carries_forward(self, fx: GitFixture) -> None:
         fx.write("sub/w.py", _branchy(11))  # max_complexity 12, already over cap
         fx.snapshot("sub")
-        old_size = Baseline(fx.root).entries["sub/w.py"]["module_size"]
+        old_size = Stored(fx.root).entries["sub/w.py"]["module_size"]
         fx.commit("base")
 
         # Unrelated edit; max_complexity stays 12, so it is carried, not refused.
@@ -1313,7 +1332,7 @@ class TestRebaselineFilesBless:
         )
         assert outcome.exit_code == 0
         assert "    sub/w.py" in outcome.lines, outcome.lines
-        recorded = Baseline(fx.root).get("sub/w.py")
+        recorded = Stored(fx.root).get("sub/w.py")
         assert recorded is not None
         assert recorded["max_complexity"] == 12.0
         assert recorded["module_size"] != old_size  # the edit was written
@@ -1329,7 +1348,7 @@ class TestRebaselineFilesBless:
     ) -> None:
         fx.write("sub/existing.py", GOOD)
         fx.snapshot("sub")  # baseline covers existing.py only
-        before = dict(Baseline(fx.root).entries)
+        before = dict(Stored(fx.root).entries)
         fx.commit("base")
 
         fx.write("sub/new.py", _branchy(11))  # never baselined; over the cap
@@ -1344,7 +1363,7 @@ class TestRebaselineFilesBless:
         refusal = "\n".join(outcome.lines)
         assert "max_complexity=" in refusal, refusal
         assert "avg_complexity" not in refusal, refusal
-        assert Baseline(fx.root).entries == before
+        assert Stored(fx.root).entries == before
         audit = fx.root / ".oo-audit.jsonl"
         assert "rebaseline-files" not in (audit.read_text() if audit.exists() else "")
 
@@ -1370,7 +1389,7 @@ class TestRebaselineFilesBless:
             source=None,
         )
         assert bless.exit_code == 0
-        recorded = Baseline(fx.root).get("sub/w.py")
+        recorded = Stored(fx.root).get("sub/w.py")
         assert recorded is not None
         assert recorded["max_complexity"] == 3.0
         assert recorded["init_violations"] == 0.0

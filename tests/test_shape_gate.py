@@ -384,6 +384,68 @@ class TestBranchComparesAgainstMergeBase:
         )
         assert relaxed.exit_code == 1, relaxed.lines
 
+    def _improved_then_reverted(self, fx: GitFixture) -> tuple[str, dict[str, float]]:
+        """Return main's sha and sub/w.py row; the branch improves then reverts."""
+        fx.write("sub/w.py", WORSE)
+        fx.snapshot("sub")
+        main_row = json.loads((fx.root / ".oo-baseline.json").read_text())["sub/w.py"]
+        main = fx.commit("main")
+        fx.set_origin_main(main)
+        fx.checkout_new("feature")
+        fx.write("sub/w.py", GOOD)
+        first = fx.writer().update(
+            fx.scorer(),
+            base_ref=main,
+            require_base=True,
+            allow_ci_write=True,
+            source=None,
+        )
+        assert first.exit_code == 0, first.lines
+        fx.commit("improve")
+        fx.write("sub/w.py", WORSE)  # exactly main's contents again
+        return main, main_row
+
+    def test_update_restores_the_row_of_a_reverted_file(self, fx: GitFixture) -> None:
+        main, main_row = self._improved_then_reverted(fx)
+        updated = fx.writer().update(
+            fx.scorer(),
+            base_ref=main,
+            require_base=True,
+            allow_ci_write=True,
+            source=None,
+        )
+        assert updated.exit_code == 0, updated.lines
+        saved = json.loads((fx.root / ".oo-baseline.json").read_text())["sub/w.py"]
+        assert saved["max_complexity"] == main_row["max_complexity"]
+
+    def test_check_flags_a_stale_row_of_a_reverted_file(self, fx: GitFixture) -> None:
+        main, _ = self._improved_then_reverted(fx)
+        fx.commit("revert without updating the baseline")
+        outcome = fx.ratchet().check(
+            fx.scorer(), base_ref=main, require_base=True, allow_no_improvement=True
+        )
+        assert outcome.exit_code == 1
+        assert any("baseline out of date" in line for line in outcome.lines)
+
+    def test_a_new_file_is_not_counted_as_improved(self, fx: GitFixture) -> None:
+        fx.write("sub/w.py", GOOD)
+        fx.snapshot("sub")
+        main = fx.commit("main")
+        fx.set_origin_main(main)
+        fx.checkout_new("feature")
+        fx.write("sub/new.py", GOOD)
+        fx.commit("add new.py")  # tracked, so it is in the diff, not a backfill
+        updated = fx.writer().update(
+            fx.scorer(),
+            base_ref=main,
+            require_base=True,
+            allow_ci_write=True,
+            source=None,
+        )
+        assert updated.exit_code == 0, updated.lines
+        audit = (fx.root / ".oo-audit.jsonl").read_text().splitlines()
+        assert json.loads(audit[-1])["files_improved"] == 0
+
     def test_update_still_refuses_a_regression_against_main(
         self, fx: GitFixture
     ) -> None:

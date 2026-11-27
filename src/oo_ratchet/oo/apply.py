@@ -73,10 +73,11 @@ class PlanApplier:
         if plan.prune:
             removed += self._prune_kept(new_baseline, plan)
         broken = sorted(plan.parse_errors)
+        improved = self._improved_files(plan, deltas)
         self._baseline.save(new_baseline)
         self._audit.append(
             files_scored=len(plan.current),
-            files_improved=self.improved_count(deltas),
+            files_improved=improved,
             files_regressed=len({p for p, _ in refused}) + len(broken),
             verdict="pass" if not refused and not broken else "fail",
             deltas=deltas,
@@ -85,9 +86,7 @@ class PlanApplier:
             commit=self._git.short_head(),
             **backfill.metadata,
         )
-        outcome = self._report(
-            self.improved_count(deltas), len(removed), refused, broken
-        )
+        outcome = self._report(improved, len(removed), refused, broken)
         return Outcome(
             outcome.exit_code, outcome.lines + backfill.lines(outcome.exit_code)
         )
@@ -176,6 +175,15 @@ class PlanApplier:
         for p in stale:
             del new_baseline[p]
         return stale
+
+    def _improved_files(
+        self, plan: UpdatePlan, deltas: dict[str, dict[str, list[float]]]
+    ) -> int:
+        """Count improved files among those with a prior row; a new file has none."""
+        prior = self._baseline.entries.keys() | (plan.base_baseline or {}).keys()
+        return self.improved_count(
+            {p: d for p, d in deltas.items() if plan.renames.get(p, p) in prior}
+        )
 
     @staticmethod
     def improved_count(deltas: dict[str, dict[str, list[float]]]) -> int:

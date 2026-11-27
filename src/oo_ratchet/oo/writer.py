@@ -78,17 +78,35 @@ class BaselineWriter:
             )
         else:
             diff = self._git.diff(base)
-            touched = self._in_scope(
-                diff.python_files(), current.keys() | scorer.parse_errors
-            ) | self._vanished(diff.renames)
+            base_rows = self._git.show_baseline(base)
+            touched = (
+                self._in_scope(
+                    diff.python_files(), current.keys() | scorer.parse_errors
+                )
+                | self._vanished(diff.renames)
+                | self._reverted(base_rows, current)
+            )
             plan = UpdatePlan(
                 current,
                 touched,
                 diff.renames,
                 parse_errors=touched & scorer.parse_errors,
-                base_baseline=self._git.show_baseline(base),
+                base_baseline=base_rows,
             )
         return self._applier.apply(plan, source)
+
+    def _reverted(
+        self,
+        base_rows: dict[str, dict[str, float]] | None,
+        current: dict[str, dict[str, float]],
+    ) -> frozenset[str]:
+        """Return scored files whose row the branch rewrote, diff or not.
+
+        A file reverted to its base contents is absent from the diff, yet its
+        row may still hold an earlier branch commit's scores (PL-1685).
+        """
+        rewritten = Baseline.changed_rows(self._baseline.entries, base_rows or {})
+        return rewritten & current.keys()
 
     def _in_scope(
         self, paths: frozenset[str], scored: set[str] | frozenset[str]

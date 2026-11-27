@@ -81,3 +81,5 @@
 {"ts":"2026-11-27T01:21:49Z","commit":"04cf444","source":null,"files_scored":137,"files_improved":0,"files_regressed":0,"verdict":"pass","reason":null,"deltas":{}}
 {"ts":"2026-11-27T01:30:12Z","commit":"debb5f7","source":null,"files_scored":137,"files_improved":0,"files_regressed":0,"verdict":"pass","reason":null,"deltas":{}}
 {"ts":"2026-11-27T01:38:38Z","commit":"3d24537","source":null,"files_scored":137,"files_improved":0,"files_regressed":0,"verdict":"pass","reason":null,"deltas":{}}
+{"ts":"2026-11-27T01:48:54Z","commit":"ebb3536","source":null,"files_scored":137,"files_improved":0,"files_regressed":3,"verdict":"fail","reason":null,"deltas":{}}
+{"ts":"2026-11-27T01:51:18Z","commit":"ebb3536","source":null,"files_scored":137,"files_improved":2,"files_regressed":0,"verdict":"pass","reason":null,"deltas":{"src/oo_ratchet/oo/apply.py":{"max_lcom":[0.6,0.524],"avg_lcom":[0.6,0.524]},"src/oo_ratchet/oo/ratchet.py":{"max_lcom":[0.472,0.361],"avg_lcom":[0.472,0.361]}}}

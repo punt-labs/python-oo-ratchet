@@ -55,6 +55,23 @@ class Baseline:
         return self._entries.get(path)
 
     @staticmethod
+    def changed_rows(
+        entries: dict[str, dict[str, float]], base: dict[str, dict[str, float]]
+    ) -> frozenset[str]:
+        """Return paths whose gated values in ``entries`` differ from ``base``.
+
+        These rows were rewritten on the branch. A file reverted to its base
+        contents drops out of the diff, but its rewritten row must still be
+        brought back in line with the code (PL-1685).
+        """
+        gated = Thresholds.names()
+        return frozenset(
+            path
+            for path, row in entries.items()
+            if path in base and any(row.get(m) != base[path].get(m) for m in gated)
+        )
+
+    @staticmethod
     def _load(path: Path) -> dict[str, dict[str, float]]:
         if not path.exists():
             return {}

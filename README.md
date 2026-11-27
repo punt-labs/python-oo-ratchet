@@ -569,7 +569,7 @@ write. Their fields are:
 | `commit` | Short HEAD SHA, or null when unavailable |
 | `source` | Optional caller reference, otherwise null |
 | `files_scored` | Number of parse-clean files scored |
-| `files_improved` | Writer's improvement count; ordinary updates count changed accepted rows, including new rows, not backfills |
+| `files_improved` | Writer's improvement count. OO updates count files with a metric strictly better than their previous row (not new rows, backfills, or `module_size` growth under its ceiling); coupling updates count changed accepted rows, including new rows, not backfills |
 | `files_regressed` | Writer's refused/regressed file count (updates also include parse failures); not necessarily zero for an intentional bless |
 | `verdict` | Operation/result: `pass`, `fail`, `relaxed`, `rebaseline-files`, `rebaseline` |
 | `reason` | Human justification; OO omits it if unset, coupling writes null |

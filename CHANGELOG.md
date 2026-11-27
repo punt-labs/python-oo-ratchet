@@ -24,6 +24,11 @@
 - A gated metric missing from a file's base baseline row was skipped, so a
   hand-edited row could hide a regression. It is now judged by its target and
   never counts as an improvement.
+- A file a branch improved, recorded, then reverted to its base contents left
+  the improved row in the baseline, because the file was no longer in the
+  diff. OO `--update` now rewrites any row the branch changed, and `--check`
+  reports it as out of date until it matches the code.
+- OO `files_improved` no longer counts a newly added file.
 
 ### Removed
 

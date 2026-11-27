@@ -76,20 +76,34 @@ class Ratchet:
 
         current = Baseline.metrics_by_file(scorer.results)
         touched = sorted(touched_py & scorer.files)
+        # Rows the branch rewrote for files no longer in the diff (a revert)
+        # must still match the code, or main inherits a false score (PL-1685).
+        changed = Baseline.changed_rows(self._baseline.entries, base_baseline)
+        rewritten = sorted((changed & scorer.files) - set(touched))
         if not touched:
-            return Outcome.passed("No Python files touched -- trivial pass")
+            return self._untouched(self._integrity(rewritten, current)[0])
 
         waivable = self._audit.relaxations_since(self._git.show_audit(base))
         reviews = self._build_reviews(
             touched, current, base_baseline, diff.renames, waivable
         )
-        lock_fail, missing = self._integrity(touched, current)
+        lock_fail, missing = self._integrity([*touched, *rewritten], current)
         return self._verdict(
             Review(reviews),
             lock_fail,
             missing,
             allow_no_improvement=allow_no_improvement,
         )
+
+    @staticmethod
+    def _untouched(lock_fail: list[str]) -> Outcome:
+        """Pass a change with no touched Python file once rewritten rows match."""
+        if lock_fail:
+            return Outcome.failed(
+                "FAIL: baseline out of date -- run make update-oo: "
+                + ", ".join(lock_fail)
+            )
+        return Outcome.passed("No Python files touched -- trivial pass")
 
     def _no_base(self, *, require_base: bool) -> Outcome:
         """Decide the verdict when no comparison base can be resolved.

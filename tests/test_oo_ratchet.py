@@ -1036,11 +1036,9 @@ class TestMergeBaseRange:
     ) -> None:
         """A multi-commit PR is diffed as a whole range, not its last commit.
 
-        Companion to ``TestMultiCommitPrBaseRef`` in
-        ``tests/oo_coupling/test_push_base_ref.py`` (the Copilot finding on
-        PR #467, round 2, that motivated computing this same merge-base for
-        check-coupling's PR trigger). Unlike check-coupling, check-oo never
-        had a ``HEAD~1``-only default to fall into -- ``GitRepo.resolve_base``
+        check-coupling's PR trigger computes the same merge-base. Unlike
+        check-coupling, check-oo never had a ``HEAD~1``-only default to fall
+        into -- ``GitRepo.resolve_base``
         always resolves ``base_ref=None`` to merge-base(origin/main, HEAD),
         so a regression in the FIRST commit of a PR, never re-touched by the
         LAST commit, is still inside that range and still caught. This test
@@ -1079,15 +1077,17 @@ class TestMergeBaseRange:
         # commit the local HEAD is on (fetched after the push landed).
         fx.set_origin_main(after)
 
-        # Old buggy behavior: base_ref=None resolves merge-base(origin/main,
-        # HEAD) == HEAD == after -- an empty diff against the work tree, so
-        # the regression that just landed is never scored.
+        # Documented default (CLAUDE.md): base_ref=None resolves
+        # merge-base(origin/main, HEAD) == HEAD == after, an empty diff
+        # against the work tree, so a clean main passes trivially. This is why
+        # CI passes an explicit base on pushes to main.
         vacuous = fx.ratchet().check(fx.scorer(), base_ref=None, require_base=True)
         assert vacuous.exit_code == 0
         assert any("trivial pass" in line for line in vacuous.lines)
 
-        # Fixed behavior: base_ref=<pre-push tip> (what BASE_REF carries
-        # from github.event.before) diffs before..HEAD and catches it.
+        # With an explicit base, the pre-push tip (what CI passes as
+        # ``--base-ref HEAD~1``), the diff is before..HEAD and the regression
+        # is caught.
         caught = fx.ratchet().check(fx.scorer(), base_ref=before, require_base=True)
         assert caught.exit_code == 1
         assert any("regression" in line for line in caught.lines)

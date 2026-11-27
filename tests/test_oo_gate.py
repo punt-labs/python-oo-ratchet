@@ -4,7 +4,7 @@ The suite pins three things: the pure comparison/metric logic (``Thresholds``,
 ``ModuleMetrics``), the merge-base ``check`` semantics driven end-to-end through
 a real git tree (the equivalence proof — known-good passes, known-bad classes of
 regression fail), and the fail-closed boundaries (a corrupt base baseline blob
-raises ``GitError`` rather than fail-open).
+raises ``StateError`` rather than fail-open).
 """
 
 from __future__ import annotations
@@ -14,15 +14,10 @@ from typing import TYPE_CHECKING
 import pytest
 
 import oo_ratchet.oo
-from oo_ratchet.oo import (
-    Diff,
-    GitError,
-    GitRepo,
-    ModuleMetrics,
-    Ratchet,
-    Scorer,
-    Thresholds,
-)
+from oo_ratchet.core.adapters.gitrepo import GitRepo
+from oo_ratchet.core.domain.errors import StateError
+from oo_ratchet.oo import Diff, ModuleMetrics, Scorer, Thresholds
+from tests.gate_runs import Ratchet, Scored
 
 if TYPE_CHECKING:
     from tests.conftest import GitSandbox
@@ -30,7 +25,7 @@ if TYPE_CHECKING:
 
 def test_module_is_importable_as_package() -> None:
     """The package resolves as ``oo_ratchet.oo`` (regular-package path)."""
-    assert "Ratchet" in oo_ratchet.oo.__all__
+    assert "main" in oo_ratchet.oo.__all__
 
 
 # A minimal, standards-clean module with hand-derived metrics.
@@ -346,7 +341,7 @@ class TestAuditCompleteness:
 
 
 class TestFailClosedOnCorruptBlob:
-    """A corrupt base baseline blob raises GitError — never fail-open."""
+    """A corrupt base baseline blob raises StateError — never fail-open."""
 
     def _commit_baseline(self, sandbox: GitSandbox, blob: str) -> str:
         sandbox.write("src/mod.py", _WIDGET_SOURCE)
@@ -355,26 +350,26 @@ class TestFailClosedOnCorruptBlob:
 
     def test_non_dict_entry_raises(self, git_sandbox: GitSandbox) -> None:
         sha = self._commit_baseline(git_sandbox, '{"src/mod.py": "not-a-dict"}\n')
-        git = GitRepo(git_sandbox.root)
-        with pytest.raises(GitError, match="non-dict entry"):
-            git.show_baseline(sha)
+        git = GitRepo(git_sandbox.root, ".oo-baseline.json", ".oo-audit.jsonl")
+        with pytest.raises(StateError, match="non-dict entry"):
+            git.baseline_at(sha)
 
     def test_non_numeric_metric_raises(self, git_sandbox: GitSandbox) -> None:
         sha = self._commit_baseline(
             git_sandbox, '{"src/mod.py": {"module_size": "big"}}\n'
         )
-        git = GitRepo(git_sandbox.root)
-        with pytest.raises(GitError, match="non-numeric metric"):
-            git.show_baseline(sha)
+        git = GitRepo(git_sandbox.root, ".oo-baseline.json", ".oo-audit.jsonl")
+        with pytest.raises(StateError, match="non-numeric metric"):
+            git.baseline_at(sha)
 
     def test_bool_metric_raises(self, git_sandbox: GitSandbox) -> None:
         # A bool is an int subclass that would compare as 0/1 (fail-open).
         sha = self._commit_baseline(
             git_sandbox, '{"src/mod.py": {"future_annotations": true}}\n'
         )
-        git = GitRepo(git_sandbox.root)
-        with pytest.raises(GitError, match="non-numeric metric"):
-            git.show_baseline(sha)
+        git = GitRepo(git_sandbox.root, ".oo-baseline.json", ".oo-audit.jsonl")
+        with pytest.raises(StateError, match="non-numeric metric"):
+            git.baseline_at(sha)
 
     def test_check_reports_nonzero_not_fail_open(
         self,
@@ -410,9 +405,9 @@ class TestScorerRepoRelativeKeys:
         assert _seat(["src", "--rebaseline"]) == 0
         base = git_sandbox.commit("base")
         git_sandbox.write("README.md", "# docs only\n")
-        ratchet = Ratchet(git_sandbox.root, GitRepo(git_sandbox.root))
+        ratchet = Ratchet(git_sandbox.root)
         outcome = ratchet.check(
-            Scorer(git_sandbox.root / "src", git_sandbox.root),
+            Scored(git_sandbox.root / "src", git_sandbox.root),
             base_ref=base,
             require_base=True,
         )

@@ -5,18 +5,15 @@ from __future__ import annotations
 import argparse
 import sys
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Self
+from typing import ClassVar, Self
 
+from oo_ratchet.core.adapters.oogate import OoGate
+from oo_ratchet.core.application.policy import GatePolicy
+from oo_ratchet.core.domain.errors import StateError
 from oo_ratchet.source_set import Source, SourceSet
 
-from .audit import AuditError
-from .baseline import BaselineError
-from .gitio import GitError, GitRepo
-from .outcome import Outcome
-from .ratchet import Ratchet
 from .scorer import Scorer
-from .writer import BaselineWriter
+from .thresholds import Thresholds
 
 
 @dataclass(frozen=True, slots=True)
@@ -133,136 +130,29 @@ class Options:
 
 
 class Cli:
-    """Score the target and route the request to the ratchet or writer."""
+    """Run one OO command line on the shared core and print its report."""
+
+    POLICY: ClassVar[GatePolicy] = GatePolicy.from_table(
+        Thresholds.TABLE, Thresholds.CEILINGS
+    )
 
     _opts: Options
-    _git: GitRepo
-    _root: Path
 
     def __new__(cls, options: Options) -> Self:
         self = super().__new__(cls)
         self._opts = options
-        self._git = GitRepo()
-        self._root = self._git.root or Path.cwd()
         return self
 
     def run(self) -> int:
         """Execute the requested operation and return its exit code."""
-        guard = self._rebaseline_files_guard()
-        if guard is not None:
-            return self._emit(guard)
-        if not SourceSet.path(self._opts.src).exists():
-            return self._emit(Outcome.failed(f"Not found: {self._opts.src}"))
-        scorer = Scorer(self._opts.src, self._root)
         try:
-            action = self._run_action(scorer)
-            outcome = action if action is not None else self._run_view(scorer)
-        except (GitError, AuditError, BaselineError) as exc:
-            outcome = Outcome.failed(f"FAIL: {exc}")
-        return self._emit(outcome)
-
-    def _rebaseline_files_guard(self) -> Outcome | None:
-        """Validate ``--rebaseline-files``' shape and ``--reason`` before scoring.
-
-        A missing/blank ``--reason``, or an empty path list, is a CLI
-        contract violation, not a scoring outcome -- it must fail before the
-        target is even inspected, let alone scored (before ``src.exists()``
-        and before ``Scorer`` is constructed), mirroring the coupling
-        ratchet's ``--rebaseline-files`` (DES-096) so a missing reason never
-        pays for a directory walk.
-        """
-        if self._opts.rebaseline_files is None:
-            return None
-        if not self._opts.rebaseline_files:
-            return Outcome.failed("FAIL: --rebaseline-files requires at least one path")
-        if not self._opts.reason.strip():
-            return Outcome.failed("FAIL: --rebaseline-files requires --reason <text>")
-        return None
-
-    @staticmethod
-    def _emit(outcome: Outcome) -> int:
-        sys.stdout.writelines(line + "\n" for line in outcome.lines)
-        return outcome.exit_code
-
-    def _unscorable(self, scorer: Scorer) -> Outcome | None:
-        """Fail a single-file target that only produced an error row.
-
-        ``--log`` needs no score and ``--json`` reports the error row itself.
-        """
-        opts = self._opts
-        if opts.log or opts.json:
-            return None
-        if SourceSet.path(opts.src).is_file() and scorer.parse_errors:
-            return Outcome.failed(f"FAIL: cannot score {opts.src}")
-        return None
-
-    def _run_action(self, scorer: Scorer) -> Outcome | None:
-        opts = self._opts
-        unscorable = self._unscorable(scorer)
-        if unscorable is not None:
-            return unscorable
-        ratchet = Ratchet(self._root, self._git)
-        writer = BaselineWriter(self._root, self._git)
-        if opts.check:
-            return ratchet.check(
-                scorer,
-                base_ref=opts.base_ref,
-                require_base=opts.require_base,
-                allow_no_improvement=opts.allow_no_improvement,
-                tripwire=opts.tripwire,
-            )
-        if opts.rebaseline:
-            return writer.rebaseline(
-                scorer, allow_ci_write=opts.allow_ci_write, source=opts.source
-            )
-        if opts.reconcile:
-            return writer.reconcile(
-                scorer, allow_ci_write=opts.allow_ci_write, source=opts.source
-            )
-        if opts.relax is not None:
-            return writer.relax(
-                scorer,
-                opts.relax,
-                justify=opts.justify,
-                allow_ci_write=opts.allow_ci_write,
-                source=opts.source,
-            )
-        if opts.rebaseline_files is not None:
-            return writer.rebaseline_files(
-                scorer,
-                list(opts.rebaseline_files),
-                reason=opts.reason,
-                allow_ci_write=opts.allow_ci_write,
-                source=opts.source,
-            )
-        if opts.update:
-            return writer.update(
-                scorer,
-                base_ref=opts.base_ref,
-                require_base=opts.require_base,
-                allow_ci_write=opts.allow_ci_write,
-                source=opts.source,
-            )
-        if opts.log:
-            return ratchet.show_log()
-        if opts.audit_completeness:
-            return ratchet.audit_completeness(scorer)
-        return None
-
-    def _run_view(self, scorer: Scorer) -> Outcome:
-        code = 1 if scorer.fail_count > 0 or scorer.parse_errors else 0
-        if self._opts.json:
-            return Outcome(code, (scorer.to_json(),))
-        lines = list(scorer.render_table())
-        if self._opts.threshold:
-            lines.extend(scorer.render_per_file())
-        return Outcome(code, tuple(lines))
+            lines, code = OoGate(self._opts, Scorer, self.POLICY).run()
+        except StateError as exc:  # raised while locating the repository root
+            lines, code = [f"FAIL: {exc}"], 1
+        sys.stdout.writelines(line + "\n" for line in lines)
+        return code
 
 
 def main(argv: list[str] | None = None) -> int:
     """Parse arguments and run the ratchet CLI, returning an exit code."""
-    try:
-        return Cli(Options.parse(argv)).run()
-    except GitError as exc:  # raised while locating the repository root
-        sys.stdout.write(f"FAIL: {exc}\n")
-        return 1
+    return Cli(Options.parse(argv)).run()

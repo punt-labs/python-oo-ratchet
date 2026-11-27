@@ -72,7 +72,7 @@ class AuditFormat:
             raise StateError(f"malformed audit entry {line[:80]!r}: not an object")
         return AuditRecord(
             verdict=raw.get("verdict", ""),
-            deltas=raw.get("deltas") or {},
+            deltas=cls._deltas(raw.get("deltas")),
             files_scored=raw.get("files_scored", 0),
             files_improved=raw.get("files_improved", 0),
             files_regressed=raw.get("files_regressed", 0),
@@ -83,6 +83,16 @@ class AuditFormat:
             ts=raw.get("ts"),
             extra={k: v for k, v in raw.items() if k not in cls.KNOWN},
         )
+
+    @staticmethod
+    def _deltas(raw: object) -> dict[str, dict[str, list[float]]]:
+        """Keep the well-formed ``{path: {metric: ...}}`` part of a hand-edited log.
+
+        A malformed entry waives nothing: it is dropped, never read as a waiver.
+        """
+        if not isinstance(raw, dict):
+            return {}
+        return {p: m for p, m in raw.items() if isinstance(m, dict)}
 
     @classmethod
     def encode(cls, record: AuditRecord, ts: str) -> str:

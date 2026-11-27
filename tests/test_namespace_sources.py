@@ -67,7 +67,7 @@ def test_split_matches_entire_graph_cycles_metrics_and_layers(
     trees: tuple[Path, SourceSelection],
 ) -> None:
     single, split = trees
-    before, after = SourceSet(single), SourceSet(split)
+    before, after = SourceSelection(single), SourceSelection(split)
     a, b = (
         ImportGraph.build(s, frozenset(s.key_for(p) for p in s.files()))
         for s in (before, after)

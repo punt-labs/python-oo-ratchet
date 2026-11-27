@@ -15,6 +15,8 @@ version = "0"
 app-run = "app.runner:main"
 """
 PROTOCOL = "from typing import Protocol\n\n\nclass Store(Protocol):\n    ...\n"
+MARK_DOMAIN = '__ring__ = "domain"\n'
+MARK_ADAPTERS = '__ring__ = "adapters"\nimport json\n'
 
 
 def rings(out: str) -> dict[str, list[str]]:
@@ -56,71 +58,25 @@ class TestRules:
         assert rings(out)["entry"] == ["app", "app.runner"]
         assert "console script app-run" in out
 
-    def test_io_import_is_adapters(self, repo: LayersRepo) -> None:
-        start(repo)
-        repo.edit("service", "import json\n")
-        out = repo.run("--suggest")[1]
-        assert rings(out)["adapters"] == ["app.service"]
-        assert "app.service: adapters (imports IO: json)" in out
-
-    def test_open_call_is_adapters(self, repo: LayersRepo) -> None:
-        start(repo)
-        repo.edit("service", "def read(p):\n    return open(p)\n")
-        assert rings(repo.run("--suggest")[1])["adapters"] == ["app.service"]
-
-    def test_protocol_imported_by_an_adapter_is_application(
+    def test_entry_evidence_beats_no_intent_and_names_io(
         self, repo: LayersRepo
     ) -> None:
-        start(repo)
-        repo.edit("kernel", PROTOCOL)
-        repo.edit("service", "import json\nimport app.kernel\n")
-        out = repo.run("--suggest")[1]
-        assert rings(out)["application"] == ["app.kernel"]
-        assert "app.kernel: application (defines Protocol Store" in out
-
-    def test_protocol_no_adapter_imports_is_domain(self, repo: LayersRepo) -> None:
-        start(repo)
-        repo.edit("kernel", PROTOCOL)
-        out = repo.run("--suggest")[1]
-        assert "app.kernel" in rings(out)["domain"]
-        assert "no adapter imports it" in out
-
-    def test_pure_module_is_domain(self, repo: LayersRepo) -> None:
-        start(repo)
-        repo.edit("kernel", "X = 1\n")
-        out = repo.run("--suggest")[1]
-        assert rings(out)["domain"] == ["app.cli", "app.kernel", "app.service"]
-        assert "app.kernel: domain (no IO, no adapter imports)" in out
-
-    def test_entry_wins_over_adapters_and_says_so(self, repo: LayersRepo) -> None:
         start(repo)
         repo.edit("cli", "import argparse\nimport json\n")
         out = repo.run("--suggest")[1]
         assert rings(out)["entry"] == ["app", "app.cli"]
-        assert "rings it also matched: adapters (imports IO: json)" in out
-
-    def test_unclassifiable_module_is_a_comment_not_a_guess(
-        self, repo: LayersRepo
-    ) -> None:
-        start(repo)
-        repo.edit("service", "import json\n")
-        repo.edit("kernel", "import app.service\n")
-        code, out = repo.run("--suggest")
-        assert code == 0
-        table = rings(out)
-        assert "app.kernel" not in {m for ring in table.values() for m in ring}
-        assert "# app.kernel: unclassified (domain may import only domain" in out
+        assert "app.cli: entry (imports argparse)" in out
 
     def test_exact_prefix_glob_only_when_every_module_under_it_agrees(
         self, repo: LayersRepo
     ) -> None:
         start(repo)
-        repo.write("src/app/pure/__init__.py", "")
-        repo.write("src/app/pure/a.py", "")
-        repo.write("src/app/pure/b.py", "")
+        repo.write("src/app/pure/__init__.py", MARK_DOMAIN)
+        repo.write("src/app/pure/a.py", MARK_DOMAIN)
+        repo.write("src/app/pure/b.py", MARK_DOMAIN)
         repo.write("src/app/mixed/__init__.py", "")
-        repo.write("src/app/mixed/a.py", "")
-        repo.write("src/app/mixed/b.py", "import json\n")
+        repo.write("src/app/mixed/a.py", MARK_DOMAIN)
+        repo.write("src/app/mixed/b.py", MARK_ADAPTERS)
         table = rings(repo.run("--suggest")[1])
         assert "app.pure.*" in table["domain"]
         assert "app.pure" in table["domain"]
@@ -174,8 +130,8 @@ class TestRoundTrip:
     def test_the_gate_reads_what_suggest_prints(self, repo: LayersRepo) -> None:
         start(repo)
         repo.edit("cli", "import argparse\n")
-        repo.edit("service", "import json\n")
-        repo.edit("kernel", "X = 1\n")
+        repo.edit("service", MARK_ADAPTERS)
+        repo.edit("kernel", MARK_DOMAIN)
         out = repo.run("--suggest")[1]
         repo.write("pyproject.toml", PROJECT + "\n" + out)
         code, report = repo.run()

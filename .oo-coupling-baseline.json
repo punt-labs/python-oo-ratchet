@@ -384,8 +384,36 @@
     "max_lcom": 0.0,
     "avg_lcom": 0.0
   },
+  "src/oo_ratchet/core/domain/builtin_open.py": {
+    "efferent_coupling": 0.0,
+    "public_names": 1.0,
+    "circular_imports": 0.0,
+    "max_lcom": 0.0,
+    "avg_lcom": 0.0
+  },
   "src/oo_ratchet/core/domain/changes.py": {
     "efferent_coupling": 0.0,
+    "public_names": 1.0,
+    "circular_imports": 0.0,
+    "max_lcom": 0.0,
+    "avg_lcom": 0.0
+  },
+  "src/oo_ratchet/core/domain/declaration.py": {
+    "efferent_coupling": 2.0,
+    "public_names": 1.0,
+    "circular_imports": 0.0,
+    "max_lcom": 0.0,
+    "avg_lcom": 0.0
+  },
+  "src/oo_ratchet/core/domain/declared_layers.py": {
+    "efferent_coupling": 1.0,
+    "public_names": 1.0,
+    "circular_imports": 0.0,
+    "max_lcom": 0.333,
+    "avg_lcom": 0.333
+  },
+  "src/oo_ratchet/core/domain/domain_io.py": {
+    "efferent_coupling": 4.0,
     "public_names": 1.0,
     "circular_imports": 0.0,
     "max_lcom": 0.0,
@@ -405,6 +433,62 @@
     "max_lcom": 0.0,
     "avg_lcom": 0.0
   },
+  "src/oo_ratchet/core/domain/exits.py": {
+    "efferent_coupling": 0.0,
+    "public_names": 1.0,
+    "circular_imports": 0.0,
+    "max_lcom": 0.0,
+    "avg_lcom": 0.0
+  },
+  "src/oo_ratchet/core/domain/findings.py": {
+    "efferent_coupling": 0.0,
+    "public_names": 2.0,
+    "circular_imports": 0.0,
+    "max_lcom": 0.0,
+    "avg_lcom": 0.0
+  },
+  "src/oo_ratchet/core/domain/function_shape.py": {
+    "efferent_coupling": 2.0,
+    "public_names": 1.0,
+    "circular_imports": 0.0,
+    "max_lcom": 0.333,
+    "avg_lcom": 0.333
+  },
+  "src/oo_ratchet/core/domain/layer_config.py": {
+    "efferent_coupling": 0.0,
+    "public_names": 2.0,
+    "circular_imports": 0.0,
+    "max_lcom": 0.0,
+    "avg_lcom": 0.0
+  },
+  "src/oo_ratchet/core/domain/layer_edges.py": {
+    "efferent_coupling": 0.0,
+    "public_names": 2.0,
+    "circular_imports": 0.0,
+    "max_lcom": 0.0,
+    "avg_lcom": 0.0
+  },
+  "src/oo_ratchet/core/domain/layer_imports.py": {
+    "efferent_coupling": 1.0,
+    "public_names": 1.0,
+    "circular_imports": 0.0,
+    "max_lcom": 0.333,
+    "avg_lcom": 0.333
+  },
+  "src/oo_ratchet/core/domain/layer_table.py": {
+    "efferent_coupling": 2.0,
+    "public_names": 1.0,
+    "circular_imports": 0.0,
+    "max_lcom": 0.0,
+    "avg_lcom": 0.0
+  },
+  "src/oo_ratchet/core/domain/layer_violations.py": {
+    "efferent_coupling": 3.0,
+    "public_names": 1.0,
+    "circular_imports": 0.0,
+    "max_lcom": 0.333,
+    "avg_lcom": 0.333
+  },
   "src/oo_ratchet/core/domain/ledgers.py": {
     "efferent_coupling": 0.0,
     "public_names": 2.0,
@@ -419,8 +503,43 @@
     "max_lcom": 0.0,
     "avg_lcom": 0.0
   },
+  "src/oo_ratchet/core/domain/modules.py": {
+    "efferent_coupling": 1.0,
+    "public_names": 2.0,
+    "circular_imports": 0.0,
+    "max_lcom": 0.455,
+    "avg_lcom": 0.455
+  },
+  "src/oo_ratchet/core/domain/modulesource.py": {
+    "efferent_coupling": 0.0,
+    "public_names": 1.0,
+    "circular_imports": 0.0,
+    "max_lcom": 0.0,
+    "avg_lcom": 0.0
+  },
   "src/oo_ratchet/core/domain/policies.py": {
     "efferent_coupling": 1.0,
+    "public_names": 1.0,
+    "circular_imports": 0.0,
+    "max_lcom": 0.0,
+    "avg_lcom": 0.0
+  },
+  "src/oo_ratchet/core/domain/project_types.py": {
+    "efferent_coupling": 5.0,
+    "public_names": 1.0,
+    "circular_imports": 0.0,
+    "max_lcom": 0.333,
+    "avg_lcom": 0.333
+  },
+  "src/oo_ratchet/core/domain/protocol_imports.py": {
+    "efferent_coupling": 3.0,
+    "public_names": 1.0,
+    "circular_imports": 0.0,
+    "max_lcom": 0.0,
+    "avg_lcom": 0.0
+  },
+  "src/oo_ratchet/core/domain/receiver_bindings.py": {
+    "efferent_coupling": 2.0,
     "public_names": 1.0,
     "circular_imports": 0.0,
     "max_lcom": 0.0,
@@ -447,6 +566,20 @@
     "max_lcom": 0.0,
     "avg_lcom": 0.0
   },
+  "src/oo_ratchet/core/domain/shape.py": {
+    "efferent_coupling": 2.0,
+    "public_names": 1.0,
+    "circular_imports": 0.0,
+    "max_lcom": 0.273,
+    "avg_lcom": 0.273
+  },
+  "src/oo_ratchet/core/domain/state.py": {
+    "efferent_coupling": 0.0,
+    "public_names": 1.0,
+    "circular_imports": 0.0,
+    "max_lcom": 0.0,
+    "avg_lcom": 0.0
+  },
   "src/oo_ratchet/core/domain/tallies.py": {
     "efferent_coupling": 0.0,
     "public_names": 2.0,
@@ -461,6 +594,13 @@
     "max_lcom": 0.0,
     "avg_lcom": 0.0
   },
+  "src/oo_ratchet/core/domain/targets.py": {
+    "efferent_coupling": 1.0,
+    "public_names": 1.0,
+    "circular_imports": 0.0,
+    "max_lcom": 0.333,
+    "avg_lcom": 0.333
+  },
   "src/oo_ratchet/core/domain/totals.py": {
     "efferent_coupling": 2.0,
     "public_names": 2.0,
@@ -468,9 +608,23 @@
     "max_lcom": 0.0,
     "avg_lcom": 0.0
   },
+  "src/oo_ratchet/core/domain/type_reference.py": {
+    "efferent_coupling": 0.0,
+    "public_names": 1.0,
+    "circular_imports": 0.0,
+    "max_lcom": 0.0,
+    "avg_lcom": 0.0
+  },
   "src/oo_ratchet/core/domain/verdicts.py": {
     "efferent_coupling": 0.0,
     "public_names": 6.0,
+    "circular_imports": 0.0,
+    "max_lcom": 0.0,
+    "avg_lcom": 0.0
+  },
+  "src/oo_ratchet/core/domain/wrapper.py": {
+    "efferent_coupling": 1.0,
+    "public_names": 1.0,
     "circular_imports": 0.0,
     "max_lcom": 0.0,
     "avg_lcom": 0.0
@@ -503,13 +657,6 @@
     "max_lcom": 0.667,
     "avg_lcom": 0.667
   },
-  "src/oo_ratchet/coupling/gitio.py": {
-    "efferent_coupling": 0.0,
-    "public_names": 4.0,
-    "circular_imports": 0.0,
-    "max_lcom": 0.778,
-    "avg_lcom": 0.778
-  },
   "src/oo_ratchet/coupling/graph.py": {
     "efferent_coupling": 2.0,
     "public_names": 1.0,
@@ -537,13 +684,6 @@
     "circular_imports": 0.0,
     "max_lcom": 0.694,
     "avg_lcom": 0.694
-  },
-  "src/oo_ratchet/coupling/outcome.py": {
-    "efferent_coupling": 0.0,
-    "public_names": 1.0,
-    "circular_imports": 0.0,
-    "max_lcom": 0.0,
-    "avg_lcom": 0.0
   },
   "src/oo_ratchet/coupling/packages.py": {
     "efferent_coupling": 2.0,
@@ -601,13 +741,6 @@
     "max_lcom": 0.381,
     "avg_lcom": 0.381
   },
-  "src/oo_ratchet/design/builtin_open.py": {
-    "efferent_coupling": 0.0,
-    "public_names": 1.0,
-    "circular_imports": 0.0,
-    "max_lcom": 0.0,
-    "avg_lcom": 0.0
-  },
   "src/oo_ratchet/design/class_rules.py": {
     "efferent_coupling": 3.0,
     "public_names": 1.0,
@@ -650,6 +783,13 @@
     "max_lcom": 0.4,
     "avg_lcom": 0.4
   },
+  "src/oo_ratchet/design/comparison.py": {
+    "efferent_coupling": 3.0,
+    "public_names": 1.0,
+    "circular_imports": 0.0,
+    "max_lcom": 0.6,
+    "avg_lcom": 0.6
+  },
   "src/oo_ratchet/design/data_fields.py": {
     "efferent_coupling": 5.0,
     "public_names": 1.0,
@@ -671,96 +811,12 @@
     "max_lcom": 0.0,
     "avg_lcom": 0.0
   },
-  "src/oo_ratchet/design/declaration.py": {
-    "efferent_coupling": 2.0,
-    "public_names": 1.0,
-    "circular_imports": 0.0,
-    "max_lcom": 0.0,
-    "avg_lcom": 0.0
-  },
-  "src/oo_ratchet/design/declared_layers.py": {
-    "efferent_coupling": 1.0,
-    "public_names": 1.0,
-    "circular_imports": 0.0,
-    "max_lcom": 0.333,
-    "avg_lcom": 0.333
-  },
-  "src/oo_ratchet/design/domain_io.py": {
-    "efferent_coupling": 4.0,
-    "public_names": 1.0,
-    "circular_imports": 0.0,
-    "max_lcom": 0.0,
-    "avg_lcom": 0.0
-  },
-  "src/oo_ratchet/design/enforcement/__init__.py": {
-    "efferent_coupling": 0.0,
-    "public_names": 0.0,
-    "circular_imports": 0.0,
-    "max_lcom": 0.0,
-    "avg_lcom": 0.0
-  },
-  "src/oo_ratchet/design/enforcement/output.py": {
-    "efferent_coupling": 4.0,
-    "public_names": 1.0,
-    "circular_imports": 0.0,
-    "max_lcom": 0.333,
-    "avg_lcom": 0.333
-  },
   "src/oo_ratchet/design/envy_rules.py": {
     "efferent_coupling": 7.0,
     "public_names": 1.0,
     "circular_imports": 0.0,
     "max_lcom": 0.0,
     "avg_lcom": 0.0
-  },
-  "src/oo_ratchet/design/findings.py": {
-    "efferent_coupling": 0.0,
-    "public_names": 2.0,
-    "circular_imports": 0.0,
-    "max_lcom": 0.0,
-    "avg_lcom": 0.0
-  },
-  "src/oo_ratchet/design/function_shape.py": {
-    "efferent_coupling": 2.0,
-    "public_names": 1.0,
-    "circular_imports": 0.0,
-    "max_lcom": 0.333,
-    "avg_lcom": 0.333
-  },
-  "src/oo_ratchet/design/layer_config.py": {
-    "efferent_coupling": 0.0,
-    "public_names": 2.0,
-    "circular_imports": 0.0,
-    "max_lcom": 0.0,
-    "avg_lcom": 0.0
-  },
-  "src/oo_ratchet/design/layer_edges.py": {
-    "efferent_coupling": 0.0,
-    "public_names": 2.0,
-    "circular_imports": 0.0,
-    "max_lcom": 0.0,
-    "avg_lcom": 0.0
-  },
-  "src/oo_ratchet/design/layer_imports.py": {
-    "efferent_coupling": 1.0,
-    "public_names": 1.0,
-    "circular_imports": 0.0,
-    "max_lcom": 0.333,
-    "avg_lcom": 0.333
-  },
-  "src/oo_ratchet/design/layer_table.py": {
-    "efferent_coupling": 3.0,
-    "public_names": 1.0,
-    "circular_imports": 0.0,
-    "max_lcom": 0.0,
-    "avg_lcom": 0.0
-  },
-  "src/oo_ratchet/design/layer_violations.py": {
-    "efferent_coupling": 3.0,
-    "public_names": 1.0,
-    "circular_imports": 0.0,
-    "max_lcom": 0.333,
-    "avg_lcom": 0.333
   },
   "src/oo_ratchet/design/layers.py": {
     "efferent_coupling": 6.0,
@@ -797,13 +853,6 @@
     "max_lcom": 0.333,
     "avg_lcom": 0.333
   },
-  "src/oo_ratchet/design/modules.py": {
-    "efferent_coupling": 2.0,
-    "public_names": 2.0,
-    "circular_imports": 0.0,
-    "max_lcom": 0.455,
-    "avg_lcom": 0.455
-  },
   "src/oo_ratchet/design/namespace_shadow.py": {
     "efferent_coupling": 5.0,
     "public_names": 1.0,
@@ -812,28 +861,7 @@
     "avg_lcom": 0.0
   },
   "src/oo_ratchet/design/output.py": {
-    "efferent_coupling": 3.0,
-    "public_names": 1.0,
-    "circular_imports": 0.0,
-    "max_lcom": 0.0,
-    "avg_lcom": 0.0
-  },
-  "src/oo_ratchet/design/project_types.py": {
-    "efferent_coupling": 5.0,
-    "public_names": 1.0,
-    "circular_imports": 0.0,
-    "max_lcom": 0.333,
-    "avg_lcom": 0.333
-  },
-  "src/oo_ratchet/design/protocol_imports.py": {
-    "efferent_coupling": 3.0,
-    "public_names": 1.0,
-    "circular_imports": 0.0,
-    "max_lcom": 0.0,
-    "avg_lcom": 0.0
-  },
-  "src/oo_ratchet/design/receiver_bindings.py": {
-    "efferent_coupling": 2.0,
+    "efferent_coupling": 4.0,
     "public_names": 1.0,
     "circular_imports": 0.0,
     "max_lcom": 0.0,
@@ -854,7 +882,7 @@
     "avg_lcom": 0.0
   },
   "src/oo_ratchet/design/scan.py": {
-    "efferent_coupling": 7.0,
+    "efferent_coupling": 8.0,
     "public_names": 1.0,
     "circular_imports": 0.0,
     "max_lcom": 0.333,
@@ -881,13 +909,6 @@
     "max_lcom": 0.5,
     "avg_lcom": 0.5
   },
-  "src/oo_ratchet/design/shadow_metrics.py": {
-    "efferent_coupling": 1.0,
-    "public_names": 1.0,
-    "circular_imports": 0.0,
-    "max_lcom": 0.4,
-    "avg_lcom": 0.4
-  },
   "src/oo_ratchet/design/shadow_report.py": {
     "efferent_coupling": 2.0,
     "public_names": 1.0,
@@ -896,18 +917,11 @@
     "avg_lcom": 0.1
   },
   "src/oo_ratchet/design/shadow_scan.py": {
-    "efferent_coupling": 6.0,
+    "efferent_coupling": 5.0,
     "public_names": 1.0,
     "circular_imports": 0.0,
     "max_lcom": 0.333,
     "avg_lcom": 0.333
-  },
-  "src/oo_ratchet/design/shape.py": {
-    "efferent_coupling": 2.0,
-    "public_names": 1.0,
-    "circular_imports": 0.0,
-    "max_lcom": 0.273,
-    "avg_lcom": 0.273
   },
   "src/oo_ratchet/design/shape_rules.py": {
     "efferent_coupling": 9.0,
@@ -930,35 +944,7 @@
     "max_lcom": 0.0,
     "avg_lcom": 0.0
   },
-  "src/oo_ratchet/design/state.py": {
-    "efferent_coupling": 0.0,
-    "public_names": 1.0,
-    "circular_imports": 0.0,
-    "max_lcom": 0.0,
-    "avg_lcom": 0.0
-  },
   "src/oo_ratchet/design/tag_switch.py": {
-    "efferent_coupling": 1.0,
-    "public_names": 1.0,
-    "circular_imports": 0.0,
-    "max_lcom": 0.0,
-    "avg_lcom": 0.0
-  },
-  "src/oo_ratchet/design/targets.py": {
-    "efferent_coupling": 1.0,
-    "public_names": 1.0,
-    "circular_imports": 0.0,
-    "max_lcom": 0.333,
-    "avg_lcom": 0.333
-  },
-  "src/oo_ratchet/design/type_reference.py": {
-    "efferent_coupling": 0.0,
-    "public_names": 1.0,
-    "circular_imports": 0.0,
-    "max_lcom": 0.0,
-    "avg_lcom": 0.0
-  },
-  "src/oo_ratchet/design/wrapper.py": {
     "efferent_coupling": 1.0,
     "public_names": 1.0,
     "circular_imports": 0.0,
@@ -1049,6 +1035,20 @@
     "max_lcom": 0.0,
     "avg_lcom": 0.0
   },
+  "src/oo_ratchet/layers/ring_intent.py": {
+    "efferent_coupling": 2.0,
+    "public_names": 4.0,
+    "circular_imports": 0.0,
+    "max_lcom": 0.333,
+    "avg_lcom": 0.167
+  },
+  "src/oo_ratchet/layers/ring_reach.py": {
+    "efferent_coupling": 1.0,
+    "public_names": 3.0,
+    "circular_imports": 0.0,
+    "max_lcom": 0.0,
+    "avg_lcom": 0.0
+  },
   "src/oo_ratchet/layers/scan.py": {
     "efferent_coupling": 6.0,
     "public_names": 2.0,
@@ -1064,8 +1064,8 @@
     "avg_lcom": 0.733
   },
   "src/oo_ratchet/layers/suggest.py": {
-    "efferent_coupling": 9.0,
-    "public_names": 3.0,
+    "efferent_coupling": 10.0,
+    "public_names": 2.0,
     "circular_imports": 0.0,
     "max_lcom": 0.0,
     "avg_lcom": 0.0
@@ -1075,14 +1075,28 @@
     "public_names": 6.0,
     "circular_imports": 0.0,
     "max_lcom": 0.333,
-    "avg_lcom": 0.317
+    "avg_lcom": 0.211
   },
-  "src/oo_ratchet/layers/suggest_rules.py": {
-    "efferent_coupling": 1.0,
+  "src/oo_ratchet/layers/suggest_lists.py": {
+    "efferent_coupling": 2.0,
     "public_names": 2.0,
     "circular_imports": 0.0,
-    "max_lcom": 0.286,
-    "avg_lcom": 0.286
+    "max_lcom": 0.238,
+    "avg_lcom": 0.238
+  },
+  "src/oo_ratchet/layers/suggest_model.py": {
+    "efferent_coupling": 0.0,
+    "public_names": 2.0,
+    "circular_imports": 0.0,
+    "max_lcom": 0.0,
+    "avg_lcom": 0.0
+  },
+  "src/oo_ratchet/layers/suggest_rules.py": {
+    "efferent_coupling": 3.0,
+    "public_names": 1.0,
+    "circular_imports": 0.0,
+    "max_lcom": 0.476,
+    "avg_lcom": 0.476
   },
   "src/oo_ratchet/layers/suggest_table.py": {
     "efferent_coupling": 1.0,
@@ -1106,15 +1120,8 @@
     "avg_lcom": 0.0
   },
   "src/oo_ratchet/oo/__init__.py": {
-    "efferent_coupling": 7.0,
-    "public_names": 12.0,
-    "circular_imports": 0.0,
-    "max_lcom": 0.0,
-    "avg_lcom": 0.0
-  },
-  "src/oo_ratchet/oo/baseline.py": {
-    "efferent_coupling": 1.0,
-    "public_names": 1.0,
+    "efferent_coupling": 4.0,
+    "public_names": 6.0,
     "circular_imports": 0.0,
     "max_lcom": 0.0,
     "avg_lcom": 0.0
@@ -1140,27 +1147,6 @@
     "max_lcom": 0.0,
     "avg_lcom": 0.0
   },
-  "src/oo_ratchet/oo/compare.py": {
-    "efferent_coupling": 1.0,
-    "public_names": 3.0,
-    "circular_imports": 0.0,
-    "max_lcom": 0.618,
-    "avg_lcom": 0.476
-  },
-  "src/oo_ratchet/oo/diffmodel.py": {
-    "efferent_coupling": 0.0,
-    "public_names": 1.0,
-    "circular_imports": 0.0,
-    "max_lcom": 0.0,
-    "avg_lcom": 0.0
-  },
-  "src/oo_ratchet/oo/gitio.py": {
-    "efferent_coupling": 1.0,
-    "public_names": 3.0,
-    "circular_imports": 0.0,
-    "max_lcom": 0.8,
-    "avg_lcom": 0.8
-  },
   "src/oo_ratchet/oo/metrics.py": {
     "efferent_coupling": 2.0,
     "public_names": 1.0,
@@ -1172,8 +1158,8 @@
     "efferent_coupling": 3.0,
     "public_names": 1.0,
     "circular_imports": 0.0,
-    "max_lcom": 0.527,
-    "avg_lcom": 0.527
+    "max_lcom": 0.5,
+    "avg_lcom": 0.5
   },
   "src/oo_ratchet/oo/thresholds.py": {
     "efferent_coupling": 0.0,
@@ -1253,11 +1239,11 @@
     "avg_lcom": 0.5
   },
   "src/oo_ratchet/suppression/report.py": {
-    "efferent_coupling": 1.0,
+    "efferent_coupling": 2.0,
     "public_names": 1.0,
     "circular_imports": 0.0,
-    "max_lcom": 0.286,
-    "avg_lcom": 0.286
+    "max_lcom": 0.0,
+    "avg_lcom": 0.0
   },
   "src/oo_ratchet/suppression/scanner.py": {
     "efferent_coupling": 4.0,

@@ -9,11 +9,18 @@ from pathlib import Path
 
 import pytest
 
-from oo_ratchet.design.layer_table import LayerTable
+from oo_ratchet.core.domain.layer_table import LayerTable
 from oo_ratchet.layers.cli import main
 from tests.conftest import GitSandbox
 from tests.layers_repo import LayersRepo
-from tests.test_layers_suggest import PROJECT, PROTOCOL, rings, start
+from tests.test_layers_suggest import (
+    MARK_ADAPTERS,
+    MARK_DOMAIN,
+    PROJECT,
+    PROTOCOL,
+    rings,
+    start,
+)
 
 
 def roundtrip(repo: LayersRepo) -> tuple[str, dict[str, object]]:
@@ -31,16 +38,17 @@ def none_nearest(_src: object) -> None:
 
 
 def layered(repo: LayersRepo) -> None:
-    """The reviewers' repro: ports, model, db, cli, mid, user."""
+    """The reviewers' repro, with declared rings: ports, model, db, cli, mid, user."""
     start(repo)
-    repo.write("src/app/ports.py", PROTOCOL)
-    repo.write("src/app/model.py", "from app.ports import Store\n")
+    repo.write("src/app/ports.py", MARK_DOMAIN + PROTOCOL)
+    repo.write("src/app/model.py", MARK_DOMAIN + "from app.ports import Store\n")
     repo.write(
-        "src/app/db.py", "import subprocess\nimport app.ports\nimport app.model\n"
+        "src/app/db.py",
+        MARK_ADAPTERS + "import subprocess\nimport app.ports\nimport app.model\n",
     )
     repo.write("src/app/runner.py", "import argparse\n")
-    repo.write("src/app/mid.py", "from app import db\n")
-    repo.write("src/app/user.py", "from app import mid\n")
+    repo.write("src/app/mid.py", MARK_DOMAIN + "from app import db\n")
+    repo.write("src/app/user.py", MARK_DOMAIN + "from app import mid\n")
 
 
 class TestNoSelfViolations:
@@ -53,46 +61,46 @@ class TestNoSelfViolations:
         table = rings(out)
         placed = {m for ring in table.values() for m in ring}
         assert "app.user" not in placed
-        assert "app.model" not in placed
-        assert "unclassified" in out
+        assert "app.model" in rings(out)["domain"]
+        assert "CONFLICT" in out
 
-    def test_importer_of_an_application_module_is_not_domain(
-        self, repo: LayersRepo
-    ) -> None:
-        layered(repo)
-        assert "app.model" not in rings(repo.run("--suggest")[1])["domain"]
-
-    def test_unclassified_importers_are_unclassified_in_turn(
+    def test_importers_of_an_adapter_conflict_with_the_chain(
         self, repo: LayersRepo
     ) -> None:
         layered(repo)
         out = repo.run("--suggest")[1]
-        assert "# app.user: unclassified" in out
-        assert "# app.mid: unclassified" in out
+        assert "#   app.mid: CONFLICT" in out
+        assert "app.user -> app.mid -> app.db -> json" in out
 
     def test_second_package_has_no_violations(self, repo: LayersRepo) -> None:
         start(repo)
         repo.write("src/app/core/__init__.py", "")
         repo.write("src/app/core/rules.py", "X = 1\n")
         repo.write("src/app/core/calc.py", "from app.core import rules\n")
-        repo.write("src/app/ports.py", PROTOCOL)
-        repo.write("src/app/store.py", "import sqlite3\nfrom app.ports import Store\n")
+        repo.write("src/app/ports.py", MARK_DOMAIN + PROTOCOL)
+        repo.write(
+            "src/app/store.py",
+            MARK_ADAPTERS + "import sqlite3\nfrom app.ports import Store\n",
+        )
         repo.write("src/app/helper.py", "import app.store\n")
         repo.write("src/app/top.py", "import typer\nimport app.helper\n")
-        repo.write("src/app/svc.py", "import app.ports\nimport app.core.calc\n")
+        repo.write(
+            "src/app/svc.py",
+            '__ring__ = "application"\nimport app.ports\nimport app.core.calc\n',
+        )
         out, data = roundtrip(repo)
         assert data["violations"] == []
         assert "app.core.calc" in out
 
-    def test_adapter_importing_an_entry_module_is_unclassified(
+    def test_adapter_importing_an_entry_module_is_a_conflict(
         self, repo: LayersRepo
     ) -> None:
         start(repo)
         repo.write("src/app/top.py", "import argparse\n")
-        repo.write("src/app/io.py", "import json\nimport app.top\n")
+        repo.write("src/app/io.py", MARK_ADAPTERS + "import app.top\n")
         out, data = roundtrip(repo)
         assert data["violations"] == []
-        assert "# app.io: unclassified" in out
+        assert "#   app.io: CONFLICT" in out
 
 
 class TestSameEdgesAsTheGate:
@@ -102,27 +110,21 @@ class TestSameEdgesAsTheGate:
         start(repo)
         repo.write("src/app/db.py", "import subprocess\nclass Repo: ...\n")
         repo.write("src/app/__init__.py", "from app.db import Repo\n")
-        repo.write("src/app/model.py", "from app import Repo\n")
+        repo.write("src/app/model.py", MARK_DOMAIN + "from app import Repo\n")
         out, data = roundtrip(repo)
         assert data["violations"] == []
-        assert "app.model" not in rings(out)["domain"]
+        assert "#   app.model: CONFLICT" in out
+        assert "app.model -> app.db -> subprocess" in out
 
     def test_dynamic_import_blocks_domain(self, repo: LayersRepo) -> None:
         start(repo)
         repo.write("src/app/db.py", "import subprocess\n")
-        src = "import importlib\nimportlib.import_module('app.db')\n"
+        src = MARK_DOMAIN + "import importlib\nimportlib.import_module('app.db')\n"
         repo.write("src/app/dyn.py", src)
         out, data = roundtrip(repo)
         assert data["violations"] == []
-        assert "app.dyn" not in rings(out)["domain"]
-
-    def test_reexport_hop_makes_application(self, repo: LayersRepo) -> None:
-        start(repo)
-        repo.write("src/app/ports.py", PROTOCOL)
-        repo.write("src/app/__init__.py", "from app.ports import Store\n")
-        repo.write("src/app/db.py", "import subprocess\nfrom app import Store\n")
-        out = repo.run("--suggest")[1]
-        assert rings(out)["application"] == ["app.ports"]
+        assert "#   app.dyn: CONFLICT" in out
+        assert "app.dyn -> app.db -> subprocess" in out
 
 
 class TestShadowedModules:
@@ -149,7 +151,7 @@ class TestShadowedRoundTrip:
         out, data = roundtrip(repo)
         assert data["violations"] == []
         assert "app.a" not in {m for r in rings(out).values() for m in r}
-        assert "# app.a: unclassified (shadowed: 2 files are module app.a" in out
+        assert "#   app.a: unclassified (shadowed: 2 files are module app.a" in out
 
     def test_shadowed_file_importing_an_adapter(self, repo: LayersRepo) -> None:
         start(repo)
@@ -170,13 +172,13 @@ class TestShadowedRoundTrip:
         assert data["violations"] == []
         assert "app.sub.*" not in rings(out)["domain"]
 
-    def test_empty_reasons_section_says_none(self, repo: LayersRepo) -> None:
+    def test_empty_conflicts_section_says_none(self, repo: LayersRepo) -> None:
         start(repo)
         for name in ("kernel", "service", "cli"):
             repo.edit(name, "import app\nfrom app import a\n")
         repo.write("src/app/a/__init__.py", "")
         repo.write("src/app/a.py", "")
-        assert repo.run("--suggest")[1].rstrip().endswith("# Reasons:\n#   none")
+        assert "# Conflicts:\n#   none" in repo.run("--suggest")[1]
 
 
 class TestEvidenceMatchesTheGate:
@@ -190,20 +192,13 @@ class TestEvidenceMatchesTheGate:
         repo.edit("cli", src)
         assert "app.cli" not in rings(repo.run("--suggest")[1])["entry"]
 
-    def test_nested_protocol_is_not_a_protocol(self, repo: LayersRepo) -> None:
-        start(repo)
-        src = "from typing import Protocol\ndef f():\n    class P(Protocol): ...\n"
-        repo.edit("kernel", src)
-        repo.edit("service", "import json\nimport app.kernel\n")
-        assert rings(repo.run("--suggest")[1])["application"] == []
-
     def test_relative_import_past_the_root_is_unclassified(
         self, repo: LayersRepo
     ) -> None:
         start(repo)
         repo.edit("kernel", "from .. import x\n")
         out = repo.run("--suggest")[1]
-        assert "# app.kernel: unclassified" in out
+        assert "#   app.kernel: unclassified" in out
         assert "relative import" in out
 
 
@@ -263,44 +258,6 @@ class TestOutsideGit:
         assert "app.a" in done.stdout
 
 
-class TestProtocolBindings:
-    """A base is a Protocol only if it resolves to typing's Protocol."""
-
-    @staticmethod
-    def adapter_imports_kernel(repo: LayersRepo, source: str) -> list[str]:
-        start(repo)
-        repo.edit("kernel", source)
-        repo.edit("service", "import json\nimport app.kernel\n")
-        return rings(repo.run("--suggest")[1])["application"]
-
-    @pytest.mark.parametrize(
-        "source",
-        [
-            "from typing import Protocol as Port\n\n\nclass P(Port): ...\n",
-            "import typing as t\n\n\nclass P(t.Protocol): ...\n",
-            "import typing\n\n\nclass P(typing.Protocol): ...\n",
-            "from typing_extensions import Protocol\n\n\nclass P(Protocol): ...\n",
-            "import typing_extensions as te\n\n\nclass P(te.Protocol): ...\n",
-            "from typing import Protocol\n\n\nclass P(Protocol[int]): ...\n",
-        ],
-    )
-    def test_resolved_protocol_is_application(
-        self, repo: LayersRepo, source: str
-    ) -> None:
-        assert self.adapter_imports_kernel(repo, source) == ["app.kernel"]
-
-    @pytest.mark.parametrize(
-        "source",
-        [
-            "from other import Protocol\n\n\nclass P(Protocol): ...\n",
-            "import other\n\n\nclass P(other.Protocol): ...\n",
-            "class Protocol: ...\n\n\nclass P(Protocol): ...\n",
-        ],
-    )
-    def test_lookalike_is_not_a_port(self, repo: LayersRepo, source: str) -> None:
-        assert self.adapter_imports_kernel(repo, source) == []
-
-
 class TestSeveralScripts:
     """Every script that targets a module is named in its entry reason."""
 
@@ -334,7 +291,7 @@ class TestPackageRoot:
         repo.edit("service", "from app import K\n")
         out = repo.run("--suggest")[1]
         assert "app" not in rings(out)["entry"]
-        assert "# app: unclassified (" in out
+        assert "#   app: unclassified (" in out
 
     def test_design_check_and_gate_accept_the_table(self, repo: LayersRepo) -> None:
         start(repo)
@@ -367,7 +324,7 @@ class TestSingleModulePackage:
     def package(tmp_path: Path) -> Path:
         pkg = tmp_path / "src" / "pkg"
         pkg.mkdir(parents=True)
-        (pkg / "one.py").write_text("X = 1\n")
+        (pkg / "one.py").write_text('__ring__ = "domain"\n')
         (tmp_path / "pyproject.toml").write_text(PROJECT)
         GitSandbox(tmp_path).commit("one")
         return pkg
@@ -396,10 +353,12 @@ class TestGlobMetacharacters:
         self, repo: LayersRepo
     ) -> None:
         start(repo)
-        repo.write("src/app/plugin[old].py", "import json\n")
-        repo.write("src/app/plugino.py", "X = 1\n")
-        repo.write("src/app/a*b.py", "import json\n")
-        repo.write("src/app/x?.py", "import json\n")
+        for other in ("kernel", "service", "cli"):
+            repo.edit(other, MARK_DOMAIN)
+        repo.write("src/app/plugin[old].py", MARK_ADAPTERS)
+        repo.write("src/app/plugino.py", MARK_DOMAIN)
+        repo.write("src/app/a*b.py", MARK_ADAPTERS)
+        repo.write("src/app/x?.py", MARK_ADAPTERS)
         out, data = roundtrip(repo)
         assert data["violations"] == []
         assert data["unassigned"] == []
@@ -458,5 +417,5 @@ class TestRootScripts:
         text = '[project]\nname = "app"\n[project.scripts]\ntool = "app:main"\n'
         repo.write("pyproject.toml", text)
         out = repo.run("--suggest")[1]
-        assert "# app: entry (" in out
+        assert "#   app: entry (" in out
         assert "console script tool" in out

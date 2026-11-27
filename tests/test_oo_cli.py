@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from oo_ratchet.oo.cli import Options, main
+from oo_ratchet.oo.cli import OoOptions, main
 
 # Shares a real git-tmp-repo fixture with test_oo_ratchet.py -- see the
 # marker rationale there and the measured timing in TESTING.md.
@@ -36,7 +36,7 @@ class TestOptionsParse:
     """argparse replaces the old substring argv sniffing (F6)."""
 
     def test_defaults(self) -> None:
-        opts = Options.parse(["src/pkg"])
+        opts = OoOptions.parse(["src/pkg"])
         assert opts.src == Path("src/pkg")
         assert not opts.check
         assert opts.base_ref is None
@@ -44,7 +44,7 @@ class TestOptionsParse:
         assert opts.justify == ""
 
     def test_check_with_base_ref_and_require(self) -> None:
-        opts = Options.parse(
+        opts = OoOptions.parse(
             ["src/pkg", "--check", "--base-ref", "abc123", "--require-base"]
         )
         assert opts.check
@@ -52,14 +52,14 @@ class TestOptionsParse:
         assert opts.require_base
 
     def test_relax_and_justify(self) -> None:
-        opts = Options.parse(
+        opts = OoOptions.parse(
             ["src/pkg", "--relax", "src/pkg/m.py", "--justify", "accepted"]
         )
         assert opts.relax == "src/pkg/m.py"
         assert opts.justify == "accepted"
 
     def test_allow_ci_write_and_source(self) -> None:
-        opts = Options.parse(
+        opts = OoOptions.parse(
             ["src", "--reconcile", "--allow-ci-write", "--source", "vox-1"]
         )
         assert opts.reconcile
@@ -72,26 +72,26 @@ class TestActionExclusivity:
 
     def test_two_actions_is_argparse_error(self) -> None:
         with pytest.raises(SystemExit):
-            Options.parse(["src", "--check", "--update"])
+            OoOptions.parse(["src", "--check", "--update"])
 
     def test_relax_and_reconcile_conflict(self) -> None:
         with pytest.raises(SystemExit):
-            Options.parse(["src", "--relax", "src/m.py", "--reconcile"])
+            OoOptions.parse(["src", "--relax", "src/m.py", "--reconcile"])
 
     def test_single_action_still_parses(self) -> None:
-        assert Options.parse(["src", "--check"]).check
-        assert Options.parse(["src", "--reconcile"]).reconcile
-        assert Options.parse(["src", "--audit-completeness"]).audit_completeness
+        assert OoOptions.parse(["src", "--check"]).check
+        assert OoOptions.parse(["src", "--reconcile"]).reconcile
+        assert OoOptions.parse(["src", "--audit-completeness"]).audit_completeness
 
     def test_log_and_json_are_actions_not_silently_ignored(self) -> None:
         # --log/--json are views: combining with another action is an error,
         # not a silent no-op.
         with pytest.raises(SystemExit):
-            Options.parse(["src", "--check", "--log"])
+            OoOptions.parse(["src", "--check", "--log"])
         with pytest.raises(SystemExit):
-            Options.parse(["src", "--check", "--json"])
-        assert Options.parse(["src", "--log"]).log
-        assert Options.parse(["src", "--json"]).json
+            OoOptions.parse(["src", "--check", "--json"])
+        assert OoOptions.parse(["src", "--log"]).log
+        assert OoOptions.parse(["src", "--json"]).json
 
 
 class TestMainEntry:

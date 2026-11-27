@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, Self
 
 from oo_ratchet.core.adapters.shadowtree import ShadowTree
 
+from .comparison import ShadowMetrics
 from .shadow_keys import KeyChanges
-from .shadow_metrics import ShadowMetrics
 from .shadow_report import ShadowReport
 from .shadow_scan import ShadowScan
 

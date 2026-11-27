@@ -6,11 +6,10 @@ import ast
 from itertools import combinations
 from typing import Self
 
+from oo_ratchet.core.domain.declaration import Declaration
+from oo_ratchet.core.domain.function_shape import FunctionShape
+from oo_ratchet.core.domain.shape import ClassShape, Method
 from oo_ratchet.coupling.metrics import ModuleCouplingMetrics
-
-from .declaration import Declaration
-from .function_shape import FunctionShape
-from .shape import ClassShape, Method
 
 type _Footprint = tuple[str, set[str], set[str]]
 

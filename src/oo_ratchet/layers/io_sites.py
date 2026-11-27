@@ -5,9 +5,9 @@ from __future__ import annotations
 import ast
 from typing import Self
 
-from oo_ratchet.design.domain_io import DomainIO
-from oo_ratchet.design.modules import Module
-from oo_ratchet.design.targets import ImportTargets
+from oo_ratchet.core.domain.domain_io import DomainIO
+from oo_ratchet.core.domain.modules import Module
+from oo_ratchet.core.domain.targets import ImportTargets
 
 from .dynamic import DynamicImports
 

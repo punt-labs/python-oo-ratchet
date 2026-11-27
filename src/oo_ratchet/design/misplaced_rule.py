@@ -5,12 +5,13 @@ from __future__ import annotations
 import ast
 from typing import Self
 
+from oo_ratchet.core.domain.declaration import Declaration
+from oo_ratchet.core.domain.findings import Finding, Rules
+from oo_ratchet.core.domain.function_shape import FunctionShape
+from oo_ratchet.core.domain.project_types import ProjectTypes
+
 from .data_fields import DataFields
 from .data_inventory import DataInventory
-from .declaration import Declaration
-from .findings import Finding, Rules
-from .function_shape import FunctionShape
-from .project_types import ProjectTypes
 from .receiver_types import ReceiverTypes
 
 

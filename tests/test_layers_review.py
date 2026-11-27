@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from oo_ratchet.design.layer_edges import Edge
+from oo_ratchet.core.domain.layer_edges import Edge
 from oo_ratchet.layers.cli import main
 from oo_ratchet.layers.report import LayersReport
 from oo_ratchet.layers.scan import LayerScan

@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from typing import Self
 
-from oo_ratchet.design.layer_config import LayerConfig
-from oo_ratchet.design.layer_edges import Edge, Violation
-from oo_ratchet.design.layer_violations import LayerViolations
-from oo_ratchet.design.modules import Module
+from oo_ratchet.core.domain.layer_config import LayerConfig
+from oo_ratchet.core.domain.layer_edges import Edge, Violation
+from oo_ratchet.core.domain.layer_violations import LayerViolations
+from oo_ratchet.core.domain.modules import Module
 
 from .io_sites import IoSites
 

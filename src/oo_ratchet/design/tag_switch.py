@@ -5,7 +5,7 @@ from __future__ import annotations
 import ast
 from typing import Self
 
-from .function_shape import FunctionShape
+from oo_ratchet.core.domain.function_shape import FunctionShape
 
 
 class TagSwitch:

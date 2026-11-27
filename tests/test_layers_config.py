@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from oo_ratchet.design.declared_layers import DeclaredLayers
-from oo_ratchet.design.layer_config import LayerConfig, LayerConfigError
-from oo_ratchet.design.layer_table import LayerTable
+from oo_ratchet.core.domain.declared_layers import DeclaredLayers
+from oo_ratchet.core.domain.layer_config import LayerConfig, LayerConfigError
+from oo_ratchet.core.domain.layer_table import LayerTable
 
 
 def _declared(

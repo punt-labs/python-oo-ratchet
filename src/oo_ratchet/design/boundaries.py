@@ -6,12 +6,12 @@ import ast
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Self
 
-from .findings import Finding, Rules
-from .modules import Module, ModuleIndex
-from .targets import ImportTargets
+from oo_ratchet.core.domain.findings import Finding, Rules
+from oo_ratchet.core.domain.modules import Module, ModuleIndex
+from oo_ratchet.core.domain.targets import ImportTargets
 
 if TYPE_CHECKING:
-    from .shape import ClassShape
+    from oo_ratchet.core.domain.shape import ClassShape
 
 
 class BoundaryCheck:

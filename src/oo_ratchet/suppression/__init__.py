@@ -2,18 +2,18 @@
 
 from __future__ import annotations
 
-from .cli import Cli, Options, main
+from .cli import SuppressionCommand, SuppressionOptions, main
 from .patterns import FileSuppressions
 from .pyproject import PerFileIgnoresCounter
 from .report import SuppressionReport
 from .scanner import Scanner
 
 __all__ = [
-    "Cli",
     "FileSuppressions",
-    "Options",
     "PerFileIgnoresCounter",
     "Scanner",
+    "SuppressionCommand",
+    "SuppressionOptions",
     "SuppressionReport",
     "main",
 ]

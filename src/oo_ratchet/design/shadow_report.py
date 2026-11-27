@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 from typing import Self
 
+from .comparison import ShadowMetrics
 from .shadow_keys import KeyChanges
-from .shadow_metrics import ShadowMetrics
 
 
 class ShadowReport:

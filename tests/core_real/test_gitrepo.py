@@ -13,7 +13,6 @@ from oo_ratchet.core.application.check import Check
 from oo_ratchet.core.application.operation import Ports
 from oo_ratchet.core.domain.errors import GitError, StateError
 from oo_ratchet.core.domain.scores import Measurement, Score
-from oo_ratchet.oo.baseline import Baseline
 from tests.conftest import GitSandbox
 from tests.core.doubles import oo_policy
 from tests.test_oo_ratchet import GOOD, WORSE, GitFixture
@@ -105,7 +104,7 @@ def test_new_adapters_check_a_real_repository(
 
     def scan() -> Measurement:
         scorer = fx.scorer()
-        by_file = Baseline.metrics_by_file(scorer.results)
+        by_file = scorer.rows
         return Measurement(
             tuple(Score(p, m) for p, m in by_file.items()),
             frozenset(scorer.parse_errors),

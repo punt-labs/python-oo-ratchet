@@ -6,7 +6,7 @@ import pytest
 
 from oo_ratchet.core.adapters.edgeformats import EdgeFormat
 from oo_ratchet.core.domain.errors import StateError
-from oo_ratchet.design.layer_edges import Edge
+from oo_ratchet.core.domain.layer_edges import Edge
 
 
 def test_parse_reads_a_module_map() -> None:

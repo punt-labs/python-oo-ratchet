@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from oo_ratchet.core.domain.errors import StateError
-from oo_ratchet.design.layer_config import LayerConfigError
+from oo_ratchet.core.domain.layer_config import LayerConfigError
 
 from .scan import LayersScanError
 

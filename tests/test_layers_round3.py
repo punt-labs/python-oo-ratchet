@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from oo_ratchet.design.layer_edges import Edge
+from oo_ratchet.core.domain.layer_edges import Edge
 from oo_ratchet.layers.scan import LayerScan
 from tests.layers_repo import BAD_SERVICE, OK_SERVICE, PYPROJECT, LayersRepo
 

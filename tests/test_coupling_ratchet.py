@@ -20,10 +20,10 @@ from oo_ratchet.core.adapters.auditview import AuditView
 from oo_ratchet.core.adapters.gitrepo import GitRepo
 from oo_ratchet.core.adapters.jsonstore import JsonBaselineStore
 from oo_ratchet.core.domain.errors import GitError, StateError
+from oo_ratchet.core.domain.exits import Outcome
 from oo_ratchet.coupling.cli import main
 from oo_ratchet.coupling.config import CouplingConfig
 from oo_ratchet.coupling.gateinput import GateInput
-from oo_ratchet.coupling.outcome import Outcome
 from oo_ratchet.coupling.scorer import CouplingScorer
 
 BASELINE = ".oo-coupling-baseline.json"

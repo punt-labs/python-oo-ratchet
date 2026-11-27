@@ -6,10 +6,10 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Self
 
-from oo_ratchet.design.layer_config import LayerConfig, LayerConfigError
-from oo_ratchet.design.layer_edges import Edge, Violation
-from oo_ratchet.design.layer_table import LayerTable
-from oo_ratchet.design.modules import ModuleIndex
+from oo_ratchet.core.domain.layer_config import LayerConfig, LayerConfigError
+from oo_ratchet.core.domain.layer_edges import Edge, Violation
+from oo_ratchet.core.domain.layer_table import LayerTable
+from oo_ratchet.core.domain.modules import ModuleIndex
 from oo_ratchet.source_set import Source, SourceSet
 
 from .strict import StrictViolations
@@ -49,7 +49,7 @@ class LayerScan:
         self._src = SourceSet(src)
         self._config = config or cls._load(src)
         self._src.require_package(LayersScanError)
-        index = ModuleIndex(src)
+        index = ModuleIndex(self._src)
         if index.skipped:
             names = ", ".join(sorted(str(p) for p in index.skipped))
             msg = f"cannot read or parse: {names}"
@@ -62,7 +62,7 @@ class LayerScan:
         self._violations = tuple(found.violations())
         self._unassigned = tuple(found.unassigned())
         self._unresolvable = tuple(found.unresolvable())
-        self._config_path = LayerTable.nearest(src)
+        self._config_path = LayerTable.nearest(self._src.config_anchor)
         self._package = index.package_name
         return self
 
@@ -151,7 +151,7 @@ class LayerScan:
 
     @staticmethod
     def _load(src: Source) -> LayerConfig:
-        config = LayerTable.load(src)
+        config = LayerTable.load(SourceSet(src).config_anchor)
         if config is None:
             msg = f"no [tool.oo-ratchet.layers] table above {src}"
             raise LayerConfigError(msg)

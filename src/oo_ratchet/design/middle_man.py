@@ -5,11 +5,11 @@ from __future__ import annotations
 import ast
 from typing import Self
 
-from .declaration import Declaration
-from .project_types import ProjectTypes
-from .protocol_imports import ProtocolImports
-from .shape import ClassShape, Method
-from .type_reference import TypeReference
+from oo_ratchet.core.domain.declaration import Declaration
+from oo_ratchet.core.domain.project_types import ProjectTypes
+from oo_ratchet.core.domain.protocol_imports import ProtocolImports
+from oo_ratchet.core.domain.shape import ClassShape, Method
+from oo_ratchet.core.domain.type_reference import TypeReference
 
 
 class MiddleMan:

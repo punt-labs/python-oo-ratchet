@@ -48,6 +48,15 @@ class Scorer:
         return self._results
 
     @property
+    def rows(self) -> dict[str, dict[str, float]]:
+        """Return each parsed file's gated metric values, keyed by path."""
+        return {
+            str(r["file"]): {k: float(r[k]) for k in Thresholds.names() if k in r}
+            for r in self._results
+            if "error" not in r
+        }
+
+    @property
     def files(self) -> frozenset[str]:
         """Return the repo-relative paths the scorer enumerated (parse-clean)."""
         return frozenset(str(r["file"]) for r in self._results if "error" not in r)

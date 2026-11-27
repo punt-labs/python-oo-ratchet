@@ -19,6 +19,7 @@ from oo_ratchet.core.adapters.tallyfiles import JsonLedger, JsonTallyStore
 from oo_ratchet.core.adapters.tallyformats import TallyFormat
 from oo_ratchet.core.domain.errors import GitError, StateError
 from oo_ratchet.core.domain.ledgers import Ceiling, Ledger
+from oo_ratchet.core.domain.tallies import Tally
 from oo_ratchet.suppression.cli import main
 from oo_ratchet.suppression.patterns import FileSuppressions
 from oo_ratchet.suppression.pyproject import PerFileIgnoresCounter, PyprojectError
@@ -68,8 +69,23 @@ class TestScanner:
         assert report.total >= 2
 
 
-class TestSuppressionReportRebased:
-    """``rebased`` moves by_file keys onto a new root without losing counts."""
+class TestSuppressionReportTally:
+    """The report holds a core ``Tally``; the one ``rebased`` is the tally's."""
+
+    def test_counts_are_a_tally(self, tmp_path: Path) -> None:
+        (tmp_path / "pkg").mkdir()
+        (tmp_path / "pkg" / "a.py").write_text(WITH_SUPPRESSIONS)
+        report = Scanner(tmp_path / "pkg", tmp_path).report
+        assert isinstance(report.tally, Tally)
+        assert report.tally.by_category == report.by_category
+        assert report.tally.by_file == report.by_file
+
+    def test_rebase_is_the_tallys(self) -> None:
+        fs = FileSuppressions("/tmp/xyz/pkg/a.py", "x = 1  # noqa\n")
+        report = SuppressionReport.from_files([fs], 0)
+        moved = report.rebased("/tmp/xyz/", "")
+        assert moved.tally == report.tally.rebased("/tmp/xyz/", "")
+        assert moved.by_file == {"pkg/a.py": {"noqa": 1}}
 
     def test_merges_on_key_collision_instead_of_overwriting(self) -> None:
         # A source file's real path can collide with a literal (non-glob)
@@ -79,8 +95,8 @@ class TestSuppressionReportRebased:
         # must survive the rebase merged, not one silently clobbering
         # the other.
         fs = FileSuppressions("/tmp/xyz/pkg/a.py", "x = 1  # noqa\ny = 2  # noqa\n")
-        report = SuppressionReport([fs], 3, {"pkg/a.py": 3})
-        rebased = SuppressionReport.rebased(report, "/tmp/xyz/pkg", "pkg")
+        report = SuppressionReport.from_files([fs], 3, {"pkg/a.py": 3})
+        rebased = report.rebased("/tmp/xyz/pkg", "pkg")
         assert rebased.by_file == {"pkg/a.py": {"noqa": 2, "per_file_ignores": 3}}
 
 

@@ -11,23 +11,27 @@
   rule's measured precision and `docs/architecture/b4-design-precision.md` the
   raw labels. Off by default: without `--enforce` the exit status is unchanged.
 - `oo-ratchet layers src/pkg/ --suggest` prints a starter `[tool.oo-ratchet.layers]`
-  table and a reason for each module's ring (PL-1713): `argparse`, `typer` or a
-  console-script target is `entry`; importing IO is `adapters`; a Protocol with
-  no IO that an adapter imports is `application`; anything pure is `domain`.
-  Modules that fit no rule are printed as comments. It writes nothing and the
-  table is never applied automatically. A module whose imports its ring refuses
-  (domain importing application, adapters, entry or an unclassified module)
-  is unclassified too, so the table does not fail the gate on itself.
-  Imports come from the gate's own edge extractor. It needs no git repository.
-  The package root goes in `entry` (unclassified if a non-entry module imports
-  it), Protocol bases resolve through the module's imports, and every script
-  name targeting a module is kept. Names with glob characters are escaped, and
-  a namespace root with one module and no `__init__.py` is accepted. Names and
-  reasons are escaped so no dynamic text can start an active TOML line, and a
-  `[project.scripts]` value must be a valid entry point (spaces around the
-  colon are fine; extras are PEP 508 names, and an empty `[]` is allowed). Non-BMP module names are written
-  as TOML `\UXXXXXXXX` escapes. The header and README name the package root as
-  an exception to the ring rules.
+  table and three lists, and never guesses a ring (PL-1713, PL-1730). A ring
+  comes from a declaration (a module-level `__ring__ = "domain"` string, read
+  from the syntax tree, or the existing fixed-form `[tool.oo-ratchet.layers]`
+  table), then a package name (`domain`, `model`, `core` suggest domain;
+  `adapters`, `infra` suggest adapters; `[tool.oo-ratchet.suggest]` replaces the
+  names), else the module is unclassified with its evidence. `entry` still comes
+  from `argparse`, `typer` or a console-script target. A module that reaches IO,
+  directly or through in-package imports, is never suggested `domain`: it is a
+  `CONFLICT` printed with the path (`a -> b -> open()`), as is intent that
+  disagrees with entry evidence or with the rings the gate lets it import. Output
+  is the ring list, the conflicts and the unclassified modules, each line with its
+  reason, and a summary count. It writes nothing and the table is never applied
+  automatically. Imports come from the gate's own edge extractor. It needs no
+  git repository. The package root goes in `entry` (unclassified if a non-entry
+  module imports it), and every script name targeting a module is kept. Names
+  with glob characters are escaped, and a namespace root with one module and no
+  `__init__.py` is accepted. Names and reasons are escaped so no dynamic text can
+  start an active TOML line, and a `[project.scripts]` value must be a valid
+  entry point (spaces around the colon are fine; extras are PEP 508 names, and
+  an empty `[]` is allowed). Non-BMP module names are written as TOML
+  `\UXXXXXXXX` escapes.
 - `layers --json` adds three keys so a diagram can be drawn from the output
   alone (PL-1714): `module_rings` (each module's layer name, `null` when no
   layer claims it), `ring_edges` (violating layer-edge counts per pair of

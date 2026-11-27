@@ -7,7 +7,7 @@ from collections import defaultdict
 from collections.abc import Mapping
 from typing import Self
 
-from oo_ratchet.design.layer_violations import Site
+from oo_ratchet.core.domain.layer_violations import Site
 
 type Origin = tuple[str, str]
 

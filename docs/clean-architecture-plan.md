@@ -229,7 +229,7 @@ generators are in `docs/architecture/tools/`:
 
 | Script | Draws |
 |--------|-------|
-| `layers_diagram.py <repo> <out.json> [rings.toml]` | the current state in the four rings, from `oo-ratchet layers --json` alone (`module_rings`, `ring_edges`, `marked_violations`); run from the repo root, it uses the pyproject `[tool.oo-ratchet.layers]` table; an optional third argument names the package directory (default `src/oo_ratchet`); rerun after each unit |
+| `layers_diagram.py <repo> <out.json> [package-dir]` | the current state in the four rings, from `oo-ratchet layers --json` alone (`module_rings`, `ring_edges`, `marked_violations`); run from the repo root, it uses the pyproject `[tool.oo-ratchet.layers]` table; an optional third argument names the package directory (default `src/oo_ratchet`); rerun after each unit |
 | `class_diagram.py <repo> <out.json>` | the older current-state view: packages and key classes, from an ad-hoc import scan and `oo-ratchet design --json` |
 | `target_diagram.py <out.json>` | the intermediate target (hand-specified) |
 | `clean_diagram.py <out.json>` | the four-ring target (hand-specified) |

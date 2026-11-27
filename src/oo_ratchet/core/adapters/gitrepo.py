@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import io
 import logging
 import subprocess
+import tarfile
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Self
 
@@ -65,15 +68,84 @@ class GitRepo:
 
     def baseline_at(self, ref: str) -> Rows | None:
         """Return the baseline committed at ``ref``, ``None`` if it is absent."""
-        text = self._show(ref, self._baseline_file)
+        text = self.show(ref, self._baseline_file)
         if text is None:
             return None
         return BaselineFormat.decode(text, f"{ref}:{self._baseline_file}")
 
+    def adopted_at(self, ref: str) -> bool:
+        """Return whether a baseline file is committed at ``ref``."""
+        return self.show(ref, self._baseline_file) is not None
+
     def audit_at(self, ref: str) -> tuple[AuditRecord, ...] | None:
         """Return the audit records committed at ``ref``, ``None`` if absent."""
-        text = self._show(ref, self._audit_file)
+        text = self.show(ref, self._audit_file)
         return None if text is None else AuditFormat.decode(text)
+
+    def exists_at(self, ref: str, path: str) -> bool:
+        """Return whether ``path`` is a blob or tree at ``ref``.
+
+        ``git cat-file -e`` exits 128 both for "not in this tree" and for
+        unrelated failures (a corrupt object, a bad ref spelling); only the
+        former is absence. A blank ``path`` addresses the root tree.
+        """
+        root = self._root
+        if root is None:
+            raise GitError("not inside a git repository")
+        spec = f"{ref}:{path}"
+        try:
+            result = subprocess.run(
+                ["git", "cat-file", "-e", spec],
+                capture_output=True,
+                text=True,
+                timeout=TIMEOUT,
+                cwd=root,
+            )
+        except (
+            FileNotFoundError,
+            subprocess.TimeoutExpired,
+            UnicodeDecodeError,
+        ) as exc:
+            raise GitError(f"git cat-file -e {spec} failed to run: {exc}") from exc
+        if result.returncode == 0:
+            return True
+        if self._absent(result.returncode, result.stderr):
+            return False
+        detail = self._detail(result.returncode, result.stderr.lower())
+        raise GitError(f"git cat-file -e {spec} errored: {detail}")
+
+    def archive_paths(self, ref: str, paths: Sequence[str], dest: Path) -> None:
+        """Materialize ``paths`` as they existed at ``ref`` into ``dest``.
+
+        One ``git archive``, extracted in-process. Callers pass only paths
+        present at ``ref`` (``exists_at``): ``git archive`` errors on a
+        pathspec that matches nothing.
+        """
+        root = self._root
+        if root is None:
+            raise GitError("not inside a git repository")
+        if not paths:
+            return
+        try:
+            archive = subprocess.run(
+                ["git", "archive", ref, "--", *paths],
+                capture_output=True,
+                timeout=TIMEOUT,
+                cwd=root,
+            )
+        except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
+            raise GitError(f"git archive {ref} failed to run: {exc}") from exc
+        if archive.returncode != 0:
+            err = archive.stderr.decode(errors="replace")
+            detail = self._detail(archive.returncode, err)
+            raise GitError(f"git archive {ref} errored: {detail}")
+        try:
+            with tarfile.open(fileobj=io.BytesIO(archive.stdout)) as tar:
+                # The "data" filter (PEP 706) refuses links, devices and any
+                # member that escapes ``dest``.
+                tar.extractall(dest, filter="data")
+        except (tarfile.TarError, OSError) as exc:
+            raise GitError(f"tar extraction of {ref} archive failed: {exc}") from exc
 
     def _git(self, args: list[str]) -> str | None:
         if self._root is None:
@@ -93,7 +165,7 @@ class GitRepo:
             raise GitError(f"git output is not valid UTF-8: {exc}") from exc
         return result.stdout if result.returncode == 0 else None
 
-    def _show(self, ref: str, path: str) -> str | None:
+    def show(self, ref: str, path: str) -> str | None:
         """Return ``git show ref:path``, ``None`` only when the path is absent."""
         if self._root is None:
             return None
@@ -115,8 +187,12 @@ class GitRepo:
             return result.stdout
         if self._absent(result.returncode, result.stderr):
             return None
-        detail = result.stderr.strip() or f"exit {result.returncode}"
+        detail = self._detail(result.returncode, result.stderr)
         raise GitError(f"git show {ref}:{path} errored: {detail}")
+
+    @staticmethod
+    def _detail(returncode: int, stderr: str) -> str:
+        return stderr.strip() or f"exit {returncode}"
 
     @staticmethod
     def _absent(returncode: int, stderr: str) -> bool:

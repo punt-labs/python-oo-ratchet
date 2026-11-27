@@ -8,15 +8,20 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Self
 
+from oo_ratchet.core.adapters.tallygate import GateFiles, TallyGate
+from oo_ratchet.core.domain.errors import StateError
+from oo_ratchet.core.domain.tallies import Tally
 from oo_ratchet.source_set import Source, SourceSet
 
-from .baseline import SuppressionBaseline, SuppressionBaselineError
-from .gitio import GitError, GitRepo
-from .outcome import Outcome
 from .pyproject import PyprojectError
-from .relax import SuppressionRelaxError
 from .report import SuppressionReport
 from .scanner import Scanner
+
+_FILES = GateFiles(
+    ".suppression-baseline.json",
+    ".suppression-audit.jsonl",
+    ".suppression-relax.json",
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,6 +42,11 @@ class Options:
     require_base: bool
     allow_ci_write: bool
     tripwire: bool
+
+    @property
+    def writes(self) -> bool:
+        """Return whether the request writes the baseline or the ledger."""
+        return self.update or self.rebaseline or self.relax is not None
 
     @classmethod
     def parse(cls, argv: list[str] | None = None) -> Self:
@@ -102,81 +112,81 @@ class Cli:
     """Scan the target and route the request to the ratchet or a view."""
 
     _opts: Options
-    _git: GitRepo
-    _root: Path
+    _gate: TallyGate
 
     def __new__(cls, options: Options) -> Self:
         self = super().__new__(cls)
         self._opts = options
-        self._git = GitRepo()
-        self._root = self._git.root or Path.cwd()
+        self._gate = TallyGate(_FILES, options.src, cls._count)
         return self
 
     def run(self) -> int:
         """Execute the requested operation and return its exit code."""
         if not SourceSet.path(self._opts.src).exists():
-            return self._emit(Outcome.failed(f"not found: {self._opts.src}"))
+            return self._emit([f"not found: {self._opts.src}"], 1)
         try:
-            # Anchor the scan's project root and the baseline path to the repo
-            # root (via GitRepo), not cwd, so running from a subdirectory still
-            # reads the right pyproject.toml and .suppression-baseline.json.
-            # Scan and construct inside the try: an unreadable .py file (OSError)
-            # or a corrupt in-tree baseline (eager load) must surface as a clean
-            # non-zero, not a traceback.
-            report = Scanner(self._opts.src, self._root).report
-            outcome = self._dispatch(SuppressionBaseline(self._root), report)
-        except (
-            GitError,
-            SuppressionBaselineError,
-            SuppressionRelaxError,
-            PyprojectError,
-            OSError,
-            UnicodeDecodeError,
-        ) as exc:
-            outcome = Outcome.failed(f"FAIL: {exc}")
-        return self._emit(outcome)
+            # Anchor the scan's project root and the state files to the repo
+            # root, not cwd, so running from a subdirectory still reads the
+            # right pyproject.toml and baseline. Scan and read the state inside
+            # the try: an unreadable .py file or a corrupt baseline or ledger
+            # must surface as a clean non-zero, not a traceback.
+            report = Scanner(self._opts.src, self._gate.root).report
+            self._gate.prepare()
+            lines, code = self._dispatch(report)
+        except (StateError, PyprojectError, OSError, UnicodeDecodeError) as exc:
+            lines, code = [f"FAIL: {exc}"], 1
+        return self._emit(lines, code)
 
-    def _dispatch(
-        self, baseline: SuppressionBaseline, report: SuppressionReport
-    ) -> Outcome:
+    def _dispatch(self, report: SuppressionReport) -> tuple[list[str], int]:
         opts = self._opts
+        tally = self._count_report(report)
         if opts.check:
-            return baseline.check(
-                report,
-                target=opts.src,
+            return self._gate.check(
+                tally,
                 base_ref=opts.base_ref,
                 require_base=opts.require_base,
                 tripwire=opts.tripwire,
             )
+        if opts.writes:
+            return self._write(tally)
+        if opts.json:
+            return [report.to_json()], 0
+        lines = list(report.render())
+        if opts.threshold:
+            lines.extend(report.render_threshold())
+        return lines, 0
+
+    def _write(self, tally: Tally) -> tuple[list[str], int]:
+        opts = self._opts
         if opts.update:
-            return baseline.update(report, allow_ci_write=opts.allow_ci_write)
+            return self._gate.update(tally, allow_ci_write=opts.allow_ci_write)
         if opts.rebaseline:
-            return baseline.rebaseline(
-                report,
+            return self._gate.rebaseline(
+                tally,
                 reason=opts.reason,
                 source=opts.source,
                 allow_ci_write=opts.allow_ci_write,
             )
-        if opts.relax is not None:
-            return baseline.relax(
-                report,
-                target=opts.src,
-                base_ref=opts.base_ref,
-                file=opts.relax,
-                justify=opts.justify,
-                allow_ci_write=opts.allow_ci_write,
-            )
-        if opts.json:
-            return Outcome.passed(report.to_json())
-        lines = list(report.render())
-        if opts.threshold:
-            lines.extend(report.render_threshold())
-        return Outcome.passed(*lines)
+        return self._gate.relax(
+            tally,
+            base_ref=opts.base_ref,
+            file=opts.relax or "",
+            justify=opts.justify,
+            allow_ci_write=opts.allow_ci_write,
+        )
 
     @staticmethod
-    def _emit(outcome: Outcome) -> int:
-        sys.stdout.writelines(line + "\n" for line in outcome.lines)
-        return outcome.exit_code
+    def _count(target: Source, project: Path) -> Tally:
+        return Cli._count_report(Scanner(target, project).report)
+
+    @staticmethod
+    def _count_report(report: SuppressionReport) -> Tally:
+        return Tally(report.by_category, report.by_file)
+
+    @staticmethod
+    def _emit(lines: list[str], code: int) -> int:
+        sys.stdout.writelines(line + "\n" for line in lines)
+        return code
 
 
 def main(argv: list[str] | None = None) -> int:

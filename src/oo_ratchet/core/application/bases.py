@@ -6,7 +6,7 @@ from typing import Self
 
 from oo_ratchet.core.domain.verdicts import Verdict
 
-from .ports import BaselineStore, History
+from .adoption import Adoption, Presence
 
 TIP = "origin/main"
 
@@ -19,10 +19,10 @@ class Bases:
     trust a hand-editable file.
     """
 
-    _history: History
-    _store: BaselineStore
+    _history: Adoption
+    _store: Presence
 
-    def __new__(cls, history: History, store: BaselineStore) -> Self:
+    def __new__(cls, history: Adoption, store: Presence) -> Self:
         self = super().__new__(cls)
         self._history = history
         self._store = store
@@ -47,6 +47,6 @@ class Bases:
             if self._store.exists():
                 return Verdict.refused("tip-unresolvable")
             return Verdict.ok("first-adoption: no base baseline and no tip")
-        if self._history.baseline_at(tip) is not None:
+        if self._history.adopted_at(tip):
             return Verdict.refused("base-predates-baseline")
         return Verdict.ok("first-adoption: no baseline at base or tip")

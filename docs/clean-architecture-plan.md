@@ -244,6 +244,40 @@ named after an existing ring pattern (`audit`, `baseline`, `report`, `cli`).
   `oo_ratchet.oo.cli.main` and the new operations on the same repository, and
   the verdicts must match.
 
+### A3 decisions: `suppression` (PL-1721)
+
+The suppression gate compares one total, not per-file metrics, so it has its
+own set of types beside the per-file ones. The CLI flags, exit codes, report
+text and the three state files are unchanged.
+
+- **Domain:** `Tally` (counts per category and per file), `TallyRecord` (one
+  audited write), `Ledger` and `Ceiling` (the `.suppression-relax.json`
+  ceilings; `Ledger.surviving` drops the entries the base ledger already
+  carries), `TotalReview` (base total, current total, what ceilings waive, the
+  files with an unwaived rise) and `TallyVerdict` (a `Verdict` plus the review
+  or the record).
+- **Application:** `TallyCheck`, `TallyUpdate`, `TallyRelax` and
+  `TallyRebaseline` over four ports (`TallyHistory`, `TallyStore`,
+  `LedgerStore`, `TallyAudit`). The operations take the measured `Tally`; they
+  have no source port. `Bases` now takes two narrow protocols (`Adoption`,
+  `Presence`) so both gate kinds share it; `History` gained `adopted_at`.
+- **Adapters:** `TallyRepo` counts the source at a commit (`git archive` plus
+  the gate's scanner), `JsonTallyStore`, `JsonLedger`, `TallyAuditFile`,
+  `TallyCli` (renders a `TallyVerdict`) and `TallyGate` (builds the ports and
+  runs an operation). `GitRepo` gained `exists_at` and `archive_paths`; the
+  suppression `GitRepo`, `BaseRescanner`, `SuppressionBaseline`,
+  `BaselineFile`, `SuppressionRelax` and `Outcome` are deleted.
+- **Not moved yet:** `SuppressionReport` and `Scanner` keep their own
+  by-category and by-file dicts and their own `rebased`; `Cli` converts a
+  report to a `Tally`. They move with the scanner.
+- **Proof:** `tests/core_real/test_suppression_gate.py` pins stdout, exit codes
+  and state files. Its expected values were checked against the old gate: the
+  same 18 scenarios ran through both implementations before the old one was
+  deleted, and the final file also passes on the old code.
+- **Known difference:** the committed `.oo-coupling-baseline.json` row for
+  `suppression/__init__.py` said `efferent_coupling` 0; the file measured 8 at
+  the merge base. The row was blessed (audited) at 5.
+
 ## Order
 
 | Wave | In parallel | Waits on |

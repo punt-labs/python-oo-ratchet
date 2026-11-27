@@ -10,21 +10,18 @@ from __future__ import annotations
 import json
 import subprocess
 from pathlib import Path
-from typing import Self
+from typing import NamedTuple, Self
 
 import pytest
 
-from oo_ratchet.suppression.baseline import (
-    SuppressionBaseline,
-    SuppressionBaselineError,
-)
+from oo_ratchet.core.adapters.gitrepo import GitRepo
+from oo_ratchet.core.adapters.tallyfiles import JsonLedger, JsonTallyStore
+from oo_ratchet.core.adapters.tallyformats import TallyFormat
+from oo_ratchet.core.domain.errors import GitError, StateError
+from oo_ratchet.core.domain.ledgers import Ceiling, Ledger
 from oo_ratchet.suppression.cli import main
-from oo_ratchet.suppression.gitio import GitError, GitRepo
-from oo_ratchet.suppression.outcome import Outcome
 from oo_ratchet.suppression.patterns import FileSuppressions
-from oo_ratchet.suppression.persist import BaselineFile
 from oo_ratchet.suppression.pyproject import PerFileIgnoresCounter, PyprojectError
-from oo_ratchet.suppression.relax import SuppressionRelax, SuppressionRelaxError
 from oo_ratchet.suppression.report import SuppressionReport
 from oo_ratchet.suppression.scanner import Scanner
 
@@ -87,12 +84,20 @@ class TestSuppressionReportRebased:
         assert rebased.by_file == {"pkg/a.py": {"noqa": 2, "per_file_ignores": 3}}
 
 
+class Result(NamedTuple):
+    """The exit code and stdout lines of one CLI run."""
+
+    exit_code: int
+    lines: list[str]
+
+
 class GitFixture:
     """An isolated git repo for exercising the base-commit suppression ratchet."""
 
     _root: Path
+    _capsys: pytest.CaptureFixture[str]
 
-    def __new__(cls, tmp: Path) -> Self:
+    def __new__(cls, tmp: Path, capsys: pytest.CaptureFixture[str]) -> Self:
         self = super().__new__(cls)
         subprocess.run(["git", "init", "-q", "-b", "main"], cwd=tmp, check=True)
         for key, val in (
@@ -109,6 +114,7 @@ class GitFixture:
             text=True,
         )
         self._root = Path(out.stdout.strip())
+        self._capsys = capsys
         return self
 
     @property
@@ -121,20 +127,25 @@ class GitFixture:
         pkg.mkdir(exist_ok=True)
         (pkg / "a.py").write_text(source)
 
-    def report(self) -> SuppressionReport:
-        return Scanner(self._root / "pkg", self._root).report
+    def run(self, *argv: str) -> Result:
+        """Run the CLI on ``pkg`` and return its exit code and stdout lines."""
+        self._capsys.readouterr()
+        code = main(["pkg", *argv])
+        return Result(code, self._capsys.readouterr().out.splitlines())
 
-    def check(self, *, base_ref: str | None, require_base: bool) -> Outcome:
+    def check(self, *, base_ref: str, require_base: bool) -> Result:
         """Run the ratchet check against ``pkg``, the fixture's scan target."""
-        return self.baseline().check(
-            self.report(),
-            target=self._root / "pkg",
-            base_ref=base_ref,
-            require_base=require_base,
-        )
+        flags = ["--require-base"] if require_base else []
+        return self.run("--check", "--base-ref", base_ref, *flags)
 
-    def update_baseline(self) -> None:
-        SuppressionBaseline(self._root).update(self.report(), allow_ci_write=True)
+    def update(self, *, allow_ci_write: bool) -> Result:
+        return self.run("--update", *(["--allow-ci-write"] if allow_ci_write else []))
+
+    def relax(self, base: str, justify: str, *, allow_ci_write: bool) -> Result:
+        ci = ["--allow-ci-write"] if allow_ci_write else []
+        return self.run(
+            "--relax", "pkg/a.py", "--justify", justify, "--base-ref", base, *ci
+        )
 
     def write_baseline_text(self, text: str) -> None:
         (self._root / ".suppression-baseline.json").write_text(text)
@@ -151,13 +162,14 @@ class GitFixture:
         )
         return out.stdout.strip()
 
-    def baseline(self) -> SuppressionBaseline:
-        return SuppressionBaseline(self._root)
-
 
 @pytest.fixture
-def gfx(tmp_path: Path) -> GitFixture:
-    return GitFixture(tmp_path)
+def gfx(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> GitFixture:
+    fixture = GitFixture(tmp_path, capsys)
+    monkeypatch.chdir(fixture.root)
+    return fixture
 
 
 class TestBaselineRatchet:
@@ -200,7 +212,7 @@ class TestBaselineRatchet:
         (gfx.root / "README.md").write_text("placeholder\n")
         base = gfx.commit("base before pkg existed")  # pkg/ doesn't exist yet
         gfx.write_source("x = 1  # noqa\n")
-        gfx.update_baseline()  # in-tree baseline now present
+        gfx.update(allow_ci_write=True)  # in-tree baseline now present
         gfx.commit("add pkg and in-tree baseline")
         outcome = gfx.check(base_ref=base, require_base=False)
         assert outcome.exit_code == 1
@@ -213,7 +225,7 @@ class TestBaselineRatchet:
         # rescan of the base ref's real source must not report the
         # pre-existing suppression as new.
         gfx.write_source("x = 1\n")  # no suppression yet
-        gfx.update_baseline()  # baseline total 0
+        gfx.update(allow_ci_write=True)  # baseline total 0
         gfx.commit("pre-suppression baseline")
         gfx.write_source("x = 1  # noqa\n")  # suppression lands...
         # ...but the in-tree baseline is never refreshed to match -- it goes
@@ -239,26 +251,30 @@ class TestBaselineRatchet:
         assert any("pkg/a.py: +1 unwaived (1 -> 2)" in line for line in outcome.lines)
 
 
+def repo_at(root: Path) -> GitRepo:
+    return GitRepo(root, ".suppression-baseline.json", ".suppression-audit.jsonl")
+
+
 class TestGitRepoPathExistsAtRef:
-    """``path_exists_at_ref`` must distinguish real absence from any git failure."""
+    """``exists_at`` must distinguish real absence from any git failure."""
 
     def test_absent_path_is_false(self, gfx: GitFixture) -> None:
         gfx.write_source("x = 1\n")
         base = gfx.commit("base")
-        repo = GitRepo(gfx.root)
-        assert repo.path_exists_at_ref(base, "does/not/exist.py") is False
+        repo = repo_at(gfx.root)
+        assert repo.exists_at(base, "does/not/exist.py") is False
 
     def test_present_path_is_true(self, gfx: GitFixture) -> None:
         gfx.write_source("x = 1\n")
         base = gfx.commit("base")
-        repo = GitRepo(gfx.root)
-        assert repo.path_exists_at_ref(base, "pkg/a.py") is True
+        repo = repo_at(gfx.root)
+        assert repo.exists_at(base, "pkg/a.py") is True
 
     def test_empty_path_probes_the_root_tree(self, gfx: GitFixture) -> None:
         gfx.write_source("x = 1\n")
         base = gfx.commit("base")
-        repo = GitRepo(gfx.root)
-        assert repo.path_exists_at_ref(base, "") is True
+        repo = repo_at(gfx.root)
+        assert repo.exists_at(base, "") is True
 
     def test_absence_message_case_does_not_matter(
         self, gfx: GitFixture, monkeypatch: pytest.MonkeyPatch
@@ -268,7 +284,7 @@ class TestGitRepoPathExistsAtRef:
         # absence, not misread as an unrelated error.
         gfx.write_source("x = 1\n")
         base = gfx.commit("base")
-        repo = GitRepo(gfx.root)
+        repo = repo_at(gfx.root)
 
         class _UppercaseAbsence:
             returncode = 128
@@ -277,8 +293,10 @@ class TestGitRepoPathExistsAtRef:
         def _fake_run(*_args: object, **_kwargs: object) -> _UppercaseAbsence:
             return _UppercaseAbsence()
 
-        monkeypatch.setattr("oo_ratchet.suppression.gitio.subprocess.run", _fake_run)
-        assert repo.path_exists_at_ref(base, "x.py") is False
+        monkeypatch.setattr(
+            "oo_ratchet.core.adapters.gitrepo.subprocess.run", _fake_run
+        )
+        assert repo.exists_at(base, "x.py") is False
 
     def test_malformed_ref_raises_giterror_not_false(self, gfx: GitFixture) -> None:
         # A well-formed-but-nonexistent sha and a truly malformed ref both
@@ -289,9 +307,9 @@ class TestGitRepoPathExistsAtRef:
         # must raise rather than be swallowed as "not present".
         gfx.write_source("x = 1\n")
         gfx.commit("base")
-        repo = GitRepo(gfx.root)
+        repo = repo_at(gfx.root)
         with pytest.raises(GitError):
-            repo.path_exists_at_ref("bad..ref**", "pkg/a.py")
+            repo.exists_at("bad..ref**", "pkg/a.py")
 
     def test_non_utf8_git_output_fails_closed_as_giterror(
         self, gfx: GitFixture, monkeypatch: pytest.MonkeyPatch
@@ -301,16 +319,16 @@ class TestGitRepoPathExistsAtRef:
         # GitError, not crash the gate with an uncaught UnicodeDecodeError.
         gfx.write_source("x = 1\n")
         base = gfx.commit("base")
-        repo = GitRepo(gfx.root)
+        repo = repo_at(gfx.root)
 
         def _raise_unicode_error(*_args: object, **_kwargs: object) -> None:
             raise UnicodeDecodeError("utf-8", b"\xff", 0, 1, "invalid start byte")
 
         monkeypatch.setattr(
-            "oo_ratchet.suppression.gitio.subprocess.run", _raise_unicode_error
+            "oo_ratchet.core.adapters.gitrepo.subprocess.run", _raise_unicode_error
         )
         with pytest.raises(GitError):
-            repo.path_exists_at_ref(base, "pkg/a.py")
+            repo.exists_at(base, "pkg/a.py")
 
 
 class TestGitRepoArchivePaths:
@@ -319,7 +337,7 @@ class TestGitRepoArchivePaths:
     def test_bad_ref_raises(self, gfx: GitFixture, tmp_path: Path) -> None:
         gfx.write_source("x = 1\n")
         gfx.commit("base")
-        repo = GitRepo(gfx.root)
+        repo = repo_at(gfx.root)
         dest = tmp_path / "out"
         dest.mkdir()
         with pytest.raises(GitError):
@@ -330,7 +348,7 @@ class TestGitRepoArchivePaths:
         # (unlike `tar -x -C`, which requires it to pre-exist).
         gfx.write_source("x = 1\n")
         base = gfx.commit("base")
-        repo = GitRepo(gfx.root)
+        repo = repo_at(gfx.root)
         dest = tmp_path / "does-not-exist"
         repo.archive_paths(base, ["pkg/a.py"], dest)
         assert (dest / "pkg" / "a.py").read_text() == "x = 1\n"
@@ -338,7 +356,7 @@ class TestGitRepoArchivePaths:
     def test_unwritable_dest_raises(self, gfx: GitFixture, tmp_path: Path) -> None:
         gfx.write_source("x = 1\n")
         base = gfx.commit("base")
-        repo = GitRepo(gfx.root)
+        repo = repo_at(gfx.root)
         dest = tmp_path / "blocked"
         dest.write_text("a file, not a directory")
         with pytest.raises(GitError):
@@ -347,7 +365,7 @@ class TestGitRepoArchivePaths:
     def test_empty_paths_is_a_no_op(self, gfx: GitFixture, tmp_path: Path) -> None:
         gfx.write_source("x = 1\n")
         base = gfx.commit("base")
-        repo = GitRepo(gfx.root)
+        repo = repo_at(gfx.root)
         dest = tmp_path / "out"
         dest.mkdir()
         repo.archive_paths(base, [], dest)
@@ -361,14 +379,7 @@ class TestRelax:
         gfx.write_source("x = 1  # noqa\n")
         base = gfx.commit("base")
         gfx.write_source("x = 1  # noqa\ny = 2  # noqa\n")
-        relax_outcome = gfx.baseline().relax(
-            gfx.report(),
-            target=gfx.root / "pkg",
-            base_ref=base,
-            file=str(gfx.root / "pkg" / "a.py"),
-            justify="reason",
-            allow_ci_write=True,
-        )
+        relax_outcome = gfx.relax(base, "reason", allow_ci_write=True)
         assert relax_outcome.exit_code == 0
         check_outcome = gfx.check(base_ref=base, require_base=True)
         assert check_outcome.exit_code == 0
@@ -378,28 +389,14 @@ class TestRelax:
         gfx.write_source("x = 1  # noqa\n")
         base = gfx.commit("base")
         gfx.write_source("x = 1  # noqa\ny = 2  # noqa\n")
-        outcome = gfx.baseline().relax(
-            gfx.report(),
-            target=gfx.root / "pkg",
-            base_ref=base,
-            file=str(gfx.root / "pkg" / "a.py"),
-            justify="   ",
-            allow_ci_write=True,
-        )
+        outcome = gfx.relax(base, "   ", allow_ci_write=True)
         assert outcome.exit_code == 1
         assert any("--justify" in line for line in outcome.lines)
 
     def test_relax_refuses_when_nothing_rose(self, gfx: GitFixture) -> None:
         gfx.write_source("x = 1  # noqa\n")
         base = gfx.commit("base")
-        outcome = gfx.baseline().relax(
-            gfx.report(),
-            target=gfx.root / "pkg",
-            base_ref=base,
-            file=str(gfx.root / "pkg" / "a.py"),
-            justify="reason",
-            allow_ci_write=True,
-        )
+        outcome = gfx.relax(base, "reason", allow_ci_write=True)
         assert outcome.exit_code == 1
         assert any("nothing to relax" in line for line in outcome.lines)
 
@@ -410,14 +407,7 @@ class TestRelax:
         gfx.write_source("x = 1  # noqa\n")
         base = gfx.commit("base")
         gfx.write_source("x = 1  # noqa\ny = 2  # noqa\n")
-        gfx.baseline().relax(
-            gfx.report(),
-            target=gfx.root / "pkg",
-            base_ref=base,
-            file=str(gfx.root / "pkg" / "a.py"),
-            justify="reason",
-            allow_ci_write=True,
-        )
+        gfx.relax(base, "reason", allow_ci_write=True)
         gfx.write_source("x = 1  # noqa\ny = 2  # noqa\nz = 3  # noqa\n")
         outcome = gfx.check(base_ref=base, require_base=True)
         assert outcome.exit_code == 1
@@ -434,20 +424,13 @@ class TestRelax:
         gfx.write_source("x = 1  # noqa\n")
         pre_relax = gfx.commit("base")
         gfx.write_source("x = 1  # noqa\ny = 2  # noqa\n")
-        gfx.baseline().relax(
-            gfx.report(),
-            target=gfx.root / "pkg",
-            base_ref=pre_relax,
-            file=str(gfx.root / "pkg" / "a.py"),
-            justify="reason",
-            allow_ci_write=True,
-        )
+        gfx.relax(pre_relax, "reason", allow_ci_write=True)
         merged = gfx.commit("merge the relaxed change")
         gfx.write_source("x = 1  # noqa\ny = 2  # noqa\nz = 3  # noqa\n")
         outcome = gfx.check(base_ref=merged, require_base=True)
         assert outcome.exit_code == 1
         assert any("+1 unwaived" in line for line in outcome.lines)
-        assert not any("waived" in line for line in outcome.lines[:2])
+        assert not any("waived" in line for line in outcome.lines[:3])
 
     def test_relax_blocked_in_ci(
         self, gfx: GitFixture, monkeypatch: pytest.MonkeyPatch
@@ -456,14 +439,7 @@ class TestRelax:
         gfx.write_source("x = 1  # noqa\n")
         base = gfx.commit("base")
         gfx.write_source("x = 1  # noqa\ny = 2  # noqa\n")
-        outcome = gfx.baseline().relax(
-            gfx.report(),
-            target=gfx.root / "pkg",
-            base_ref=base,
-            file=str(gfx.root / "pkg" / "a.py"),
-            justify="reason",
-            allow_ci_write=False,
-        )
+        outcome = gfx.relax(base, "reason", allow_ci_write=False)
         assert outcome.exit_code == 1
         assert any("GITHUB_ACTIONS" in line for line in outcome.lines)
 
@@ -473,14 +449,7 @@ class TestRelax:
         # comparison and must not leak into a write command's exit code.
         gfx.write_source("x = 1  # noqa\n")
         gfx.commit("base")
-        outcome = gfx.baseline().relax(
-            gfx.report(),
-            target=gfx.root / "pkg",
-            base_ref="0" * 40,
-            file=str(gfx.root / "pkg" / "a.py"),
-            justify="reason",
-            allow_ci_write=True,
-        )
+        outcome = gfx.relax("0" * 40, "reason", allow_ci_write=True)
         assert outcome.exit_code == 1
         assert not (gfx.root / ".suppression-relax.json").exists()
 
@@ -489,14 +458,7 @@ class TestRelax:
         base = gfx.commit("base before pkg existed")
         gfx.write_source("x = 1  # noqa\n")
         gfx.commit("add pkg")
-        outcome = gfx.baseline().relax(
-            gfx.report(),
-            target=gfx.root / "pkg",
-            base_ref=base,
-            file=str(gfx.root / "pkg" / "a.py"),
-            justify="reason",
-            allow_ci_write=True,
-        )
+        outcome = gfx.relax(base, "reason", allow_ci_write=True)
         assert outcome.exit_code == 1
         assert not (gfx.root / ".suppression-relax.json").exists()
 
@@ -504,52 +466,42 @@ class TestRelax:
 class TestSuppressionRelaxLedger:
     """The relax ledger's own load/save round-trip and fail-closed parsing."""
 
+    @staticmethod
+    def _ledger_path(gfx: GitFixture, entry: dict[str, object]) -> Path:
+        path = gfx.root / ".suppression-relax.json"
+        path.write_text(json.dumps([entry]))
+        return path
+
     def test_corrupt_ledger_raises_typed_error(self, gfx: GitFixture) -> None:
-        (gfx.root / ".suppression-relax.json").write_text("{ not valid json")
-        with pytest.raises(SuppressionRelaxError):
-            SuppressionRelax(gfx.root)
+        path = gfx.root / ".suppression-relax.json"
+        path.write_text("{ not valid json")
+        with pytest.raises(StateError):
+            JsonLedger(path)
 
     def test_non_list_ledger_raises_typed_error(self, gfx: GitFixture) -> None:
-        (gfx.root / ".suppression-relax.json").write_text('{"file": "a.py"}')
-        with pytest.raises(SuppressionRelaxError):
-            SuppressionRelax(gfx.root)
+        path = gfx.root / ".suppression-relax.json"
+        path.write_text('{"file": "a.py"}')
+        with pytest.raises(StateError):
+            JsonLedger(path)
 
-    def test_non_positive_ceiling_raises_typed_error(self, gfx: GitFixture) -> None:
-        (gfx.root / ".suppression-relax.json").write_text(
-            json.dumps(
-                [{"file": "a.py", "ceiling": 0, "justify": "x", "added_at": "t"}]
-            )
-        )
-        with pytest.raises(SuppressionRelaxError):
-            SuppressionRelax(gfx.root)
-
-    def test_bool_ceiling_is_rejected_not_coerced(self, gfx: GitFixture) -> None:
-        # bool is an int subclass; a bool ceiling must raise, not coerce to
-        # 1 -- the sibling in-tree baseline guards this exact class of input
-        # (BaselineFile._as_int) and this ledger must match.
-        (gfx.root / ".suppression-relax.json").write_text(
-            json.dumps(
-                [{"file": "a.py", "ceiling": True, "justify": "x", "added_at": "t"}]
-            )
-        )
-        with pytest.raises(SuppressionRelaxError):
-            SuppressionRelax(gfx.root)
-
-    def test_float_ceiling_is_rejected_not_truncated(self, gfx: GitFixture) -> None:
-        (gfx.root / ".suppression-relax.json").write_text(
-            json.dumps(
-                [{"file": "a.py", "ceiling": 2.9, "justify": "x", "added_at": "t"}]
-            )
-        )
-        with pytest.raises(SuppressionRelaxError):
-            SuppressionRelax(gfx.root)
+    @pytest.mark.parametrize("ceiling", [0, True, 2.9])
+    def test_bad_ceiling_raises_not_coerced(
+        self, gfx: GitFixture, ceiling: object
+    ) -> None:
+        # bool is an int subclass and 2.9 is not an integer: neither may be
+        # coerced into an audited ceiling.
+        entry = {"file": "a.py", "ceiling": ceiling, "justify": "x", "added_at": "t"}
+        with pytest.raises(StateError):
+            JsonLedger(self._ledger_path(gfx, entry))
 
     def test_absent_ledger_has_no_ceiling(self, gfx: GitFixture) -> None:
-        assert SuppressionRelax(gfx.root).ceiling("a.py") is None
+        path = gfx.root / ".suppression-relax.json"
+        assert JsonLedger(path).ledger().ceiling("a.py") is None
 
     def test_round_trips_through_disk(self, gfx: GitFixture) -> None:
-        SuppressionRelax(gfx.root).add(file="a.py", ceiling=2, justify="reason")
-        reloaded = SuppressionRelax(gfx.root)
+        path = gfx.root / ".suppression-relax.json"
+        JsonLedger(path).add("a.py", 2, "reason")
+        reloaded = JsonLedger(path).ledger()
         assert reloaded.ceiling("a.py") == 2
         assert reloaded.ceiling("missing.py") is None
 
@@ -561,9 +513,9 @@ class TestUpdateNeverLoosen:
         # A rising total is refused and nothing is written, mirroring the OO and
         # coupling writers that refuse a per-metric regression.
         gfx.write_source("x = 1  # noqa\n")
-        gfx.update_baseline()  # bootstrap total 1
+        gfx.update(allow_ci_write=True)  # bootstrap total 1
         gfx.write_source("x = 1  # noqa\ny = 2  # noqa\n")  # now 2
-        outcome = gfx.baseline().update(gfx.report(), allow_ci_write=True)
+        outcome = gfx.update(allow_ci_write=True)
         assert outcome.exit_code == 1
         assert any("never loosens" in line for line in outcome.lines)
         data = json.loads((gfx.root / ".suppression-baseline.json").read_text())
@@ -571,24 +523,24 @@ class TestUpdateNeverLoosen:
 
     def test_update_writes_decrease(self, gfx: GitFixture) -> None:
         gfx.write_source("x = 1  # noqa\ny = 2  # noqa\n")
-        gfx.update_baseline()  # bootstrap total 2
+        gfx.update(allow_ci_write=True)  # bootstrap total 2
         gfx.write_source("x = 1  # noqa\n")  # now 1
-        outcome = gfx.baseline().update(gfx.report(), allow_ci_write=True)
+        outcome = gfx.update(allow_ci_write=True)
         assert outcome.exit_code == 0
         data = json.loads((gfx.root / ".suppression-baseline.json").read_text())
         assert data["total"] == 1
 
     def test_update_rewrites_equal_total(self, gfx: GitFixture) -> None:
         gfx.write_source("x = 1  # noqa\n")
-        gfx.update_baseline()  # bootstrap total 1
-        outcome = gfx.baseline().update(gfx.report(), allow_ci_write=True)
+        gfx.update(allow_ci_write=True)  # bootstrap total 1
+        outcome = gfx.update(allow_ci_write=True)
         assert outcome.exit_code == 0
 
     def test_first_adoption_bootstraps_any_total(self, gfx: GitFixture) -> None:
         # No in-tree baseline: the first update writes whatever the current total
         # is, matching the coupling/OO writers that bootstrap absent a baseline.
         gfx.write_source("x = 1  # noqa\ny = 2  # noqa\n")  # total 2, no baseline
-        outcome = gfx.baseline().update(gfx.report(), allow_ci_write=True)
+        outcome = gfx.update(allow_ci_write=True)
         assert outcome.exit_code == 0
         data = json.loads((gfx.root / ".suppression-baseline.json").read_text())
         assert data["total"] == 2
@@ -604,7 +556,7 @@ class TestSuppressionFailClosed:
         gfx.write_source("x = 1  # noqa\n")
         base = gfx.commit("base")
         gfx.write_source("x = 1  # noqa\ny = 2  # noqa\n")  # now 2
-        gfx.update_baseline()  # launder the in-tree baseline to total 2
+        gfx.update(allow_ci_write=True)  # launder the in-tree baseline to total 2
         gfx.commit("add suppression and launder the in-tree baseline")
         outcome = gfx.check(base_ref=base, require_base=True)
         assert outcome.exit_code == 1
@@ -624,7 +576,7 @@ class TestSuppressionFailClosed:
         # the OO and coupling ratchets -- hard-fail rather than trust the
         # hand-editable in-tree file. Consistent across all three ratchets.
         gfx.write_source("x = 1  # noqa\n")
-        gfx.update_baseline()
+        gfx.update(allow_ci_write=True)
         gfx.commit("base")
         outcome = gfx.check(base_ref="0" * 40, require_base=False)
         assert outcome.exit_code == 1
@@ -634,8 +586,8 @@ class TestSuppressionFailClosed:
         # A corrupt in-tree baseline is parsed eagerly at construction and raises
         # the typed error rather than a JSONDecodeError traceback.
         gfx.write_baseline_text("{ not valid json")
-        with pytest.raises(SuppressionBaselineError):
-            SuppressionBaseline(gfx.root)
+        with pytest.raises(StateError):
+            JsonTallyStore(gfx.root / ".suppression-baseline.json")
 
     def test_corrupt_baseline_is_controlled_nonzero_via_cli(
         self, gfx: GitFixture, monkeypatch: pytest.MonkeyPatch
@@ -643,7 +595,6 @@ class TestSuppressionFailClosed:
         gfx.write_source("x = 1  # noqa\n")
         gfx.write_baseline_text("{ not valid json")
         gfx.commit("corrupt baseline")
-        monkeypatch.chdir(gfx.root)
         # The corrupt in-tree baseline raises at construction; the CLI catches the
         # typed error and returns a clean non-zero exit.
         assert main(["pkg", "--check"]) == 1
@@ -652,29 +603,29 @@ class TestSuppressionFailClosed:
         self, gfx: GitFixture
     ) -> None:
         gfx.write_baseline_text("[1, 2, 3]")
-        with pytest.raises(SuppressionBaselineError):
-            SuppressionBaseline(gfx.root)
+        with pytest.raises(StateError):
+            JsonTallyStore(gfx.root / ".suppression-baseline.json")
 
     def test_as_int_coerces_nan_and_inf_to_zero(self) -> None:
-        assert BaselineFile._as_int(float("nan")) == 0
-        assert BaselineFile._as_int(float("inf")) == 0
-        assert BaselineFile._as_int(float("-inf")) == 0
-        assert BaselineFile._as_int(5) == 5
-        assert BaselineFile._as_int("x") == 0
+        for bad in (float("nan"), float("inf"), float("-inf"), "x"):
+            assert TallyFormat.total({"total": bad}) == 0
+        assert TallyFormat.total({"total": 5}) == 5
+        assert TallyFormat.total({}) == 0
 
     def test_as_int_rejects_bool(self) -> None:
         # bool is an int subclass; a bool count is invalid data -> 0, never
         # coerced to 1 (which would INFLATE the baseline, a fail-open). This
         # coercion still guards ``update()``'s in-tree ``_refuse_increase`` read.
-        assert BaselineFile._as_int(True) == 0
-        assert BaselineFile._as_int(False) == 0
+        assert TallyFormat.total({"total": True}) == 0
+        assert TallyFormat.total({"total": False}) == 0
 
     def test_non_utf8_baseline_raises_typed_error(self, gfx: GitFixture) -> None:
         # A non-UTF8 baseline file raises UnicodeDecodeError on read_text; _load
         # must turn it into the typed error, not a traceback.
-        (gfx.root / ".suppression-baseline.json").write_bytes(b"\xff\xfe\x00")
-        with pytest.raises(SuppressionBaselineError):
-            SuppressionBaseline(gfx.root)
+        path = gfx.root / ".suppression-baseline.json"
+        path.write_bytes(b"\xff\xfe\x00")
+        with pytest.raises(StateError):
+            JsonTallyStore(path)
 
     def test_non_utf8_source_is_controlled_nonzero_via_cli(
         self, gfx: GitFixture, monkeypatch: pytest.MonkeyPatch
@@ -683,7 +634,6 @@ class TestSuppressionFailClosed:
         # surface a controlled non-zero, not a traceback and not a silent skip.
         gfx.write_source("x = 1\n")
         (gfx.root / "pkg" / "bad.py").write_bytes(b"\xff\xfe# noqa\n")
-        monkeypatch.chdir(gfx.root)
         assert main(["pkg", "--json"]) == 1
 
     def test_scanner_propagates_unreadable_file(self, gfx: GitFixture) -> None:
@@ -700,7 +650,6 @@ class TestSuppressionFailClosed:
     ) -> None:
         gfx.write_source("x = 1\n")
         (gfx.root / "pkg" / "isdir.py").mkdir()
-        monkeypatch.chdir(gfx.root)
         # The OSError surfaces as a clean non-zero through the CLI, not a
         # traceback -- and not a silent skip.
         assert main(["pkg", "--json"]) == 1
@@ -714,7 +663,7 @@ class TestCiWriteGuard:
     ) -> None:
         monkeypatch.setenv("GITHUB_ACTIONS", "true")
         gfx.write_source("x = 1  # noqa\n")
-        outcome = gfx.baseline().update(gfx.report(), allow_ci_write=False)
+        outcome = gfx.update(allow_ci_write=False)
         assert outcome.exit_code == 1
         assert any("GITHUB_ACTIONS" in line for line in outcome.lines)
 
@@ -723,7 +672,7 @@ class TestCiWriteGuard:
     ) -> None:
         monkeypatch.setenv("GITHUB_ACTIONS", "true")
         gfx.write_source("x = 1  # noqa\n")
-        outcome = gfx.baseline().update(gfx.report(), allow_ci_write=True)
+        outcome = gfx.update(allow_ci_write=True)
         assert outcome.exit_code == 0
 
 
@@ -747,14 +696,12 @@ class TestPyproject:
         # the CLI turns it into a controlled non-zero, not a silent zero.
         gfx.write_source("x = 1\n")
         (gfx.root / "pyproject.toml").write_text("this is [ not valid toml")
-        monkeypatch.chdir(gfx.root)
         assert main(["pkg", "--json"]) == 1
 
     def test_absent_pyproject_passes_via_cli(
         self, gfx: GitFixture, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         gfx.write_source("x = 1\n")
-        monkeypatch.chdir(gfx.root)
         assert main(["pkg", "--json"]) == 0
 
     def test_no_ignores_section_is_zero(self, gfx: GitFixture) -> None:
@@ -803,7 +750,7 @@ class TestRepoRootResolution:
         # miss the baseline and wrongly bootstrap-pass; anchored, the
         # unresolvable-base + baseline-present case fails closed.
         gfx.write_source("x = 1  # noqa\n")
-        gfx.update_baseline()  # writes repo-root .suppression-baseline.json
+        gfx.update(allow_ci_write=True)  # writes repo-root .suppression-baseline.json
         gfx.commit("base with root baseline")
         monkeypatch.chdir(gfx.root / "pkg")
         assert main([".", "--check", "--base-ref", "0" * 40]) == 1
@@ -820,15 +767,8 @@ class TestMergedWaiverRetires:
     """PL-1141: a merged ceiling covers nothing, so cleanups become real floors."""
 
     @staticmethod
-    def _relax(gfx: GitFixture, base: str, justify: str = "reason") -> Outcome:
-        return gfx.baseline().relax(
-            gfx.report(),
-            target=gfx.root / "pkg",
-            base_ref=base,
-            file=str(gfx.root / "pkg" / "a.py"),
-            justify=justify,
-            allow_ci_write=True,
-        )
+    def _relax(gfx: GitFixture, base: str, justify: str = "reason") -> Result:
+        return gfx.relax(base, justify, allow_ci_write=True)
 
     def _merge_waiver_then_cleanup(self, gfx: GitFixture) -> str:
         gfx.write_source("x = 1  # noqa\n")
@@ -882,8 +822,9 @@ class TestMergedWaiverRetires:
         (gfx.root / ".suppression-relax.json").write_text("{ not json")
         base = gfx.commit("bad ledger")
         (gfx.root / ".suppression-relax.json").write_text("[]")
-        with pytest.raises(SuppressionRelaxError):
-            gfx.check(base_ref=base, require_base=True)
+        outcome = gfx.check(base_ref=base, require_base=True)
+        assert outcome.exit_code == 1
+        assert "unreadable suppression relax ledger" in outcome.lines[0]
 
     def test_same_second_relax_to_old_ceiling_is_fresh(self, gfx: GitFixture) -> None:
         cleanup = self._merge_waiver_then_cleanup(gfx)
@@ -891,11 +832,10 @@ class TestMergedWaiverRetires:
         assert self._relax(gfx, cleanup).exit_code == 0
         assert gfx.check(base_ref=cleanup, require_base=True).exit_code == 0
 
-    def test_base_without_ledger_clears_retirements(self, tmp_path: Path) -> None:
-        ledger = SuppressionRelax(tmp_path)
-        ledger.add(file="a.py", ceiling=2, justify="reason")
-        merged = (tmp_path / SuppressionRelax.RELAX_FILE).read_text()
-        ledger.retire_merged(merged)
-        assert ledger.ceiling("a.py") is None
-        ledger.retire_merged(None)
-        assert ledger.ceiling("a.py") == 2
+    def test_base_without_ledger_clears_retirements(self) -> None:
+        entry = Ceiling("a.py", 2, "reason", "t")
+        ledger = Ledger({"a.py": entry})
+        assert ledger.surviving(Ledger({"a.py": entry})).ceiling("a.py") is None
+        assert ledger.surviving(None).ceiling("a.py") == 2
+        changed = Ledger({"a.py": Ceiling("a.py", 2, "reason", "later")})
+        assert ledger.surviving(changed).ceiling("a.py") == 2

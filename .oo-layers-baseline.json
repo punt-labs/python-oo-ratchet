@@ -148,20 +148,12 @@
     "oo_ratchet.oo.outcome"
   ],
   "oo_ratchet.suppression": [
-    "oo_ratchet.suppression.baseline",
     "oo_ratchet.suppression.cli",
-    "oo_ratchet.suppression.gitio",
-    "oo_ratchet.suppression.outcome",
     "oo_ratchet.suppression.pyproject",
     "oo_ratchet.suppression.report"
   ],
   "oo_ratchet.suppression.patterns": [
     "io"
-  ],
-  "oo_ratchet.suppression.rescan": [
-    "oo_ratchet.source_set",
-    "oo_ratchet.suppression.gitio",
-    "oo_ratchet.suppression.report"
   ],
   "oo_ratchet.suppression.scanner": [
     "oo_ratchet.source_set",

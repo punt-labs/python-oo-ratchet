@@ -91,6 +91,10 @@
 
 ### Fixed
 
+- `design` no longer reports `split-cohesion` for a class whose methods touch no
+  field and call no other method (a port or gateway with no state): LCOM4 has
+  no edges to measure there. On vox, quarry, lux and z-spec the findings fall
+  from 180 to 136 (PL-1716).
 - `coupling --update` now drops the baseline row of every file that no longer
   exists, as the OO gate does, and reports it under `removed` in the summary
   and the audit entry (PL-1734). Before, a row for a file deleted before the

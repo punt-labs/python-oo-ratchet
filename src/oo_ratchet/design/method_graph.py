@@ -26,12 +26,15 @@ class MethodGraph:
         return self
 
     def components(self) -> int:
-        """Return one for classes below the three-method applicability threshold."""
+        """Return one for classes below three methods or with nothing to connect."""
         methods = self._methods(self._owner)
         if len(methods) < 3:
             return 1
         names = {n.name for n in self._members(self._owner)}
-        return self._count([self._footprint(m, names) for m in methods])
+        prints = [self._footprint(m, names) for m in methods]
+        if not any(fields or calls for _, fields, calls in prints):
+            return 1  # no fields and no calls: LCOM4 has no edges to measure
+        return self._count(prints)
 
     @classmethod
     def _methods(cls, owner: Declaration) -> list[Declaration]:

@@ -267,6 +267,17 @@ table agreed in every case. `unlayered-module`: 168 of 168 matched no glob.
 lines; the 2 complexity findings, both quarry, by the same recount as
 `thick-entry`).
 
-## Cheap false positives that become eval cases
+## Cheap false positives that became eval cases
 
-See `evals/design/decoys/` and `evals/design/README.md`.
+- **`split-cohesion` on a class with no fields and no calls between its
+  methods.** `evals/design/decoys/*/loans/adapters/gateway.py` (a port
+  implementation, three methods, no fields) failed the precision test with
+  `('split-cohesion', 'adapters/gateway.py', 'Gateway')` on the unfixed code;
+  `MethodGraph.components` now returns 1 when no method touches a field or calls
+  another method. On the four repositories the rule's findings fall from 65, 48,
+  61, 6 to 45, 36, 50, 5 (vox, quarry, lux, z-spec). The precision above is for
+  the rule before this change; it was not re-measured.
+- **Not changed: class-level mutable state** in the two stateless rules (three
+  false findings). Telling a mutated `ClassVar` from a constant table needs a
+  mutation analysis, not a one-line exemption, so it is left as a finding for
+  the next unit.

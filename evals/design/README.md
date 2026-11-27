@@ -17,7 +17,11 @@ recall, precision and ordering include D1-D8, layer rules and Tier 0 size caps.
 Precision checks cover every seeded rule. The `decoys` pair declares its rings in
 `layers.toml`; with them, `Codec.from_wire` in `adapters/wire.py` and the `entry.py`
 wiring of `FeeStore` in layer-leak no longer fire, because `stateless-single-method`
-and `concrete-cross-package-import` are scoped by ring. No known misfire is open.
+and `concrete-cross-package-import` are scoped by ring. `adapters/gateway.py` in both
+variants is a three-method class with no fields: `split-cohesion` does not fire on a
+class whose methods touch no field and call no other method (B4 measured 14 of 30
+sampled findings of that shape). One known misfire is open and not seeded: the
+stateless rules read a class whose only data is a mutated `ClassVar` as stateless.
 
 The layer-leak pair passes its `layers.toml` to the scanner; its four layer
 expectations are implemented checks, not future-rule xfails.

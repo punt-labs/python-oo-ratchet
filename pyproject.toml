@@ -33,7 +33,7 @@ module-name = "oo_ratchet"
 
 [tool.pytest.ini_options]
 addopts = "-ra -q"
-testpaths = ["tests"]
+testpaths = ["tests", "docs/architecture/tools"]
 markers = [
     "slow: tests that drive real tmp git repos (run with -m slow)",
 ]

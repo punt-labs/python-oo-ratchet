@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Added
+
+- `oo-ratchet layers src/pkg/ --suggest` prints a starter `[tool.oo-ratchet.layers]`
+  table and a reason for each module's ring (PL-1713): `argparse`, `typer` or a
+  console-script target is `entry`; importing IO is `adapters`; a Protocol with
+  no IO that an adapter imports is `application`; anything pure is `domain`.
+  Modules that fit no rule are printed as comments. It writes nothing and the
+  table is never applied automatically.
+
 ### Changed
 
 - The OO gate no longer pushes code into small one-class modules (PL-1685).

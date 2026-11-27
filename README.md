@@ -107,7 +107,7 @@ to the baseline gates; design retains its advisory `--shadow-check REF`.
 
 ### Layers gate
 
-`oo-ratchet layers src/pkg/ [--check|--update|--json]` turns the design check's layer rules into a shrinking baseline. It reads the same `[tool.oo-ratchet.layers]` table, either the fixed four-layer form or declared layers:
+`oo-ratchet layers src/pkg/ [--check|--update|--json|--suggest]` turns the design check's layer rules into a shrinking baseline. It reads the same `[tool.oo-ratchet.layers]` table, either the fixed four-layer form or declared layers:
 
 ```toml
 [tool.oo-ratchet.layers.kernel]
@@ -130,6 +130,15 @@ Each layer needs a non-empty `prefixes` list. A `*` may only end a prefix, and a
 - `--check` also fails when a layer's `imports` widens against the base config; land that as its own reviewed change with `--allow-config-change` (accepted with `--check` or `--update`; `--update` records `config_change` in the audit entry).
 - `--update` writes the baseline atomically (temp file, then rename) and restores the previous one if the audit entry cannot be written. A package with no rows is adopted on `--update`; `--check` accepts that when the package does not exist at the base, and fails if an existing package gained rows. `--update` also drops rows of packages whose directory no longer exists in the repository, and records them as `retired` in the audit.
 - `--base-ref`, `--require-base` and `--tripwire` are accepted only with `--check`; `--allow-ci-write` and `--source` behave as for coupling.
+
+`oo-ratchet layers src/pkg/ --suggest` proposes a ring for each module and prints a starter fixed-form `[tool.oo-ratchet.layers]` table, then a comment line of reasons for each module. It needs no existing layers table, writes no file, and never touches `pyproject.toml` or the baseline: **the table is never applied automatically**, because a wrong ring silently passes forbidden imports. Review every reason, then copy the table in yourself. The output is valid TOML (all notes are comments) and always exits 0; it is sorted, so two runs print the same text. The rules run in this order and the first match wins:
+
+1. `entry`: imports `argparse` or `typer`, or is the module a `[project.scripts]` entry of the nearest `pyproject.toml` points at.
+2. `adapters`: imports an IO module (the design check's `domain-io` list) or calls a bare `open`.
+3. `application`: defines a `typing.Protocol` class, imports no IO, and an `adapters` module imports it.
+4. `domain`: imports no IO and no `entry` or `adapters` module. A Protocol module no adapter imports lands here.
+
+A module matching several rules takes the outermost; the reason line names the other rings it matched. A module that matches none (it imports an `entry` or `adapters` module but no IO) is printed as an `unclassified` comment and left out of the table, so `--check` will report it as unassigned until you place it. The root `__init__.py` is skipped. Lists hold explicit module names, except where a prefix is exact: `pkg.sub` and `pkg.sub.*` appear only when every module at or under `pkg.sub` has that ring. `--suggest` cannot combine with `--check`, `--update` or `--json`.
 
 With the fixed four-layer form, the gate also baselines domain purity: each IO module a `domain` module imports (the `domain-io` list in the design check, `TYPE_CHECKING`-only imports excepted) is an edge from that module to the IO module, for example `pkg.domain.model -> subprocess`, and a bare unbound `open(...)` call or a `builtins.open(...)` call (also through `import builtins as b`) or `from builtins import open` is an edge to `builtins.open`. A literal `importlib.import_module("subprocess")` or `__import__("socket")` is an edge to that IO module too; none of these count under `if TYPE_CHECKING:`, and a name inside the scanned package is never IO even when the package is called `rich` or `json`. A failure that lists a purity edge names the way out: a port in the application layer implemented in an adapter, or the one-time `--allow-config-change` update below. A new one fails `--check`; a removed one is a stale baseline entry that `--update` drops. Declared layers have no domain and no purity edges.
 

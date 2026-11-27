@@ -1102,14 +1102,11 @@
     "future_annotations": 1.0
   },
   "src/oo_ratchet/layers/cli.py": {
-    "method_ratio": 0.857,
     "encapsulation_ratio": 1.0,
-    "avg_params": 0.86,
-    "max_complexity": 8.0,
-    "avg_complexity": 3.29,
-    "module_size": 147.0,
-    "classes_per_module": 1.0,
-    "class_to_func_ratio": 0.667,
+    "avg_params": 1.0,
+    "max_complexity": 6.0,
+    "avg_complexity": 2.7,
+    "module_size": 157.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -1136,6 +1133,16 @@
     "module_size": 42.0,
     "classes_per_module": 1.0,
     "class_to_func_ratio": 1.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
+  "src/oo_ratchet/layers/failures.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 0.0,
+    "max_complexity": 0.0,
+    "avg_complexity": 0.0,
+    "module_size": 13.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -1251,6 +1258,46 @@
     "max_complexity": 6.0,
     "avg_complexity": 3.17,
     "module_size": 46.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
+  "src/oo_ratchet/layers/suggest.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 0.5,
+    "max_complexity": 7.0,
+    "avg_complexity": 4.25,
+    "module_size": 60.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
+  "src/oo_ratchet/layers/suggest_facts.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 1.2,
+    "max_complexity": 7.0,
+    "avg_complexity": 3.4,
+    "module_size": 97.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
+  "src/oo_ratchet/layers/suggest_rules.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 1.5,
+    "max_complexity": 9.0,
+    "avg_complexity": 4.75,
+    "module_size": 53.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
+  "src/oo_ratchet/layers/suggest_table.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 1.2,
+    "max_complexity": 7.0,
+    "avg_complexity": 4.2,
+    "module_size": 50.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0

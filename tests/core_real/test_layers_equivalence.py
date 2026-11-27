@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import re
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
@@ -37,7 +38,7 @@ STAMP = re.compile(r'("ts":)"[^"]*"')
 HASH = re.compile(r"\b[0-9a-f]{7,40}\b")
 WIDE = PYPROJECT.replace('imports = ["kernel"]', 'imports = ["kernel", "cli"]', 1)
 FIXED = '[tool.oo-ratchet.layers]\nentry = ["app.cli"]\ndomain = ["app.domain"]\n'
-NEW_PACKAGE = "import app.kernel\n"
+NEW_PACKAGE = "import fresh.service\n"
 
 
 def run_new(argv: list[str]) -> int:
@@ -93,10 +94,12 @@ class Bench:
         assert new[0] == code, new[1]
         return new[1]
 
-    def _run(self, runner: object, args: list[str]) -> tuple[int, str]:
+    def _run(
+        self, runner: Callable[[list[str]], int], args: list[str]
+    ) -> tuple[int, str]:
         self.capsys.readouterr()
         try:
-            status = runner(args)  # type: ignore[operator]
+            status = runner(args)
         except SystemExit as exc:
             status = int(exc.code or 0)
         raw = self.capsys.readouterr()
@@ -124,9 +127,7 @@ class Bench:
     def _state(self) -> dict[str, str | None]:
         return {
             name: (
-                None
-                if data is None
-                else self._mask(STAMP.sub(r'\1"T"', data.decode()))
+                None if data is None else self._mask(STAMP.sub(r'\1"T"', data.decode()))
             )
             for name, data in self._files().items()
         }
@@ -230,9 +231,7 @@ class TestBases:
         bench.repo.commit_as_origin_main()
         bench.step("--check", "--base-ref", old, code=1)
 
-    def test_base_before_adoption_passes_when_main_lacks_it(
-        self, bench: Bench
-    ) -> None:
+    def test_base_before_adoption_passes_when_main_lacks_it(self, bench: Bench) -> None:
         old = bench.repo.commit_as_origin_main()
         bench.step("--update", code=0)
         bench.step("--check", "--base-ref", old, code=0)
@@ -275,12 +274,13 @@ class TestPolicy:
         assert "widened" in bench.step("--check", code=1)
         bench.step("--check", "--allow-config-change", code=0)
 
-    def test_declared_policy_missing_at_the_base_fails(self, bench: Bench) -> None:
+    def test_config_missing_at_the_base_fails(self, bench: Bench) -> None:
         bench.repo.edit("kernel", "")
+        bench.repo.write("pyproject.toml", "[tool.other]\n")
+        bench.repo.write(".oo-layers-baseline.json", "{}\n")
         bench.repo.commit_as_origin_main()
-        bench.step("--update", code=0)
-        bench.repo.write("pyproject.toml", WIDE)
-        bench.step("--check", code=1)
+        bench.repo.write("pyproject.toml", PYPROJECT)
+        assert "no layer config at the base" in bench.step("--check", code=1)
 
 
 class TestPurity:
@@ -295,23 +295,32 @@ class TestPurity:
         (repo.root / "src/app/service.py").unlink()
 
     def test_new_io_import_fails_and_is_refused_by_update(self, bench: Bench) -> None:
-        self._fixed(bench, "X = 1\n")
+        self._fixed(bench, "import subprocess\n")
         bench.repo.adopt()
         bench.repo.commit_as_origin_main()
-        bench.repo.write("src/app/domain.py", "import subprocess\n")
+        bench.repo.write("src/app/domain.py", "import subprocess\nimport socket\n")
         out = bench.step("--check", code=1)
         assert "domain purity" in out
         assert "domain purity" in bench.step("--update", code=1)
 
-    def test_allow_config_change_accepts_the_io_edge(self, bench: Bench) -> None:
+    def test_empty_baseline_adopts_an_io_edge(self, bench: Bench) -> None:
         self._fixed(bench, "X = 1\n")
         bench.repo.adopt()
         bench.repo.commit_as_origin_main()
         bench.repo.write("src/app/domain.py", "import subprocess\n")
+        bench.step("--update", code=0)
+
+    def test_allow_config_change_accepts_the_io_edge(self, bench: Bench) -> None:
+        self._fixed(bench, "import subprocess\n")
+        bench.repo.adopt()
+        bench.repo.commit_as_origin_main()
+        bench.repo.write("src/app/domain.py", "import subprocess\nimport socket\n")
         bench.step("--check", "--allow-config-change", code=1)
+        bench.step("--update", code=1)
         bench.step("--update", "--allow-config-change", code=0)
         bench.repo.commit()
         bench.step("--check", "--allow-config-change", code=0)
+        bench.step("--check", code=1)
 
 
 class TestPackages:

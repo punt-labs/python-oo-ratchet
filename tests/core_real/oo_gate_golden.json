@@ -1,0 +1,602 @@
+{
+ "test_bless_accepts_and_audits#0": {
+  "code": 0,
+  "out": "\nBaseline blessed for 2 file(s) (reason: why):\n  files:\n    sub/w.py\n    sub/w.py\n",
+  "state": {
+   ".oo-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"C\",\"source\":null,\"files_scored\":2,\"files_improved\":0,\"files_regressed\":1,\"verdict\":\"rebaseline-files\",\"reason\":\"why\",\"deltas\":{\"sub/w.py\":{\"max_complexity\":[1.0,3.0]}},\"removed\":[],\"improved\":{}}\n",
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 3.0,\n    \"avg_complexity\": 2.0,\n    \"module_size\": 13.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_bless_guards_run_before_scoring#0": {
+  "code": 1,
+  "out": "FAIL: --rebaseline-files requires --reason <text>\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_bless_guards_run_before_scoring#1": {
+  "code": 1,
+  "out": "FAIL: --rebaseline-files requires at least one path\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_bless_refuses_an_over_cap_regression#0": {
+  "code": 1,
+  "out": "\nBaseline blessed for 1 file(s) (reason: needed):\n  files:\n    sub/z.py\n  REFUSED (2 file(s), nothing written):\n    sub/w.py: max_complexity=13 fails <= 10 (over cap and regressed); avg_complexity=5.67 fails <= 5.0 (over cap and regressed)\n    sub/absent.py: not found in scored tree\n",
+  "state": {
+   ".oo-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"C\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline-files\",\"reason\":\"needed\",\"deltas\":{},\"removed\":[],\"improved\":{}}\n",
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  },\n  \"sub/z.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_check_audit_entries_with_odd_deltas_waive_nothing#0": {
+  "code": 1,
+  "out": "\nFile                                     Metric                       Baseline    Current    Delta     Status\n------------------------------------------------------------------------------------------------------------\nsub/w.py                                 max_complexity                  1.000      3.000   +2.000  REGRESSED\nsub/w.py                                 avg_complexity                  1.000      2.000   +1.000       PASS\nsub/w.py                                 module_size                     9.000     13.000   +4.000       PASS\nFAIL: regression detected\n  sub/w.py: max_complexity\nFAIL: no metric improved on any touched file\n",
+  "state": {
+   ".oo-audit.jsonl": "{\"verdict\": \"relaxed\", \"deltas\": [1]}\n{\"verdict\": \"relaxed\", \"deltas\": {\"sub/w.py\": \"max_complexity\"}}\n{\"verdict\": \"rebaseline-files\", \"deltas\": {\"sub/w.py\": [\"max_complexity\"]}}\n",
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 3.0,\n    \"avg_complexity\": 2.0,\n    \"module_size\": 13.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_check_base_does_not_resolve#0": {
+  "code": 1,
+  "out": "FAIL: base ref unresolvable and --require-base is set\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_check_base_does_not_resolve#1": {
+  "code": 1,
+  "out": "FAIL: cannot resolve merge-base (origin/main unfetched or stale) with an in-tree baseline present; fetch origin/main or pass --base-ref\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_check_base_without_baseline#0": {
+  "code": 1,
+  "out": "FAIL: base has no baseline and origin/main is unresolvable with an in-tree baseline present; fetch origin/main\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_check_base_without_baseline#1": {
+  "code": 0,
+  "out": "Base predates baseline adoption on push tripwire -- one-time bootstrap pass\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_check_base_without_baseline#2": {
+  "code": 0,
+  "out": "No baseline at base or origin/main tip -- first-adoption bootstrap pass\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_check_base_without_baseline_and_baseline_on_main#0": {
+  "code": 1,
+  "out": "FAIL: base commit predates baseline adoption; rebase onto current main\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_check_base_without_baseline_and_nothing_adopted#0": {
+  "code": 0,
+  "out": "No base baseline and no origin/main -- first-adoption bootstrap pass\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": null
+  }
+ },
+ "test_check_baseline_not_locked#0": {
+  "code": 1,
+  "out": "\nFile                                     Metric                       Baseline    Current    Delta     Status\n------------------------------------------------------------------------------------------------------------\nsub/w.py                                 max_complexity                  3.000      1.000   -2.000   IMPROVED\nsub/w.py                                 avg_complexity                  2.000      1.000   -1.000       PASS\nsub/w.py                                 module_size                    13.000      9.000   -4.000       PASS\nFAIL: baseline out of date -- run make update-oo: sub/w.py\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 3.0,\n    \"avg_complexity\": 2.0,\n    \"module_size\": 13.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_check_corrupt_state_fails_closed#0": {
+  "code": 1,
+  "out": "FAIL: non-dict entry in baseline blob at 6c422f6cc9f2800e867237fc650bf956615730b1:.oo-baseline.json\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_check_corrupt_state_fails_closed#1": {
+  "code": 1,
+  "out": "FAIL: unreadable baseline file <root>/.oo-baseline.json: Expecting property name enclosed in double quotes: line 1 column 3 (char 2)\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{ not json"
+  }
+ },
+ "test_check_corrupt_state_fails_closed#2": {
+  "code": 1,
+  "out": "FAIL: non-dict baseline file <root>/.oo-baseline.json\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "[1]"
+  }
+ },
+ "test_check_corrupt_state_fails_closed#3": {
+  "code": 1,
+  "out": "FAIL: non-dict entry in baseline file <root>/.oo-baseline.json\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\"sub/w.py\": \"x\"}"
+  }
+ },
+ "test_check_corrupt_state_fails_closed#4": {
+  "code": 1,
+  "out": "FAIL: non-numeric metric in baseline file <root>/.oo-baseline.json\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\"sub/w.py\": {\"module_size\": true}}"
+  }
+ },
+ "test_check_empty_base_baseline#0": {
+  "code": 1,
+  "out": "FAIL: base baseline is empty (truncated write or bad merge) and --require-base is set\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_check_empty_base_baseline#1": {
+  "code": 0,
+  "out": "No Python files touched -- trivial pass\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_check_first_adoption_passes#0": {
+  "code": 0,
+  "out": "No base and no in-tree baseline -- first-adoption bootstrap pass\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": null
+  }
+ },
+ "test_check_improvement#0": {
+  "code": 0,
+  "out": "\nFile                                     Metric                       Baseline    Current    Delta     Status\n------------------------------------------------------------------------------------------------------------\nsub/w.py                                 max_complexity                  3.000      1.000   -2.000   IMPROVED\nsub/w.py                                 avg_complexity                  2.000      1.000   -1.000       PASS\nsub/w.py                                 module_size                    13.000      9.000   -4.000       PASS\nPASS: at least one metric improved, no regressions\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_check_neutral_change_needs_the_flag#0": {
+  "code": 1,
+  "out": "\nFile                                     Metric                       Baseline    Current    Delta     Status\n------------------------------------------------------------------------------------------------------------\n  (all metrics unchanged)\nFAIL: no metric improved on any touched file\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_check_neutral_change_needs_the_flag#1": {
+  "code": 0,
+  "out": "\nFile                                     Metric                       Baseline    Current    Delta     Status\n------------------------------------------------------------------------------------------------------------\n  (all metrics unchanged)\nPASS: no regressions (must-improve gate waived)\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_check_new_file_with_row_is_judged_by_target#0": {
+  "code": 0,
+  "out": "\nFile                                     Metric                       Baseline    Current    Delta     Status\n------------------------------------------------------------------------------------------------------------\nsub/new.py                               encapsulation_ratio               NEW      1.000       --       PASS\nsub/new.py                               avg_params                        NEW      0.500       --       PASS\nsub/new.py                               max_complexity                    NEW      3.000       --       PASS\nsub/new.py                               avg_complexity                    NEW      2.000       --       PASS\nsub/new.py                               module_size                       NEW     13.000       --       PASS\nsub/new.py                               init_violations                   NEW      0.000       --       PASS\nsub/new.py                               public_attr_violations            NEW      0.000       --       PASS\nsub/new.py                               future_annotations                NEW      1.000       --       PASS\nPASS: at least one metric improved, no regressions\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/new.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 3.0,\n    \"avg_complexity\": 2.0,\n    \"module_size\": 13.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  },\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_check_new_file_with_row_is_judged_by_target#1": {
+  "code": 0,
+  "out": "\nFile                                     Metric                       Baseline    Current    Delta     Status\n------------------------------------------------------------------------------------------------------------\nsub/new.py                               encapsulation_ratio               NEW      1.000       --       PASS\nsub/new.py                               avg_params                        NEW      0.500       --       PASS\nsub/new.py                               max_complexity                    NEW      3.000       --       PASS\nsub/new.py                               avg_complexity                    NEW      2.000       --       PASS\nsub/new.py                               module_size                       NEW     13.000       --       PASS\nsub/new.py                               init_violations                   NEW      0.000       --       PASS\nsub/new.py                               public_attr_violations            NEW      0.000       --       PASS\nsub/new.py                               future_annotations                NEW      1.000       --       PASS\nsub/third.py                             encapsulation_ratio               NEW      1.000       --       PASS\nsub/third.py                             avg_params                        NEW      0.500       --       PASS\nsub/third.py                             max_complexity                    NEW      1.000       --       PASS\nsub/third.py                             avg_complexity                    NEW      1.000       --       PASS\nsub/third.py                             module_size                       NEW      9.000       --       PASS\nsub/third.py                             init_violations                   NEW      0.000       --       PASS\nsub/third.py                             public_attr_violations            NEW      0.000       --       PASS\nsub/third.py                             future_annotations                NEW      1.000       --       PASS\nPASS: at least one metric improved, no regressions\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/new.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 3.0,\n    \"avg_complexity\": 2.0,\n    \"module_size\": 13.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  },\n  \"sub/third.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  },\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_check_new_file_without_row#0": {
+  "code": 1,
+  "out": "\nFile                                     Metric                       Baseline    Current    Delta     Status\n------------------------------------------------------------------------------------------------------------\nsub/new.py                               encapsulation_ratio               NEW      1.000       --       PASS\nsub/new.py                               avg_params                        NEW      0.500       --       PASS\nsub/new.py                               max_complexity                    NEW      1.000       --       PASS\nsub/new.py                               avg_complexity                    NEW      1.000       --       PASS\nsub/new.py                               module_size                       NEW      9.000       --       PASS\nsub/new.py                               init_violations                   NEW      0.000       --       PASS\nsub/new.py                               public_attr_violations            NEW      0.000       --       PASS\nsub/new.py                               future_annotations                NEW      1.000       --       PASS\nFAIL: touched file(s) not in baseline -- run make update-oo: sub/new.py\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_check_no_python_touched#0": {
+  "code": 0,
+  "out": "No Python files touched -- trivial pass\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_check_parse_error_in_touched_file#0": {
+  "code": 1,
+  "out": "FAIL: touched file(s) failed to parse:\n  sub/w.py\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_check_regression#0": {
+  "code": 1,
+  "out": "\nFile                                     Metric                       Baseline    Current    Delta     Status\n------------------------------------------------------------------------------------------------------------\nsub/w.py                                 max_complexity                  1.000      3.000   +2.000  REGRESSED\nsub/w.py                                 avg_complexity                  1.000      2.000   +1.000       PASS\nsub/w.py                                 module_size                     9.000     13.000   +4.000       PASS\nFAIL: regression detected\n  sub/w.py: max_complexity\nFAIL: no metric improved on any touched file\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 3.0,\n    \"avg_complexity\": 2.0,\n    \"module_size\": 13.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_check_relax_waives#0": {
+  "code": 0,
+  "out": "\nRelaxed sub/w.py (reason: debt)\n  baseline: <root>/.oo-baseline.json\n",
+  "state": {
+   ".oo-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"C\",\"source\":\"t\",\"files_scored\":1,\"files_improved\":0,\"files_regressed\":1,\"verdict\":\"relaxed\",\"reason\":\"debt\",\"deltas\":{\"sub/w.py\":{\"max_complexity\":[1.0,3.0]}},\"removed\":[]}\n",
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 3.0,\n    \"avg_complexity\": 2.0,\n    \"module_size\": 13.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_check_relax_waives#1": {
+  "code": 0,
+  "out": "\nFile                                     Metric                       Baseline    Current    Delta     Status\n------------------------------------------------------------------------------------------------------------\nsub/w.py                                 max_complexity                  1.000      3.000   +2.000    RELAXED\nsub/w.py                                 avg_complexity                  1.000      2.000   +1.000       PASS\nsub/w.py                                 module_size                     9.000     13.000   +4.000       PASS\nPASS: at least one metric improved, no regressions\n",
+  "state": {
+   ".oo-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"C\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":1,\"verdict\":\"relaxed\",\"reason\":\"debt\",\"deltas\":{\"sub/w.py\":{\"max_complexity\":[1.0,3.0]}},\"removed\":[]}\n",
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 3.0,\n    \"avg_complexity\": 2.0,\n    \"module_size\": 13.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_check_relaxation_in_base_log_is_history#0": {
+  "code": 1,
+  "out": "\nFile                                     Metric                       Baseline    Current    Delta     Status\n------------------------------------------------------------------------------------------------------------\nsub/w.py                                 max_complexity                  1.000      3.000   +2.000  REGRESSED\nsub/w.py                                 avg_complexity                  1.000      2.000   +1.000       PASS\nsub/w.py                                 module_size                     9.000     13.000   +4.000       PASS\nFAIL: regression detected\n  sub/w.py: max_complexity\nFAIL: no metric improved on any touched file\n",
+  "state": {
+   ".oo-audit.jsonl": "{\"verdict\": \"relaxed\", \"deltas\": {\"sub/w.py\": {\"max_complexity\": [1, 2]}}}\n",
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 3.0,\n    \"avg_complexity\": 2.0,\n    \"module_size\": 13.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_check_rename_carries_the_base_row#0": {
+  "code": 1,
+  "out": "\nFile                                     Metric                       Baseline    Current    Delta     Status\n------------------------------------------------------------------------------------------------------------\nsub/w2.py                                max_complexity                  1.000      3.000   +2.000  REGRESSED\nsub/w2.py                                avg_complexity                  1.000      2.000   +1.000       PASS\nsub/w2.py                                module_size                     9.000     13.000   +4.000       PASS\nFAIL: regression detected\n  sub/w2.py: max_complexity\nFAIL: no metric improved on any touched file\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w2.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 3.0,\n    \"avg_complexity\": 2.0,\n    \"module_size\": 13.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_check_reverted_file_keeps_rewritten_row#0": {
+  "code": 1,
+  "out": "FAIL: baseline out of date -- run make update-oo: sub/w.py\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_check_tripwire_without_in_tree_baseline#0": {
+  "code": 1,
+  "out": "FAIL: --tripwire with no baseline on main; only the adoption commit that adds the baseline may bootstrap\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": null
+  }
+ },
+ "test_check_untouched_with_rewritten_stale_row#0": {
+  "code": 1,
+  "out": "FAIL: baseline out of date -- run make update-oo: sub/w.py\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"max_complexity\": 9.0\n  }\n}\n"
+  }
+ },
+ "test_corrupt_audit_log_fails_closed#0": {
+  "code": 1,
+  "out": "FAIL: malformed audit entry '<<<<<<< not json': Expecting value: line 1 column 1 (char 0)\n",
+  "state": {
+   ".oo-audit.jsonl": "<<<<<<< not json\n",
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 3.0,\n    \"avg_complexity\": 2.0,\n    \"module_size\": 13.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_log_lists_the_history#0": {
+  "code": 0,
+  "out": "\nTimestamp              Commit      Scored  Improved  Regressed  Verdict\n----------------------------------------------------------------------\nT C          1         0          0 rebaseline\n",
+  "state": {
+   ".oo-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"C\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"deltas\":{},\"removed\":[]}\n",
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 3.0,\n    \"avg_complexity\": 2.0,\n    \"module_size\": 13.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_rebaseline_resets_the_baseline#0": {
+  "code": 0,
+  "out": "\nBaseline reset: <root>/.oo-baseline.json\n  files scored: 1\n",
+  "state": {
+   ".oo-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"C\",\"source\":\"PR-3\",\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"deltas\":{},\"removed\":[\"sub/gone.py\"]}\n",
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 3.0,\n    \"avg_complexity\": 2.0,\n    \"module_size\": 13.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_reconcile_first_adoption#0": {
+  "code": 0,
+  "out": "\nBaseline updated: <root>/.oo-baseline.json\n  files improved: 0\n  files removed:  0\n",
+  "state": {
+   ".oo-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"C\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"pass\",\"deltas\":{\"sub/w.py\":{\"encapsulation_ratio\":[0.0,1.0],\"avg_params\":[0.0,0.5],\"max_complexity\":[0.0,1.0],\"avg_complexity\":[0.0,1.0],\"module_size\":[0.0,9.0],\"init_violations\":[0.0,0.0],\"public_attr_violations\":[0.0,0.0],\"future_annotations\":[0.0,1.0]}},\"removed\":[]}\n",
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_reconcile_prunes_and_refuses#0": {
+  "code": 1,
+  "out": "\nBaseline updated: <root>/.oo-baseline.json\n  files improved: 0\n  files removed:  1\n  REFUSED (1 files):\n    sub/w.py: max_complexity regressed\n",
+  "state": {
+   ".oo-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"C\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":1,\"verdict\":\"fail\",\"deltas\":{},\"removed\":[\"sub/gone.py\"]}\n",
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_reconcile_prunes_and_refuses#1": {
+  "code": 0,
+  "out": "\nBaseline updated: <root>/.oo-baseline.json\n  files improved: 0\n  files removed:  1\n",
+  "state": {
+   ".oo-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"C\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"pass\",\"deltas\":{},\"removed\":[\"sub/gone.py\"]}\n",
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_reconcile_with_a_base_and_a_rename#0": {
+  "code": 0,
+  "out": "\nBaseline updated: <root>/.oo-baseline.json\n  files improved: 1\n  files removed:  1\n",
+  "state": {
+   ".oo-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"C\",\"source\":null,\"files_scored\":1,\"files_improved\":1,\"files_regressed\":0,\"verdict\":\"pass\",\"deltas\":{\"sub/w2.py\":{\"max_complexity\":[3.0,1.0],\"avg_complexity\":[2.0,1.0],\"module_size\":[13.0,9.0]}},\"removed\":[\"sub/w.py\"]}\n",
+   ".oo-baseline.json": "{\n  \"sub/w2.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_reconcile_without_a_base#0": {
+  "code": 1,
+  "out": "FAIL: cannot resolve base for reconcile (origin/main unfetched or stale) with an in-tree baseline present; fetch origin/main\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_relax_refusals#0": {
+  "code": 1,
+  "out": "FAIL: --relax requires a non-empty --justify\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_relax_refusals#1": {
+  "code": 1,
+  "out": "FAIL: not a scored file: sub/nope.py\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_relax_refusals#2": {
+  "code": 1,
+  "out": "FAIL: nothing to relax for sub/w.py (no metric is worse than its baseline)\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_relax_refusals#3": {
+  "code": 1,
+  "out": "FAIL: sub/new.py has no baseline entry to relax; use --update or --reconcile to add a new file\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_relax_writes_the_loosened_row#0": {
+  "code": 0,
+  "out": "\nRelaxed sub/w.py (reason: debt)\n  baseline: <root>/.oo-baseline.json\n",
+  "state": {
+   ".oo-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"C\",\"source\":\"PR-2\",\"files_scored\":1,\"files_improved\":0,\"files_regressed\":1,\"verdict\":\"relaxed\",\"reason\":\"debt\",\"deltas\":{\"sub/w.py\":{\"max_complexity\":[1.0,3.0]}},\"removed\":[]}\n",
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 3.0,\n    \"avg_complexity\": 2.0,\n    \"module_size\": 13.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_target_missing_and_unscorable#0": {
+  "code": 1,
+  "out": "Not found: nope\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_target_missing_and_unscorable#1": {
+  "code": 1,
+  "out": "FAIL: cannot score sub/bad.py\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_update_backfills_a_missing_row#0": {
+  "code": 0,
+  "out": "\nBaseline updated: <root>/.oo-baseline.json\n  files improved: 1\n  files removed:  0\n  backfilled: sub/other.py\n",
+  "state": {
+   ".oo-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"C\",\"source\":null,\"files_scored\":2,\"files_improved\":1,\"files_regressed\":0,\"verdict\":\"pass\",\"deltas\":{\"sub/w.py\":{\"max_complexity\":[3.0,1.0],\"avg_complexity\":[2.0,1.0],\"module_size\":[13.0,9.0]}},\"removed\":[],\"backfilled\":[\"sub/other.py\"]}\n",
+   ".oo-baseline.json": "{\n  \"sub/other.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  },\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_update_carries_a_rename_and_drops_deleted_rows#0": {
+  "code": 0,
+  "out": "\nBaseline updated: <root>/.oo-baseline.json\n  files improved: 0\n  files removed:  2\n",
+  "state": {
+   ".oo-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"C\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"pass\",\"deltas\":{},\"removed\":[\"sub/gone.py\",\"sub/w.py\"]}\n",
+   ".oo-baseline.json": "{\n  \"sub/w2.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_update_first_adoption_bootstraps#0": {
+  "code": 0,
+  "out": "\nBaseline updated: <root>/.oo-baseline.json\n  files improved: 0\n  files removed:  0\n",
+  "state": {
+   ".oo-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"C\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"pass\",\"deltas\":{\"sub/w.py\":{\"encapsulation_ratio\":[0.0,1.0],\"avg_params\":[0.0,0.5],\"max_complexity\":[0.0,1.0],\"avg_complexity\":[0.0,1.0],\"module_size\":[0.0,9.0],\"init_violations\":[0.0,0.0],\"public_attr_violations\":[0.0,0.0],\"future_annotations\":[0.0,1.0]}},\"removed\":[]}\n",
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_update_refuses_a_regression#0": {
+  "code": 1,
+  "out": "\nBaseline updated: <root>/.oo-baseline.json\n  files improved: 0\n  files removed:  0\n  REFUSED (1 files):\n    sub/w.py: max_complexity regressed\n",
+  "state": {
+   ".oo-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"C\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":1,\"verdict\":\"fail\",\"deltas\":{},\"removed\":[]}\n",
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_update_refuses_a_worsened_rename#0": {
+  "code": 1,
+  "out": "\nBaseline updated: <root>/.oo-baseline.json\n  files improved: 0\n  files removed:  0\n  REFUSED (1 files):\n    sub/w2.py: max_complexity regressed\n",
+  "state": {
+   ".oo-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"C\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":1,\"verdict\":\"fail\",\"deltas\":{},\"removed\":[]}\n",
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_update_refuses_an_unparseable_file#0": {
+  "code": 1,
+  "out": "\nBaseline updated: <root>/.oo-baseline.json\n  files improved: 0\n  files removed:  0\n  REFUSED (1 unparseable, baseline kept):\n    sub/w.py: parse error\n",
+  "state": {
+   ".oo-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"C\",\"source\":null,\"files_scored\":0,\"files_improved\":0,\"files_regressed\":1,\"verdict\":\"fail\",\"deltas\":{},\"removed\":[]}\n",
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_update_without_a_base#0": {
+  "code": 1,
+  "out": "FAIL: base ref unresolvable and --require-base is set\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_update_without_a_base#1": {
+  "code": 1,
+  "out": "FAIL: cannot resolve base (origin/main unfetched or stale) with an in-tree baseline present; fetch origin/main, pass --base-ref, or use --reconcile for an intentional whole-tree sweep\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_update_writes_an_improvement#0": {
+  "code": 0,
+  "out": "\nBaseline updated: <root>/.oo-baseline.json\n  files improved: 1\n  files removed:  0\n",
+  "state": {
+   ".oo-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"C\",\"source\":\"PR-1\",\"files_scored\":1,\"files_improved\":1,\"files_regressed\":0,\"verdict\":\"pass\",\"deltas\":{\"sub/w.py\":{\"max_complexity\":[3.0,1.0],\"avg_complexity\":[2.0,1.0],\"module_size\":[13.0,9.0]}},\"removed\":[]}\n",
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_views#0": {
+  "code": 0,
+  "out": "{\n  \"per_file\": [\n    {\n      \"file\": \"sub/w.py\",\n      \"module_size\": 9,\n      \"classes_per_module\": 1,\n      \"top_level_functions\": 0,\n      \"top_level_statements\": 0,\n      \"method_ratio\": 1.0,\n      \"class_to_func_ratio\": 1.0,\n      \"encapsulation_ratio\": 1.0,\n      \"avg_params\": 0.5,\n      \"max_complexity\": 1,\n      \"avg_complexity\": 1.0,\n      \"init_violations\": 0,\n      \"public_attr_violations\": 0,\n      \"future_annotations\": 1\n    }\n  ],\n  \"aggregate\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  },\n  \"grades\": {\n    \"encapsulation_ratio\": \"PASS\",\n    \"avg_params\": \"PASS\",\n    \"max_complexity\": \"PASS\",\n    \"avg_complexity\": \"PASS\",\n    \"module_size\": \"PASS\",\n    \"init_violations\": \"PASS\",\n    \"public_attr_violations\": \"PASS\",\n    \"future_annotations\": \"PASS\"\n  },\n  \"thresholds\": {\n    \"encapsulation_ratio\": \">= 1.0\",\n    \"avg_params\": \"<= 4.0\",\n    \"max_complexity\": \"<= 10\",\n    \"avg_complexity\": \"<= 5.0\",\n    \"module_size\": \"<= 400\",\n    \"init_violations\": \"== 0\",\n    \"public_attr_violations\": \"== 0\",\n    \"future_annotations\": \"== 1\"\n  }\n}\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_views#1": {
+  "code": 0,
+  "out": "\nMetric                          Value     Target  Grade\n--------------------------------------------------------\nencapsulation_ratio              1.00 >= 1.0      PASS  \navg_params                       0.50 <= 4.0      PASS  \nmax_complexity                   1.00 <= 10       PASS  \navg_complexity                   1.00 <= 5.0      PASS  \nmodule_size                      9.00 <= 400      PASS  \ninit_violations                  0.00 == 0        PASS  \npublic_attr_violations           0.00 == 0        PASS  \nfuture_annotations               1.00 == 1        PASS  \n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_views#2": {
+  "code": 0,
+  "out": "\nMetric                          Value     Target  Grade\n--------------------------------------------------------\nencapsulation_ratio              1.00 >= 1.0      PASS  \navg_params                       0.50 <= 4.0      PASS  \nmax_complexity                   1.00 <= 10       PASS  \navg_complexity                   1.00 <= 5.0      PASS  \nmodule_size                      9.00 <= 400      PASS  \ninit_violations                  0.00 == 0        PASS  \npublic_attr_violations           0.00 == 0        PASS  \nfuture_annotations               1.00 == 1        PASS  \n\n--- Per-file breakdown ---\n\n  sub/w.py\n    module_size                       9 PASS\n    encapsulation_ratio             1.0 PASS\n    avg_params                      0.5 PASS\n    max_complexity                    1 PASS\n    avg_complexity                  1.0 PASS\n    init_violations                   0 PASS\n    public_attr_violations            0 PASS\n    future_annotations                1 PASS\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_views#3": {
+  "code": 0,
+  "out": "PASS: baseline complete for 1 scored files\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_views#4": {
+  "code": 0,
+  "out": "No audit log found\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_views#5": {
+  "code": 0,
+  "out": "\nBaseline reset: <root>/.oo-baseline.json\n  files scored: 1\n",
+  "state": {
+   ".oo-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"C\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"deltas\":{},\"removed\":[]}\n",
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_views#6": {
+  "code": 1,
+  "out": "FAIL: files missing from baseline:\n  sub/extra.py\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_views#7": {
+  "code": 1,
+  "out": "{\n  \"per_file\": [\n    {\n      \"file\": \"sub/extra.py\",\n      \"module_size\": 9,\n      \"classes_per_module\": 1,\n      \"top_level_functions\": 0,\n      \"top_level_statements\": 0,\n      \"method_ratio\": 1.0,\n      \"class_to_func_ratio\": 1.0,\n      \"encapsulation_ratio\": 1.0,\n      \"avg_params\": 0.5,\n      \"max_complexity\": 1,\n      \"avg_complexity\": 1.0,\n      \"init_violations\": 0,\n      \"public_attr_violations\": 0,\n      \"future_annotations\": 1\n    },\n    {\n      \"file\": \"sub/w.py\",\n      \"error\": \"invalid syntax (w.py, line 1)\"\n    }\n  ],\n  \"aggregate\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  },\n  \"grades\": {\n    \"encapsulation_ratio\": \"PASS\",\n    \"avg_params\": \"PASS\",\n    \"max_complexity\": \"PASS\",\n    \"avg_complexity\": \"PASS\",\n    \"module_size\": \"PASS\",\n    \"init_violations\": \"PASS\",\n    \"public_attr_violations\": \"PASS\",\n    \"future_annotations\": \"PASS\"\n  },\n  \"thresholds\": {\n    \"encapsulation_ratio\": \">= 1.0\",\n    \"avg_params\": \"<= 4.0\",\n    \"max_complexity\": \"<= 10\",\n    \"avg_complexity\": \"<= 5.0\",\n    \"module_size\": \"<= 400\",\n    \"init_violations\": \"== 0\",\n    \"public_attr_violations\": \"== 0\",\n    \"future_annotations\": \"== 1\"\n  }\n}\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_writes_are_refused_under_ci#0": {
+  "code": 1,
+  "out": "FAIL: refusing to write baseline under GITHUB_ACTIONS without --allow-ci-write\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 3.0,\n    \"avg_complexity\": 2.0,\n    \"module_size\": 13.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_writes_are_refused_under_ci#1": {
+  "code": 1,
+  "out": "FAIL: refusing to write baseline under GITHUB_ACTIONS without --allow-ci-write\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 3.0,\n    \"avg_complexity\": 2.0,\n    \"module_size\": 13.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_writes_are_refused_under_ci#2": {
+  "code": 1,
+  "out": "FAIL: refusing to write baseline under GITHUB_ACTIONS without --allow-ci-write\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 3.0,\n    \"avg_complexity\": 2.0,\n    \"module_size\": 13.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_writes_are_refused_under_ci#3": {
+  "code": 1,
+  "out": "FAIL: refusing to write baseline under GITHUB_ACTIONS without --allow-ci-write\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 3.0,\n    \"avg_complexity\": 2.0,\n    \"module_size\": 13.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_writes_are_refused_under_ci#4": {
+  "code": 1,
+  "out": "FAIL: refusing to write baseline under GITHUB_ACTIONS without --allow-ci-write\n",
+  "state": {
+   ".oo-audit.jsonl": null,
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 3.0,\n    \"avg_complexity\": 2.0,\n    \"module_size\": 13.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ },
+ "test_writes_are_refused_under_ci#5": {
+  "code": 0,
+  "out": "\nBaseline updated: <root>/.oo-baseline.json\n  files improved: 1\n  files removed:  0\n",
+  "state": {
+   ".oo-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"C\",\"source\":null,\"files_scored\":1,\"files_improved\":1,\"files_regressed\":0,\"verdict\":\"pass\",\"deltas\":{\"sub/w.py\":{\"max_complexity\":[3.0,1.0],\"avg_complexity\":[2.0,1.0],\"module_size\":[13.0,9.0]}},\"removed\":[]}\n",
+   ".oo-baseline.json": "{\n  \"sub/w.py\": {\n    \"encapsulation_ratio\": 1.0,\n    \"avg_params\": 0.5,\n    \"max_complexity\": 1.0,\n    \"avg_complexity\": 1.0,\n    \"module_size\": 9.0,\n    \"init_violations\": 0.0,\n    \"public_attr_violations\": 0.0,\n    \"future_annotations\": 1.0\n  }\n}\n"
+  }
+ }
+}

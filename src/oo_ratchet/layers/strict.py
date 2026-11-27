@@ -5,6 +5,7 @@ from __future__ import annotations
 import ast
 from typing import Self
 
+from oo_ratchet.design.domain_io import DomainIO
 from oo_ratchet.design.layer_config import LayerConfig
 from oo_ratchet.design.layer_edges import Edge, Violation
 from oo_ratchet.design.layer_violations import LayerViolations, Site
@@ -59,6 +60,11 @@ class StrictViolations(LayerViolations):
                 Violation(Edge(self.name(module), target), source, imported)
                 for _, _, target, imported in self.refused(module, source)
             )
+            if self._config.ORDERED and source == "domain":
+                found.update(
+                    Violation(Edge(self.name(module), io), source, "io")
+                    for io in DomainIO(module).targets()
+                )
         return sorted(found)
 
     def unassigned(self) -> list[str]:

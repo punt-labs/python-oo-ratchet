@@ -51,6 +51,13 @@ class DomainIO:
         )
         return out
 
+    def targets(self) -> list[str]:
+        """Return the sorted distinct IO targets, a bare ``open`` as builtins.open."""
+        names = {name for _, name in self._imports()}
+        if BuiltinOpen(self._module.tree).calls():
+            names.add("builtins.open")
+        return sorted(names)
+
     def _imports(self) -> list[tuple[ast.stmt, str]]:
         type_only = ImportTargets.type_only(self._module.tree)
         return [

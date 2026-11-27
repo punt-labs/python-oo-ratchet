@@ -9,7 +9,10 @@
   console-script target is `entry`; importing IO is `adapters`; a Protocol with
   no IO that an adapter imports is `application`; anything pure is `domain`.
   Modules that fit no rule are printed as comments. It writes nothing and the
-  table is never applied automatically.
+  table is never applied automatically. A module whose imports its ring refuses
+  (domain importing application, adapters, entry or an unclassified module)
+  is unclassified too, so the table does not fail the gate on itself.
+  Imports come from the gate's own edge extractor. It needs no git repository.
 
 ### Changed
 

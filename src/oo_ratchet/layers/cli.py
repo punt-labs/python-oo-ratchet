@@ -132,20 +132,24 @@ class Cli:
         """Execute the requested operation and return its exit code."""
         if not SourceSet.path(self._opts.src).exists():
             return self._emit(Outcome.failed(f"Not found: {self._opts.src}"))
+        if self._opts.suggest:
+            return self._emit(self._suggest())
         root = self._root
         if root is None or not SourceSet(self._opts.src).inside(root):
             msg = f"FAIL: {self._opts.src} is not inside a git repository"
             return self._emit(Outcome.failed(msg))
         try:
-            outcome = self._route(root)
+            outcome = self._dispatch(LayerScan(self._opts.src), root)
         except FAILURES as exc:
             outcome = Outcome.failed(f"FAIL: {exc}")
         return self._emit(outcome)
 
-    def _route(self, root: Path) -> Outcome:
-        if self._opts.suggest:
+    def _suggest(self) -> Outcome:
+        """Print the suggestion; it reads no git state, so no repository is needed."""
+        try:
             return Suggestion(self._opts.src).outcome()
-        return self._dispatch(LayerScan(self._opts.src), root)
+        except FAILURES as exc:
+            return Outcome.failed(f"FAIL: {exc}")
 
     def _dispatch(self, scan: LayerScan, root: Path) -> Outcome:
         opts = self._opts

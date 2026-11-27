@@ -21,8 +21,12 @@ HEADER = (
     "# Rule order, first match wins: entry (argparse, typer, console script),",
     "# adapters (imports IO), application (defines a Protocol, no IO, imported by",
     "# an adapter), domain (no IO, no adapter or entry imports). A module that fits",
-    "# none is listed as unclassified instead of guessed.",
+    "# none is listed as unclassified instead of guessed. The gate lets domain import",
+    "# only domain and application import only application and domain, so a module",
+    "# that imports a ring it may not (or an unclassified module) is unclassified too.",
+    "# A glob such as pkg.sub.* also claims any module added later under that prefix.",
 )
+NO_PYPROJECT = "# No pyproject.toml was found: console scripts were not read."
 
 
 class Suggestion:
@@ -36,6 +40,7 @@ class Suggestion:
     _verdicts: dict[str, Verdict]
     _modules: tuple[str, ...]
     _package: str
+    _scripts: bool
 
     def __new__(cls, src: Source) -> Self:
         self = super().__new__(cls)
@@ -52,6 +57,7 @@ class Suggestion:
         self._verdicts = RingRules(facts).verdicts()
         self._modules = tuple(sorted(self._verdicts))
         self._package = index.package_name
+        self._scripts = scripts.found
         return self
 
     def outcome(self) -> Outcome:
@@ -59,7 +65,8 @@ class Suggestion:
         rings = {n: v.ring for n, v in self._verdicts.items() if v.ring}
         table = RingTable(list(self._modules), rings).render()
         header = tuple(line.format(package=self._package) for line in HEADER)
-        return Outcome.passed(*header, *table, *self._notes())
+        missing = () if self._scripts else (NO_PYPROJECT,)
+        return Outcome.passed(*header, *missing, *table, *self._notes())
 
     def _notes(self) -> list[str]:
         lines = ["", "# Unclassified (assign by hand, then add to the table):"]

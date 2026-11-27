@@ -109,7 +109,7 @@ class TestRules:
         assert code == 0
         table = rings(out)
         assert "app.kernel" not in {m for ring in table.values() for m in ring}
-        assert "# app.kernel: unclassified (imports adapters or entry" in out
+        assert "# app.kernel: unclassified (domain may import only domain" in out
 
     def test_exact_prefix_glob_only_when_every_module_under_it_agrees(
         self, repo: LayersRepo

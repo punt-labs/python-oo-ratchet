@@ -65,14 +65,21 @@ class DomainIO:
             for node in ast.walk(self._module.tree)
             if isinstance(node, (ast.Import, ast.ImportFrom))
             and id(node) not in type_only
-            for name in dict.fromkeys(self._imported(node))
-            if self._is_io(name)
+            for name in self._io_names(node)
         ]
+
+    @classmethod
+    def _io_names(cls, node: ast.Import | ast.ImportFrom) -> list[str]:
+        return [name for name in dict.fromkeys(cls._imported(node)) if cls._is_io(name)]
 
     @classmethod
     def _imported(cls, node: ast.Import | ast.ImportFrom) -> list[str]:
         if isinstance(node, ast.Import):
             return [alias.name for alias in node.names]
+        return cls._from_names(node)
+
+    @classmethod
+    def _from_names(cls, node: ast.ImportFrom) -> list[str]:
         if node.level:
             return []
         base = node.module or ""

@@ -17,6 +17,15 @@
   complexity) no longer regresses or improves; deleting a trivial function no
   longer counts against the file. Over the target, lower is still better.
   Adopters pass changes the gate used to refuse; baselines load unchanged.
+- The `layers` gate enforces domain purity (PL-1711). With the fixed layer
+  form, each IO module a `domain` module imports (`subprocess`, `pathlib`,
+  `json`, ... as in the `domain-io` design rule) is a baseline edge such as
+  `app.domain -> subprocess`, and a bare `open()` is `builtins.open`. A new one
+  fails `layers --check`; a removed one is a stale entry that `--update`
+  drops. Declared layers have no domain and get no purity edges. The baseline
+  format is unchanged. vox, quarry, lux and z-spec configure the fixed form: a
+  domain module that imports IO there shows up as new edges until the adopter
+  runs `oo-ratchet layers --update` and commits the baseline.
 - OO `--update` compares rows against the baseline at the merge base, as
   `--check` does, not against the in-tree baseline. A later commit on a branch
   is no longer refused for giving back part of an earlier commit's gain while

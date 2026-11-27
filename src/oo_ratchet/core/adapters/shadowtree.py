@@ -1,4 +1,4 @@
-"""Read a merge-base tree through the OO gate's git adapter."""
+"""Check a base commit out beside the work tree, read-only, and clean it up."""
 
 from __future__ import annotations
 
@@ -7,14 +7,18 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING, Self
 
-from oo_ratchet.oo.gitio import GitError, GitRepo
+from oo_ratchet.core.domain.errors import GitError
+
+from .gitrepo import GitRepo
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
+CHECKOUT_TIMEOUT = 300
 
-class ShadowSnapshot:
-    """Check out an isolated read-only scan tree and unregister it afterward."""
+
+class ShadowTree:
+    """Check out an isolated detached tree and unregister it afterward."""
 
     _git: GitRepo
     _base: str
@@ -36,14 +40,14 @@ class ShadowSnapshot:
         try:
             with temporary:
                 args = ["worktree", "add", "--quiet", "--detach", str(tree), self._base]
-                if self._git._git(args, timeout=300) is None:
+                if self._git.run(args, CHECKOUT_TIMEOUT) is None:
                     raise GitError("cannot check out the shadow merge base")
                 yield tree
         finally:
             self._unregister(tree)
 
     def _unregister(self, tree: Path) -> None:
-        listing = self._git._git(["worktree", "list", "--porcelain", "-z"])
+        listing = self._git.run(["worktree", "list", "--porcelain", "-z"])
         if listing is None:
             raise GitError("cannot inspect shadow merge-base worktrees")
         record = next(
@@ -59,7 +63,7 @@ class ShadowSnapshot:
         locked = any(
             f == "locked" or f.startswith("locked ") for f in record.split("\0")
         )
-        if locked and self._git._git(["worktree", "unlock", str(tree)]) is None:
+        if locked and self._git.run(["worktree", "unlock", str(tree)]) is None:
             raise GitError("cannot unlock the shadow merge-base worktree")
-        if self._git._git(["worktree", "remove", str(tree)]) is None:
+        if self._git.run(["worktree", "remove", str(tree)]) is None:
             raise GitError("cannot unregister the shadow merge-base worktree")

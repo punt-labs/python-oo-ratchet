@@ -137,7 +137,6 @@ adapters = [
   "oo_ratchet.*.trees",
   "oo_ratchet.*.package_tree",
   "oo_ratchet.*.listing",
-  "oo_ratchet.*.shadow_snapshot",
   "oo_ratchet.*.legacy_shadow",
   "oo_ratchet.*.namespace_shadow",
   "oo_ratchet.source_archive",

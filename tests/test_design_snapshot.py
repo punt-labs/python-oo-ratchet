@@ -8,8 +8,9 @@ from unittest.mock import patch
 
 import pytest
 
-from oo_ratchet.design.shadow_snapshot import ShadowSnapshot
-from oo_ratchet.oo.gitio import GitError, GitRepo
+from oo_ratchet.core.adapters.gitrepo import GitRepo
+from oo_ratchet.core.adapters.shadowtree import ShadowTree
+from oo_ratchet.core.domain.errors import GitError
 from tests.test_design_shadow import git, seed
 
 
@@ -18,7 +19,7 @@ def repo(tmp_path: Path) -> GitRepo:
     git(tmp_path, "init", "-q", "-b", "main")
     (tmp_path / "pkg").mkdir()
     seed(tmp_path, {"model.py": "value = 1\n"})
-    return GitRepo(tmp_path)
+    return GitRepo.stateless(tmp_path)
 
 
 @pytest.mark.parametrize(
@@ -59,16 +60,16 @@ def test_checkout_timeout_and_cleanup(repo: GitRepo, mode: str) -> None:
             raise subprocess.TimeoutExpired(args, timeout)
         return result
 
-    with patch("oo_ratchet.oo.gitio.subprocess.run", side_effect=checkout):
+    with patch("oo_ratchet.core.adapters.gitrepo.subprocess.run", side_effect=checkout):
         if mode == "success":
-            with ShadowSnapshot(repo, "HEAD").checkout() as tree:
+            with ShadowTree(repo, "HEAD").checkout() as tree:
                 assert (tree / "pkg/model.py").read_text() == "value = 1\n"
         else:
             error = ValueError if mode == "body-error" else GitError
-            with pytest.raises(error), ShadowSnapshot(repo, "HEAD").checkout() as tree:
+            with pytest.raises(error), ShadowTree(repo, "HEAD").checkout() as tree:
                 (tree / "untracked.txt").write_text("scan interrupted\n")
                 raise ValueError("scan failed")
-        assert repo.resolve_ref("HEAD") is not None
+        assert repo.resolve("HEAD") is not None
 
     assert git(repo.root, "worktree", "list", "--porcelain") == before
     assert all(not tree.exists() for tree in trees)

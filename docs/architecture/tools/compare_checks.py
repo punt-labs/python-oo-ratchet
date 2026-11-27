@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import shutil
 import sys
+import tempfile
 from pathlib import Path
 
 from oo_json import failing_metrics, run_json, scored_rows
@@ -23,7 +25,12 @@ def primary_fails(src: str) -> list[str]:
 
 def design_findings(src: str, layers: Path | None) -> list[str]:
     extra = ["--layers", str(layers)] if layers else []
-    data = run_json(["oo-ratchet", "design", src, *extra], cwd=str(REPO))
+    # Scan a copy outside the checkout so the repository's own pyproject layer
+    # table cannot reach the fixture through the ancestor lookup.
+    with tempfile.TemporaryDirectory() as scratch:
+        copy = Path(scratch) / Path(src).name
+        shutil.copytree(REPO / src, copy)
+        data = run_json(["oo-ratchet", "design", str(copy), *extra], cwd=str(REPO))
     return [f"{Path(f['path']).name}:{f['rule']}" for f in data["findings"]]
 
 

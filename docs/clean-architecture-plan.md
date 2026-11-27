@@ -88,8 +88,15 @@ config readers such as `coupling/config` and the `source_*` modules are
 adapters; `*.ratchet`, `*.compare`, `*.bless`, `*.relax`, `*.writer`, `*.rescan`,
 `*.apply`, `*.scan`, the `shadow*` modules, `backfill` are application; `__main__`, `gates`, `usage`,
 `logging_config` and `*.cli` are entry; every module the table does not name is
-domain. Measured with
-`oo-ratchet design src/oo_ratchet/ --json`, run from the repository root (137 files scanned, 243 findings):
+domain. The counts below were measured on the `src/oo_ratchet` of main 987f57b
+with the table of `docs/architecture/four-rings.toml` as added in b4b85a5
+(137 files scanned, 243 findings). Reproduce them: extract `src` of 987f57b
+(`git archive 987f57b src`), save `git show b4b85a5:docs/architecture/four-rings.toml`
+to a file and run `uv run oo-ratchet design src/oo_ratchet/ --layers <that file> --json`.
+The current tree, with the table in `pyproject.toml`, is measured by
+`uv run oo-ratchet design src/oo_ratchet/ --json` from the repository root:
+139 files scanned, 248 findings; `layer-import` 130, `domain-io` 9,
+`thick-entry` 9.
 
 | Rule | Count |
 |------|-------|

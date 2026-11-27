@@ -93,10 +93,17 @@ Consequences for any change under `src/oo_ratchet/`:
   scores.
 - `check-layers` fails on a layer-import edge not in `.oo-layers-baseline.json`
   (the four-ring table is `[tool.oo-ratchet.layers]` in `pyproject.toml`; the
-  baseline holds 106 edges at adoption). Edges may only be removed: after
-  removing one, run `make update-layers` and commit the rewritten baseline and
-  audit file. Adding an edge or widening the table needs
-  `--update --allow-config-change --source <ref>`.
+  baseline holds 106 edges at adoption). `make update-layers` only drops
+  retired edges, or, with the flag, adopts domain-purity edges; an ordinary
+  forbidden import cannot be baselined, so fix the import. After removing an
+  edge, run `make update-layers` and commit the rewritten baseline and audit
+  file. The one-time adopter path is
+  `make update-layers LAYERS_UPDATE="--allow-config-change --source <ref>"`:
+  CI runs `--check --allow-config-change` with the merge-base `--base-ref` in
+  that PR, and the one merge commit's `push: [main]` run also needs
+  `--check --base-ref HEAD~1 --require-base --tripwire --allow-config-change`;
+  the flag comes off both afterward (README, "Layers gate"). Widening the
+  table, or moving a module outward or out of `domain`, needs the same flag.
 - `check-suppressions` compares the total suppression count (`noqa`,
   `type: ignore`, per-file-ignores, ...) with the base tree's total. Adding one
   fails the gate unless the same change removes another.

@@ -51,7 +51,11 @@ Measured with this repo's own tool:
 
 ![Current packages and classes](architecture/1-current-state.png)
 
-- **Imports:** no cycles between modules. Between packages there are none
+- **Imports:** one cycle between modules (`package_graph.py`):
+  `source_archive` imports the `ArchiveRepo` protocol from `source_rescan`
+  under `TYPE_CHECKING`, and `source_rescan` imports `SourceArchive` at run
+  time. Moving that protocol into the application ring as a port (A2) removes
+  it. Between packages there are no cycles
   once the root package's entry modules (`__main__`, `gates`) are counted
   apart from its shared modules (`source_set`, `backfill`, ...). Counted as one
   root package, every package sits in one cycle: `gates` imports each gate's
@@ -102,7 +106,7 @@ form. It is kept for comparison:
 |------|--------|------|
 | A0 | PL-1718 | measure: write the four-ring table, record the starting counts |
 | A1 | PL-1719 | turn on the clean layers ratchet here, with today's violations as the baseline |
-| A2 | PL-1720 | shared contract: ports, domain types, operations written once, one adapter set |
+| A2 | PL-1720 | shared contract: ports, domain types, operations written once, one adapter set; `ArchiveRepo` becomes a port, ending the one module cycle |
 | A3 | PL-1721 | move each gate onto the contract: `suppression` first, then the rest in parallel |
 | A4 | PL-1722 | class debt: split `SourceSet`, `MetricRule` objects, fold the hollow classes, objects decide for themselves |
 | A5 | PL-1723 | method and signature debt: feature envy, complexity, long signatures, data clumps |
@@ -158,7 +162,7 @@ generators are in `docs/architecture/tools/`:
 | `class_diagram.py <repo> <out.json>` | the current state, from the live code and `oo-ratchet design --json`; rerun after each unit |
 | `target_diagram.py <out.json>` | the intermediate target (hand-specified) |
 | `clean_diagram.py <out.json>` | the four-ring target (hand-specified) |
-| `package_graph.py <repo>/src/oo_ratchet [--one-root]` | prints the package import edges and every cycle (strongly connected components); `--one-root` groups the entry modules with the shared root modules |
+| `package_graph.py <repo>/src/oo_ratchet [--one-root]` | prints the package import edges, then every package cycle and every module cycle (strongly connected components, `TYPE_CHECKING` imports included); `--one-root` groups the entry modules with the shared root modules. `test_graph_tools.py` tests the cycle finder (`uv run pytest docs/architecture/tools/test_graph_tools.py`) |
 
 Three measurement scripts sit beside them:
 

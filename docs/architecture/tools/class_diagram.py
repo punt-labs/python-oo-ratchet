@@ -9,6 +9,8 @@ import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
+from graph_tools import has_cycle
+
 REPO = Path(sys.argv[1])
 ROOT = REPO / "src" / "oo_ratchet"
 OUT = Path(sys.argv[2])
@@ -80,24 +82,6 @@ for grp, names in names_by_group.items():
 duplicated = {n for n, c in seen.items() if c > 1}
 
 # --- cycles between groups, of any length ------------------------------------
-def has_cycle(pairs: set[tuple[str, str]]) -> bool:
-    """Depth-first search for a back edge in the group graph."""
-    succ: dict[str, set[str]] = defaultdict(set)
-    for a, b in pairs:
-        succ[a].add(b)
-    state: dict[str, int] = {}  # 1 = on the current path, 2 = finished
-
-    def visit(v: str) -> bool:
-        state[v] = 1
-        for w in succ[v]:
-            if state.get(w) == 1 or (w not in state and visit(w)):
-                return True
-        state[v] = 2
-        return False
-
-    return any(v not in state and visit(v) for v in sorted(succ))
-
-
 cycle_note = ("import cycles between packages: present" if has_cycle(set(edges))
               else "no import cycles between packages")
 

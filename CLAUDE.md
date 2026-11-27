@@ -84,9 +84,10 @@ Consequences for any change under `src/oo_ratchet/`:
   scores.
 - Adding a `noqa`, `type: ignore` or per-file-ignore raises the suppression
   count and fails `check-suppressions`.
-- CI passes `--allow-no-improvement` only on `release/*` and `post-release/*`
-  branches. On pushes to `main` it runs every gate with
-  `--base-ref HEAD~1 --require-base --tripwire`.
+- On a pull request, CI passes `--allow-no-improvement` to the OO gate only
+  for `release/*` and `post-release/*` branches. On pushes to `main` it runs
+  every gate with `--base-ref HEAD~1 --require-base --tripwire`, and the OO
+  gate also with `--allow-no-improvement`.
 - Loosening is only through audited operations (`--relax FILE --justify`,
   `--rebaseline-files PATHS --reason`, `--rebaseline`). Writes refuse under
   `GITHUB_ACTIONS=true` without `--allow-ci-write`.

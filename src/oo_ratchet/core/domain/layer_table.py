@@ -62,9 +62,9 @@ class LayerTable:
             raise LayerConfigError(f"{self._label}: layers must be a table")
         return self.build(table)
 
-    def ordered(self) -> LayerConfig | None:
-        """Return the config in the fixed form; declared layers shape no data rules."""
-        config = self.config()
+    @staticmethod
+    def ordered(config: LayerConfig | None) -> LayerConfig | None:
+        """Return ``config`` in the fixed form; declared layers shape no data rules."""
         return config if config is not None and config.ORDERED else None
 
     @staticmethod

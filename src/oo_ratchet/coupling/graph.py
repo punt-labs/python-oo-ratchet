@@ -5,7 +5,7 @@ from __future__ import annotations
 import ast
 from typing import Self
 
-from oo_ratchet.source_set import SourceSet
+from oo_ratchet.core.domain.modulesource import ModuleSource
 
 from .imports import ImportResolver
 
@@ -27,7 +27,7 @@ class ImportGraph:
         return self
 
     @classmethod
-    def build(cls, source: SourceSet, modules: frozenset[str]) -> Self:
+    def build(cls, source: ModuleSource, modules: frozenset[str]) -> Self:
         """Parse every module of ``source`` into an import graph."""
         edges: dict[str, set[str]] = {}
         for py_file in sorted(source.files()):

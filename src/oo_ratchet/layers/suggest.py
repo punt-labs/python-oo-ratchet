@@ -41,7 +41,7 @@ class Suggestion:
         facts = PackageFacts(index, scripts).all()
         if not any("." in fact.name for fact in facts):
             raise LayersScanError(f"no modules to check under {src}")
-        table = LayerTable.read(anchor).ordered()
+        table = LayerTable.ordered(LayerTable.read(anchor).config())
         intent = RingIntent(table, SuggestNames(nearest).table)
         verdicts = RingRules(facts, intent, index.package_name).verdicts()
         self._lists = RingLists(verdicts, index.package_name)

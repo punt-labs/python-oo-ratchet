@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Self
 
-from oo_ratchet.source_set import SourceSet
+from oo_ratchet.core.domain.modulesource import ModuleSource
 
 from .graph import ImportGraph
 
@@ -38,10 +38,10 @@ class PackageMetrics:
 class PackageScorer:
     """Score each sub-package of a tree against the shared import graph."""
 
-    _source: SourceSet
+    _source: ModuleSource
     _graph: ImportGraph
 
-    def __new__(cls, source: SourceSet, graph: ImportGraph) -> Self:
+    def __new__(cls, source: ModuleSource, graph: ImportGraph) -> Self:
         self = super().__new__(cls)
         self._source = source
         self._graph = graph

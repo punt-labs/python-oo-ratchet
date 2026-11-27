@@ -61,12 +61,17 @@ class Module:
         PublicEngine``.
         """
         for node in self.tree.body:
-            if not isinstance(node, ast.ImportFrom):
-                continue
-            for alias in node.names:
-                if (alias.asname or alias.name) == name:
-                    return node, alias.name
+            source = self._bound(node, name)
+            if source is not None and isinstance(node, ast.ImportFrom):
+                return node, source
         return None
+
+    @staticmethod
+    def _bound(node: ast.stmt, name: str) -> str | None:
+        """Return the source name ``node`` binds to ``name``, if it is an import."""
+        if not isinstance(node, ast.ImportFrom):
+            return None
+        return next((a.name for a in node.names if (a.asname or a.name) == name), None)
 
 
 class ModuleIndex:

@@ -37,13 +37,12 @@ class DesignScanner:
         source = SourceSet(root)
         index = ModuleIndex(source, package_name=package_name)
         self._index = index
-        table = LayerTable.read(source.config_anchor, layers)
-        config = table.config()
+        config = LayerTable.read(source.config_anchor, layers).config()
         skips = LayerCheck.skipper(index, config)
         class_rules = ClassRules(index.interface_methods(), skips)
         findings = [f for m in index.modules() for f in class_rules.findings(m)]
         findings.extend(BoundaryCheck(index).findings(skips))
-        findings.extend(DataRules(index, table.ordered()).findings())
+        findings.extend(DataRules(index, LayerTable.ordered(config)).findings())
         if config is not None:
             findings.extend(LayerCheck(index, config).findings())
         self._report = DesignReport(findings, index.skipped, len(index.modules()))

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from functools import cached_property
 from pathlib import Path
 from typing import Self
 
@@ -15,7 +16,6 @@ class CouplingTree:
     """Own discovery and the complete graph before per-file metrics are scored."""
 
     _source: SourceSet
-    _modules: frozenset[str]
     _graph: ImportGraph
     _file: Path | None
 
@@ -24,11 +24,10 @@ class CouplingTree:
         source = SourceSet(target)
         self._file = source.file
         self._source = SourceSet(self._file.parent if self._file else source)
-        self._modules = frozenset(self._source.key_for(p) for p in self._source.files())
         self._graph = (
             ImportGraph({})
             if self._file
-            else ImportGraph.build(self._source, self._modules)
+            else ImportGraph.build(self._source, self.modules)
         )
         return self
 
@@ -37,10 +36,10 @@ class CouplingTree:
         """Return the namespace-wide source selection."""
         return self._source
 
-    @property
+    @cached_property
     def modules(self) -> frozenset[str]:
         """Return every namespace-relative module key."""
-        return self._modules
+        return frozenset(map(self._source.key_for, self._source.files()))
 
     @property
     def files(self) -> list[Path]:

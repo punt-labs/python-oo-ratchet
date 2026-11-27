@@ -13,7 +13,6 @@ from oo_ratchet.core.domain.modules import ModuleIndex
 from oo_ratchet.source_set import Source, SourceSet
 
 from .package_edges import PackageEdges
-from .strict import StrictViolations
 
 
 class LayersScanError(Exception):
@@ -55,9 +54,8 @@ class LayerScan:
             names = ", ".join(sorted(str(p) for p in index.skipped))
             msg = f"cannot read or parse: {names}"
             raise LayersScanError(msg)
-        found = StrictViolations(index, self._config)
-        edges = PackageEdges(found, index, self._config)
-        self._modules = tuple(sorted(found.name(m) for m in index.modules()))
+        edges = PackageEdges(index, self._config)
+        self._modules = tuple(edges.names())
         if all("." not in m for m in self._modules):
             msg = f"no modules to check under {src}"
             raise LayersScanError(msg)

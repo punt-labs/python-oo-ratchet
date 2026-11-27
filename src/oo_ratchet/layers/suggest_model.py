@@ -23,14 +23,6 @@ class ModuleFacts:
     marker: str | None = None
     marker_problem: str | None = None
 
-    def evidenced(self) -> bool:
-        """Return whether a placeable non-root module shows entry evidence."""
-        return bool(self.entry) and not self.forced and not self.root
-
-    def entry_why(self) -> str:
-        """Return the entry evidence as one line."""
-        return ", ".join(self.entry)
-
 
 @dataclass(frozen=True, slots=True)
 class Verdict:

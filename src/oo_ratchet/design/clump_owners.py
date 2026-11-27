@@ -11,19 +11,16 @@ from oo_ratchet.core.domain.shape import ClassShape
 
 from .data_fields import DataFields
 from .data_inventory import DataInventory
-from .eligible_modules import EligibleModules
 
 
 class ClumpOwners:
     """Keep name sets separate while assigning methods to their lexical class."""
 
     _inventory: DataInventory
-    _eligible: EligibleModules
 
-    def __new__(cls, inventory: DataInventory, eligible: EligibleModules) -> Self:
+    def __new__(cls, inventory: DataInventory) -> Self:
         self = super().__new__(cls)
         self._inventory = inventory
-        self._eligible = eligible
         return self
 
     def entries(
@@ -37,7 +34,7 @@ class ClumpOwners:
         entries = []
         for owner in declarations:
             parent = self._parent(owner, classes)
-            if self._eligible.holds(owner) and not self._excluded(owner, parent):
+            if owner.eligible and not self._excluded(owner, parent):
                 family = (owner.module.key, (parent or owner).symbol)
                 entries.append((owner, self._names(owner), family))
         return entries

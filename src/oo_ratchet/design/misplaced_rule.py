@@ -12,7 +12,6 @@ from oo_ratchet.core.domain.project_types import ProjectTypes
 
 from .data_fields import DataFields
 from .data_inventory import DataInventory
-from .eligible_modules import EligibleModules
 from .receiver_types import ReceiverTypes
 
 
@@ -20,18 +19,11 @@ class MisplacedRule:
     """Recognize class-centric signatures, excluding explicitly named factories."""
 
     _inventory: DataInventory
-    _eligible: EligibleModules
     _types: ProjectTypes
 
-    def __new__(
-        cls,
-        inventory: DataInventory,
-        eligible: EligibleModules,
-        types: ProjectTypes,
-    ) -> Self:
+    def __new__(cls, inventory: DataInventory, types: ProjectTypes) -> Self:
         self = super().__new__(cls)
         self._inventory = inventory
-        self._eligible = eligible
         self._types = types
         return self
 
@@ -44,7 +36,7 @@ class MisplacedRule:
             )
             for owner in self._inventory.declarations()
             if owner.kind == "function"
-            and self._eligible.holds(owner)
+            and owner.eligible
             and not owner.node.name.startswith(("_", "create_"))
             and self._placed(owner)
         ]

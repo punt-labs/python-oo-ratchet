@@ -17,6 +17,8 @@ class Declaration:
     node: ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef
     symbol: str
     kind: str
+    eligible: bool = True
+    """False in a module the data rules skip: the entry and adapter layers."""
 
     def finding(self, rule: str, detail: str) -> Finding:
         """Attach a rule result to this declaration."""

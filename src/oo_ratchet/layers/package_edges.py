@@ -5,13 +5,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Self
 
 from .module_violations import ModuleViolations
+from .strict import StrictViolations
 
 if TYPE_CHECKING:
     from oo_ratchet.core.domain.layer_config import LayerConfig
     from oo_ratchet.core.domain.layer_edges import Violation
-    from oo_ratchet.core.domain.modules import ModuleIndex
-
-    from .strict import StrictViolations
+    from oo_ratchet.core.domain.layer_violations import Site
+    from oo_ratchet.core.domain.modules import Module, ModuleIndex
 
 
 class PackageEdges:
@@ -21,14 +21,20 @@ class PackageEdges:
     _index: ModuleIndex
     _config: LayerConfig
 
-    def __new__(
-        cls, found: StrictViolations, index: ModuleIndex, config: LayerConfig
-    ) -> Self:
+    def __new__(cls, index: ModuleIndex, config: LayerConfig) -> Self:
         self = super().__new__(cls)
-        self._found = found
+        self._found = StrictViolations(index, config)
         self._index = index
         self._config = config
         return self
+
+    def names(self) -> list[str]:
+        """Return the dotted name each module is classified by, sorted."""
+        return sorted(self._found.name(m) for m in self._index.modules())
+
+    def targets(self, module: Module) -> list[tuple[Site, str, str]]:
+        """Return ``(site, symbol, target module)`` for each edge of ``module``."""
+        return self._found.targets(module)
 
     def violations(self) -> list[Violation]:
         """Return every refused edge, one per source and target module."""

@@ -16,7 +16,6 @@ from oo_ratchet.core.domain.findings import Rules
 from oo_ratchet.core.domain.layer_config import LayerConfig
 from oo_ratchet.core.domain.layer_table import LayerTable
 from oo_ratchet.core.domain.modules import Module
-from oo_ratchet.layers.suggest_model import ModuleFacts
 
 SOURCE = Path(__file__).resolve().parent.parent / "src" / "oo_ratchet"
 
@@ -44,7 +43,6 @@ def own_findings() -> frozenset[tuple[str, str]]:
         (Rules.SPLIT_COHESION, "DataInventory"),
         (Rules.SPLIT_COHESION, "StrictViolations"),
         (Rules.ENVIED_DATA, "Module"),
-        (Rules.ENVIED_DATA, "ModuleFacts"),
         (Rules.SPLIT_COHESION, "Module"),
         (Rules.SPLIT_COHESION, "LayerConfig"),
         (Rules.FEATURE_ENVY, "SizeRules._module"),
@@ -124,12 +122,3 @@ def test_module_finds_the_import_that_exports_a_name() -> None:
     assert found is not None
     assert (found[0].lineno, found[1]) == (1, "Engine")
     assert module.reexport("Missing") is None
-
-
-def test_module_facts_say_when_entry_evidence_places_them() -> None:
-    plain = ModuleFacts("pkg.a", (), ("a script",), ())
-    assert plain.evidenced()
-    assert plain.entry_why() == "a script"
-    assert not ModuleFacts("pkg.a", (), (), ()).evidenced()
-    assert not ModuleFacts("pkg.a", (), ("x",), (), forced="shadowed").evidenced()
-    assert not ModuleFacts("pkg", (), ("x",), (), root=True).evidenced()

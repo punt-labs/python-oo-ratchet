@@ -12,6 +12,11 @@ class ModuleSource(Protocol):
     """The source files of one package tree: what an index needs to know."""
 
     @property
+    def name(self) -> str:
+        """Return the spelling that pairs with a key to form a dotted import name."""
+        ...
+
+    @property
     def package_name(self) -> str:
         """Return the logical name of the scanned package."""
         ...
@@ -26,6 +31,10 @@ class ModuleSource(Protocol):
 
     def relative_path(self, path: Path) -> Path:
         """Return ``path`` relative to the source portion that owns it."""
+        ...
+
+    def package_dirs(self) -> list[Path]:
+        """Return the non-root package directories of the selection."""
         ...
 
     def contains(self, component: str) -> bool:

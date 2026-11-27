@@ -2,11 +2,30 @@
 
 from __future__ import annotations
 
+from oo_ratchet.core.domain.scores import Rows
+
 from .waive import RebaselineFiles
 
 
 class OoRebaselineFiles(RebaselineFiles):
     """Bless named files, explaining a refusal as ``metric=value fails target``."""
+
+    def _partition(
+        self, paths: list[str], current: Rows, stored: Rows
+    ) -> tuple[list[str], list[str]]:
+        accepted: list[str] = []
+        refused: list[str] = []
+        for requested in paths:
+            path = self._source.key(requested)
+            if path not in current:
+                refused.append(f"{requested}: not found in scored tree")
+                continue
+            gated = self._policy.over_cap_and_regressed(current[path], stored.get(path))
+            if gated:
+                refused.append(f"{requested}: {self._why(current[path], gated)}")
+            else:
+                accepted.append(path)
+        return accepted, refused
 
     def _why(self, entry: dict[str, float], gated: list[str]) -> str:
         return "; ".join(

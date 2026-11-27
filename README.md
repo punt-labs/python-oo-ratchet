@@ -508,9 +508,10 @@ oo-ratchet oo src/pkg/ --rebaseline-files src/pkg/model.py --reason "Required AP
 oo-ratchet oo src/pkg/ --check --base-ref "$(git merge-base origin/main HEAD)" --require-base
 ```
 
-OO actions are mutually exclusive. The write contracts in
-[`oo/writer.py`](src/oo_ratchet/oo/writer.py) and
-[`oo/bless.py`](src/oo_ratchet/oo/bless.py) are:
+OO actions are mutually exclusive. The write contracts, implemented in
+[`core/application/update.py`](src/oo_ratchet/core/application/update.py),
+[`core/application/reconcile.py`](src/oo_ratchet/core/application/reconcile.py) and
+[`core/application/waive.py`](src/oo_ratchet/core/application/waive.py), are:
 
 | Action | Allowed / refused |
 |--------|-------------------|

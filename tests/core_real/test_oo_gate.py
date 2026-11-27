@@ -1,10 +1,12 @@
-"""The OO gate on the shared core agrees with the per-gate implementation.
+"""The OO gate on the shared core, run on real git repositories.
 
-Each scenario builds a real git repository, copies it twice, and runs the same
-argument list on both copies: through ``oo_ratchet.oo.cli.main`` (the existing
-per-gate code) and through ``OoGate`` (the shared core). Exit code, stdout and
-both state files (timestamps masked) must match, and the scenario states the
-code and a line of output it expects so a pair of equal failures cannot pass.
+Each scenario builds a real repository, copies it, and runs an argument list
+through ``oo_ratchet.oo.cli.main`` on the copy. The expected exit code, stdout
+and state files are in ``oo_gate_golden.json``: the output of the previous
+per-gate implementation. Commit b3fd2f7 ran these 74 invocations through both
+implementations and compared exit code, stdout and both state files, with
+timestamps and commit hashes masked, before the old code was deleted. The
+scenario also states the code and a line of output it expects.
 """
 
 from __future__ import annotations
@@ -18,14 +20,34 @@ from pathlib import Path
 
 import pytest
 
-from oo_ratchet.core.adapters.oogate import OoGate
-from oo_ratchet.oo.cli import Options, main
+from oo_ratchet.oo.cli import main
 from tests.test_oo_ratchet import BROKEN, GOOD, GOOD_VARIANT, WORSE, GitFixture
 
 pytestmark = pytest.mark.slow
 
+GOLDEN: dict[str, dict[str, object]] = json.loads(
+    (Path(__file__).parent / "oo_gate_golden.json").read_text()
+)
 STATE = (".oo-baseline.json", ".oo-audit.jsonl")
 STAMP = re.compile(r'"ts":"[^"]*"')
+SHA = re.compile(r'"commit":"[0-9a-f]+"')
+LOG_ROW = re.compile(r"\d{4}-\d\d-\d\dT[\d:]+Z +[0-9a-f]{7,40}")
+
+
+@dataclass
+class Calls:
+    """Which invocation of the running test comes next."""
+
+    name: str = ""
+    count: int = 0
+
+    def next_key(self) -> str:
+        key = f"{self.name}#{self.count}"
+        self.count += 1
+        return key
+
+
+CALLS = Calls()
 
 
 @dataclass(frozen=True)
@@ -38,7 +60,10 @@ class Run:
 
 
 @pytest.fixture
-def fx(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> GitFixture:
+def fx(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
+) -> GitFixture:
+    CALLS.name, CALLS.count = request.node.name, 0
     (tmp_path / "work").mkdir()
     monkeypatch.chdir(tmp_path / "work")
     monkeypatch.delenv("GITHUB_ACTIONS", raising=False)  # CI refuses writes
@@ -49,22 +74,13 @@ def observe(root: Path, code: int, out: str) -> Run:
     state: dict[str, str | None] = {}
     for name in STATE:
         path = root / name
-        state[name] = STAMP.sub('"ts":"T"', path.read_text()) if path.exists() else None
-    return Run(code, out.replace(str(root), "<root>"), state)
-
-
-def run_old(root: Path, capsys: pytest.CaptureFixture[str], argv: list[str]) -> Run:
-    os.chdir(root)
-    capsys.readouterr()
-    code = main(argv)
-    return observe(root, code, capsys.readouterr().out)
-
-
-def run_new(root: Path, capsys: pytest.CaptureFixture[str], argv: list[str]) -> Run:
-    os.chdir(root)
-    capsys.readouterr()
-    lines, code = OoGate(Options.parse(argv)).run()
-    return observe(root, code, "".join(f"{line}\n" for line in lines))
+        text = path.read_text() if path.exists() else None
+        state[name] = (
+            None
+            if text is None
+            else SHA.sub('"commit":"C"', STAMP.sub('"ts":"T"', text))
+        )
+    return Run(code, LOG_ROW.sub("T C", out.replace(str(root), "<root>")), state)
 
 
 def both(
@@ -76,24 +92,23 @@ def both(
     has: str = "",
     same_text: bool = True,
 ) -> Run:
-    """Run ``argv`` on two copies of the repository and compare the results."""
-    parent = fx.root.parent
-    copies = [parent / "old", parent / "new"]
-    for copy in copies:
-        shutil.rmtree(copy, ignore_errors=True)
-        shutil.copytree(fx.root, copy, symlinks=True)
-    old = run_old(copies[0], capsys, argv)
-    new = run_new(copies[1], capsys, argv)
+    """Run ``argv`` on a copy of the repository and check the recorded result."""
+    copy = fx.root.parent / "copy"
+    shutil.rmtree(copy, ignore_errors=True)
+    shutil.copytree(fx.root, copy, symlinks=True)
+    os.chdir(copy)
+    capsys.readouterr()
+    result = observe(copy, main(argv), capsys.readouterr().out)
     os.chdir(fx.root)
-    assert old.code == code, old.out
-    assert new.code == code, (new.out, old.out)
-    assert has in old.out, old.out
-    assert new.state == old.state
+    expected = GOLDEN[CALLS.next_key()]
+    assert result.code == code == expected["code"], result.out
+    assert has in result.out, result.out
+    assert result.state == expected["state"]
     if same_text:
-        assert new.out == old.out
+        assert result.out == expected["out"]
     else:
-        assert "FAIL" in new.out
-    return old
+        assert "FAIL" in result.out
+    return result
 
 
 def check(
@@ -739,3 +754,18 @@ def test_log_lists_the_history(
     capsys.readouterr()
     assert main(["sub", "--rebaseline"]) == 0
     both(fx, capsys, ["sub", "--log"], code=0, has="rebaseline")
+
+
+def test_check_audit_entries_with_odd_deltas_waive_nothing(
+    fx: GitFixture, capsys: pytest.CaptureFixture[str]
+) -> None:
+    base = start(fx, GOOD)
+    change(fx, WORSE)
+    odd = [
+        {"verdict": "relaxed", "deltas": [1]},
+        {"verdict": "relaxed", "deltas": {"sub/w.py": "max_complexity"}},
+        {"verdict": "rebaseline-files", "deltas": {"sub/w.py": ["max_complexity"]}},
+    ]
+    fx.write(".oo-audit.jsonl", "".join(json.dumps(r) + "\n" for r in odd))
+    fx.commit("odd audit entries")
+    both(fx, capsys, check(base), code=1, has="regression detected")

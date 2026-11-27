@@ -11,17 +11,16 @@ from typing import TYPE_CHECKING
 import pytest
 
 import oo_ratchet.coupling
-import oo_ratchet.oo
 import oo_ratchet.suppression
+from oo_ratchet.core.adapters.formats import AuditFormat
+from oo_ratchet.core.adapters.gitrepo import GitRepo
+from oo_ratchet.core.domain.errors import GitError, StateError
 from oo_ratchet.core.domain.tallies import Tally
 from oo_ratchet.coupling.audit import CouplingAudit, CouplingAuditError
 from oo_ratchet.coupling.gitio import GitError as CouplingGitError
 from oo_ratchet.coupling.gitio import GitRepo as CouplingGitRepo
 from oo_ratchet.coupling.imports import ImportResolver
-from oo_ratchet.oo.audit import AuditError, AuditLog
-from oo_ratchet.oo.gitio import GitError as OoGitError
-from oo_ratchet.oo.gitio import GitRepo
-from oo_ratchet.oo.gitio import GitRepo as OoGitRepo
+from oo_ratchet.oo.cli import main as oo_main
 from oo_ratchet.oo.scorer import Scorer
 from oo_ratchet.source_set import Source
 from oo_ratchet.suppression.patterns import FileSuppressions
@@ -64,7 +63,7 @@ def test_scanner_honors_a_coding_cookie(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize(
     ("parse", "error"),
-    [(AuditLog._parse, AuditError), (CouplingAudit._parse, CouplingAuditError)],
+    [(AuditFormat.decode, StateError), (CouplingAudit._parse, CouplingAuditError)],
 )
 def test_non_object_audit_line_is_a_controlled_audit_error(
     parse: object, error: type[Exception]
@@ -107,7 +106,7 @@ def test_file_level_suppressions_are_counted(
 @pytest.mark.parametrize(
     ("gate", "extra"),
     [
-        (oo_ratchet.oo.main, ["--allow-no-improvement"]),
+        (oo_main, ["--allow-no-improvement"]),
         (oo_ratchet.coupling.main, []),
         (oo_ratchet.suppression.main, []),
     ],
@@ -134,7 +133,11 @@ def test_diff_keeps_non_ascii_python_paths(git_sandbox: GitSandbox) -> None:
     base = git_sandbox.commit("base")
     git_sandbox.write("src/pkg/\u00f1.py", _SRC)
     git_sandbox.commit("non-ascii module")
-    touched = GitRepo(Path(git_sandbox.root)).diff(base).python_files()
+    touched = (
+        GitRepo(Path(git_sandbox.root), ".oo-baseline.json", ".oo-audit.jsonl")
+        .changes_since(base)
+        .python_files()
+    )
     assert "src/pkg/\u00f1.py" in touched
 
 
@@ -198,11 +201,11 @@ def test_unscorable_single_file_fails_instead_of_viewing_clean(
 ) -> None:
     monkeypatch.chdir(git_sandbox.root)
     git_sandbox.write("src/pkg/thing.py", _SRC)
-    assert oo_ratchet.oo.main(["src/pkg", "--rebaseline", "--allow-ci-write"]) == 0
+    assert oo_main(["src/pkg", "--rebaseline", "--allow-ci-write"]) == 0
     git_sandbox.write("src/pkg/thing.py", "def broken(:\n")
     target = "src/pkg/thing.py"
-    assert oo_ratchet.oo.main([target]) == 1
-    assert oo_ratchet.oo.main([target, "--rebaseline", "--allow-ci-write"]) == 1
+    assert oo_main([target]) == 1
+    assert oo_main([target, "--rebaseline", "--allow-ci-write"]) == 1
     assert (
         "src/pkg/thing.py" in (Path(git_sandbox.root) / ".oo-baseline.json").read_text()
     )
@@ -210,10 +213,10 @@ def test_unscorable_single_file_fails_instead_of_viewing_clean(
 
 @pytest.mark.parametrize(
     ("repo_cls", "error"),
-    [(OoGitRepo, OoGitError), (CouplingGitRepo, CouplingGitError)],
+    [(GitRepo, GitError), (CouplingGitRepo, CouplingGitError)],
 )
 def test_non_utf8_git_output_raises_instead_of_reading_as_absent(
-    repo_cls: type[OoGitRepo] | type[CouplingGitRepo],
+    repo_cls: type[GitRepo] | type[CouplingGitRepo],
     error: type[Exception],
     tmp_path: Path,
 ) -> None:
@@ -229,7 +232,7 @@ def test_unscorable_single_file_still_shows_log_and_json(
 ) -> None:
     monkeypatch.chdir(git_sandbox.root)
     git_sandbox.write("src/pkg/thing.py", "def broken(:\n")
-    assert oo_ratchet.oo.main(["src/pkg/thing.py", "--log"]) == 0
+    assert oo_main(["src/pkg/thing.py", "--log"]) == 0
     capsys.readouterr()
-    assert oo_ratchet.oo.main(["src/pkg/thing.py", "--json"]) == 1
+    assert oo_main(["src/pkg/thing.py", "--json"]) == 1
     assert '"error"' in capsys.readouterr().out

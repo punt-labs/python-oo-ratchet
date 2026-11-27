@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Self
+from typing import TYPE_CHECKING, Self
 
 from oo_ratchet.core.domain.scores import Measurement, Score
-from oo_ratchet.oo.scorer import Scorer
-from oo_ratchet.oo.thresholds import Thresholds
+
+if TYPE_CHECKING:
+    from oo_ratchet.oo.scorer import Scorer
 
 
 class OoTree:
@@ -20,15 +22,12 @@ class OoTree:
     _root: Path
     _measured: Measurement
 
-    def __new__(cls, root: Path, scorer: Scorer) -> Self:
+    def __new__(cls, root: Path, scorer: Scorer, names: Sequence[str]) -> Self:
         self = super().__new__(cls)
         self._root = root
         self._measured = Measurement(
             tuple(
-                Score(
-                    str(r["file"]),
-                    {k: float(r[k]) for k in Thresholds.names() if k in r},
-                )
+                Score(str(r["file"]), {k: float(r[k]) for k in names if k in r})
                 for r in scorer.results
                 if "error" not in r
             ),

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from pathlib import Path
-from typing import Self
+from typing import TYPE_CHECKING, Self
 
 from oo_ratchet.core.application.check import Check
 from oo_ratchet.core.application.oowaive import OoRebaselineFiles
@@ -14,9 +14,7 @@ from oo_ratchet.core.application.reconcile import Reconcile
 from oo_ratchet.core.application.update import Update
 from oo_ratchet.core.application.waive import Rebaseline, Relax
 from oo_ratchet.core.domain.errors import StateError
-from oo_ratchet.oo.scorer import Scorer
-from oo_ratchet.oo.thresholds import Thresholds
-from oo_ratchet.source_set import SourceSet
+from oo_ratchet.source_set import Source, SourceSet
 
 from .gatecli import GateCli
 from .gitrepo import GitRepo
@@ -25,6 +23,9 @@ from .oocli import OoCli
 from .oorequest import Requested
 from .oostore import OoBaselineStore
 from .ootree import OoTree
+
+if TYPE_CHECKING:
+    from oo_ratchet.oo.scorer import Scorer
 
 BASELINE = ".oo-baseline.json"
 AUDIT = ".oo-audit.jsonl"
@@ -44,14 +45,21 @@ class OoGate:
     _root: Path
     _views: OoCli
     _policy: GatePolicy
+    _score: Callable[[Source, Path], Scorer]
 
-    def __new__(cls, request: Requested) -> Self:
+    def __new__(
+        cls,
+        request: Requested,
+        score: Callable[[Source, Path], Scorer],
+        policy: GatePolicy,
+    ) -> Self:
         self = super().__new__(cls)
         self._req = request
+        self._score = score
         self._git = GitRepo(Path.cwd(), BASELINE, AUDIT)
         self._root = self._git.root or Path.cwd()
         self._views = OoCli(self._root / BASELINE)
-        self._policy = GatePolicy.from_table(Thresholds.TABLE, Thresholds.CEILINGS)
+        self._policy = policy
         return self
 
     def run(self) -> Report:
@@ -62,7 +70,7 @@ class OoGate:
         req = self._req
         if not SourceSet.path(req.src).exists():
             return [f"Not found: {req.src}"], 1
-        scorer = Scorer(req.src, self._root)
+        scorer = self._score(req.src, self._root)
         try:
             return self._dispatch(scorer)
         except StateError as exc:
@@ -87,7 +95,7 @@ class OoGate:
             self._git,
             OoBaselineStore(self._root / BASELINE),
             AuditFile(self._root / AUDIT),
-            OoTree(self._root, scorer),
+            OoTree(self._root, scorer, self._policy.names),
         )
         ports.store.rows()  # a corrupt baseline fails every command, views included
         action = self._action(ports, scorer)

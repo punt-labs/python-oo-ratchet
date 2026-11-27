@@ -16,7 +16,6 @@ _MAX_AGGREGATED = frozenset(
     {
         "max_complexity",
         "module_size",
-        "classes_per_module",
         "init_violations",
         "public_attr_violations",
     }

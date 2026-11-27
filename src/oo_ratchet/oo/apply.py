@@ -21,6 +21,11 @@ class UpdatePlan:
     ``parse_errors`` are paths on disk that failed to AST-parse. They must be
     preserved (never pruned as if deleted) and surfaced as a refusal, so a
     syntax error cannot silently erase a file's baseline history.
+
+    ``base_baseline`` is the baseline committed at the merge base. When
+    present, rows are compared against it, as ``check`` does, so a later
+    commit on a branch is never refused for giving back part of an earlier
+    commit's gain while still being no worse than the base (PL-1685).
     """
 
     current: dict[str, dict[str, float]]
@@ -28,6 +33,7 @@ class UpdatePlan:
     renames: dict[str, str] = field(default_factory=dict)
     prune: bool = False
     parse_errors: frozenset[str] = frozenset()
+    base_baseline: dict[str, dict[str, float]] | None = None
 
 
 class PlanApplier:
@@ -70,7 +76,7 @@ class PlanApplier:
         self._baseline.save(new_baseline)
         self._audit.append(
             files_scored=len(plan.current),
-            files_improved=len(deltas),
+            files_improved=self.improved_count(deltas),
             files_regressed=len({p for p, _ in refused}) + len(broken),
             verdict="pass" if not refused and not broken else "fail",
             deltas=deltas,
@@ -79,7 +85,9 @@ class PlanApplier:
             commit=self._git.short_head(),
             **backfill.metadata,
         )
-        outcome = self._report(len(deltas), len(removed), refused, broken)
+        outcome = self._report(
+            self.improved_count(deltas), len(removed), refused, broken
+        )
         return Outcome(
             outcome.exit_code, outcome.lines + backfill.lines(outcome.exit_code)
         )
@@ -108,9 +116,12 @@ class PlanApplier:
         return self._drop_rename_source(new_baseline, plan, path)
 
     def _base_for(self, plan: UpdatePlan, path: str) -> dict[str, float] | None:
-        base_entry = self._baseline.get(path)
+        rows = (
+            self._baseline.entries if plan.base_baseline is None else plan.base_baseline
+        )
+        base_entry = rows.get(path)
         if base_entry is None and path in plan.renames:
-            return self._baseline.get(plan.renames[path])
+            return rows.get(plan.renames[path])
         return base_entry
 
     def _drop_rename_source(
@@ -147,6 +158,21 @@ class PlanApplier:
         return stale
 
     @staticmethod
+    def improved_count(deltas: dict[str, dict[str, list[float]]]) -> int:
+        """Return how many files have a metric strictly better than before.
+
+        A changed value is not necessarily better: ``module_size`` growing
+        under its ceiling is recorded but is neither better nor worse.
+        """
+        return sum(
+            any(
+                Thresholds.strictly_better(metric, new, old)
+                for metric, (old, new) in changes.items()
+            )
+            for changes in deltas.values()
+        )
+
+    @staticmethod
     def regressed(entry: dict[str, float], base: dict[str, float] | None) -> list[str]:
         """Return the metrics in ``entry`` worse than ``base`` (empty if new)."""
         if base is None:
@@ -167,8 +193,8 @@ class PlanApplier:
         ``Thresholds.meets`` cap AND regressed against ``base`` (worse than
         the file's existing committed baseline value for that metric, per
         ``Thresholds.better_or_equal`` -- direction-aware, so a floor metric
-        like ``method_ratio`` regresses on a DECREASE while a ceiling metric
-        like ``module_size`` regresses on an INCREASE). An over-cap metric
+        like ``encapsulation_ratio`` regresses on a DECREASE while a cap
+        metric like ``avg_params`` regresses on an INCREASE). An over-cap metric
         that is unchanged or improved against its baseline is carried
         forward untouched, not refused -- ``check()``'s own lock/
         no-regression rule already grandfathers a pre-existing,

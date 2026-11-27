@@ -12,6 +12,18 @@
   smaller is better. Existing baselines load unchanged; their extra fields are
   ignored and dropped when a row is rewritten. On vox, modules failing a
   new-file target fall from 22 to 5.
+- OO `--update` compares rows against the baseline at the merge base, as
+  `--check` does, not against the in-tree baseline. A later commit on a branch
+  is no longer refused for giving back part of an earlier commit's gain while
+  staying no worse than `main` (PL-1685).
+- The update summary and audit `files_improved` count only files with a metric
+  strictly better than before, not every changed row.
+
+### Fixed
+
+- A gated metric missing from a file's base baseline row was skipped, so a
+  hand-edited row could hide a regression. It is now judged by its target and
+  never counts as an improvement.
 
 ### Removed
 

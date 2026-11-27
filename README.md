@@ -355,7 +355,8 @@ The OO targets are fixed in
 [`oo/thresholds.py`](src/oo_ratchet/oo/thresholds.py), not configurable.
 These are absolute targets for new files, not permission to regress an
 existing file that is already below a cap. Existing debt may remain unchanged
-or improve; `--update` never loosens a recorded metric, even within a cap.
+or improve; `--update` never loosens a recorded metric, even within a cap,
+except `module_size` under its 400-line ceiling (below).
 
 | OO baseline field | Target | Computation |
 |-------------------|--------|-------------|
@@ -473,7 +474,7 @@ OO actions are mutually exclusive. The write contracts in
 
 | Action | Allowed / refused |
 |--------|-------------------|
-| `--update` | Scopes to the base diff, carries rename history, removes vanished rows, writes new/non-regressing rows; refuses any metric regression against the in-tree baseline and preserves refused rows. Parse-error rows are kept and refused. |
+| `--update` | Scopes to the base diff, carries rename history, removes vanished rows, writes new/non-regressing rows; refuses any metric regression against the baseline at the merge base (the in-tree baseline when the base has none) and preserves refused rows. A later commit on a branch may give back part of an earlier commit's gain while it stays no worse than the base. Parse-error rows are kept and refused. |
 | `--reconcile` | Explicit whole-scored-tree never-loosening sweep, with rename carry and deletion pruning; not a reset. |
 | `--relax FILE --justify TEXT` | Writes all current metrics for an already-baselined scored file, even over target. Refuses blank justification, unscored files, new files, or a file with no actual regression. Audits only loosened metrics as waiver deltas. |
 | `--rebaseline-files PATH[,PATH...] --reason TEXT` | Bounded bless of only named scored files; refuses blank reason or an empty path list. A metric blocks its file only if both outside target and worse than its prior baseline. Unchanged/improved over-target debt carries; without a prior metric, outside target refuses. Accepted files are written even if others refuse (exit 1). |
@@ -488,11 +489,14 @@ audit metadata (for example a PR/bead reference), not authorization;
 `--justify` belongs to relax and `--reason` to the bounded bless.
 
 OO `--check` requires touched-file baseline values to equal current scores.
-It compares those scores against the base baseline, follows renames, rejects
+It compares those scores against the baseline committed at the merge base,
+never against an intermediate commit on the branch, follows renames, rejects
 regressions, and normally requires at least one improvement across existing
-touched files. If all files are new, passing their targets suffices. No
-touched scored Python files is a trivial pass. `--allow-no-improvement` waives only the improvement requirement,
-not regressions, parse failures or baseline integrity.
+touched files. A gated metric missing from a file's base row is judged by its
+target and never counts as an improvement. If all files are new, passing
+their targets suffices. No touched scored Python files is a trivial pass.
+`--allow-no-improvement` waives only the improvement requirement, not
+regressions, parse failures or baseline integrity.
 
 Relax/bless audit entries absent from the comparison base waive only their
 recorded file/metric pairs, and only while the current value is locked in the

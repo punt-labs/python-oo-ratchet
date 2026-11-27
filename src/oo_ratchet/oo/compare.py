@@ -91,10 +91,11 @@ class FileReview:
         waived: list[str] = []
         improved = False
         for metric in Thresholds.names():
-            if metric not in current or metric not in base:
+            if metric not in current:
                 continue
-            cur, base_val = current[metric], base[metric]
-            status = self._classify(metric, cur, base_val, intree, waivable)
+            cur = current[metric]
+            base_val = base.get(metric, cur)
+            status = self._classify(metric, cur, base, intree, waivable)
             if status == "IMPROVED":
                 improved = True
             elif status == "REGRESSED":
@@ -123,10 +124,16 @@ class FileReview:
         self,
         metric: str,
         cur: float,
-        base_val: float,
+        base: dict[str, float],
         intree: dict[str, float] | None,
         waivable: frozenset[tuple[str, str]],
     ) -> str:
+        if metric not in base:
+            # A gated metric missing from the base row is judged by its target,
+            # never skipped and never an improvement: a hand-edited row cannot
+            # hide a regression or earn must-improve credit.
+            return "PASS" if Thresholds.meets(metric, cur) else "REGRESSED"
+        base_val = base[metric]
         if Thresholds.strictly_better(metric, cur, base_val):
             return "IMPROVED"
         if Thresholds.better_or_equal(metric, cur, base_val):

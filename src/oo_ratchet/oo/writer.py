@@ -57,11 +57,12 @@ class BaselineWriter:
         A genuine first-adoption (no in-tree baseline) does bootstrap the whole
         tree; ``--reconcile`` is the explicit opt-in for a whole-tree sweep.
 
-        The base is used only to scope the touched set; the regression check is
-        against the *in-tree* baseline (update's job is to tighten it, refusing
-        any loosening). No improvement-vs-base is measured here, so a stale or
-        diverged branch cannot launder a regression through update -- the
-        merge-base comparison lives in ``check``, which reads the base baseline.
+        The base scopes the touched set and, when it has a baseline, is what
+        each row is compared against, as ``check`` does: a later commit on a
+        branch may give back part of an earlier commit's gain as long as it is
+        no worse than the base (PL-1685). With no baseline at the base, rows
+        are compared against the in-tree baseline. ``check`` still enforces
+        the merge-base comparison, so nothing is laundered through update.
         """
         blocked = self._guard(allow_ci_write=allow_ci_write)
         if blocked is not None:
@@ -85,6 +86,7 @@ class BaselineWriter:
                 touched,
                 diff.renames,
                 parse_errors=touched & scorer.parse_errors,
+                base_baseline=self._git.show_baseline(base),
             )
         return self._applier.apply(plan, source)
 

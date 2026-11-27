@@ -1323,14 +1323,11 @@
     "future_annotations": 1.0
   },
   "src/oo_ratchet/oo/apply.py": {
-    "method_ratio": 1.0,
     "encapsulation_ratio": 1.0,
-    "avg_params": 2.64,
+    "avg_params": 2.5,
     "max_complexity": 8.0,
     "avg_complexity": 4.0,
-    "module_size": 151.0,
-    "classes_per_module": 1.0,
-    "class_to_func_ratio": 1.0,
+    "module_size": 166.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -1416,9 +1413,9 @@
   "src/oo_ratchet/oo/compare.py": {
     "encapsulation_ratio": 1.0,
     "avg_params": 0.89,
-    "max_complexity": 9.0,
-    "avg_complexity": 2.61,
-    "module_size": 159.0,
+    "max_complexity": 8.0,
+    "avg_complexity": 2.67,
+    "module_size": 163.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -1480,14 +1477,11 @@
     "future_annotations": 1.0
   },
   "src/oo_ratchet/oo/scorer.py": {
-    "method_ratio": 1.0,
     "encapsulation_ratio": 1.0,
     "avg_params": 0.57,
     "max_complexity": 10.0,
     "avg_complexity": 3.14,
-    "module_size": 116.0,
-    "classes_per_module": 1.0,
-    "class_to_func_ratio": 1.0,
+    "module_size": 115.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -1503,14 +1497,11 @@
     "future_annotations": 1.0
   },
   "src/oo_ratchet/oo/writer.py": {
-    "method_ratio": 1.0,
     "encapsulation_ratio": 1.0,
     "avg_params": 2.8,
     "max_complexity": 7.0,
     "avg_complexity": 3.5,
-    "module_size": 207.0,
-    "classes_per_module": 1.0,
-    "class_to_func_ratio": 1.0,
+    "module_size": 208.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0

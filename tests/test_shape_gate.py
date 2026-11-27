@@ -10,12 +10,25 @@ metrics are not gated.
 
 from __future__ import annotations
 
+import json
+from typing import ClassVar
+
 import pytest
 
+from oo_ratchet.oo.apply import PlanApplier
+from oo_ratchet.oo.baseline import Baseline
+from oo_ratchet.oo.compare import FileReview
 from oo_ratchet.oo.thresholds import Thresholds
-from tests.test_oo_ratchet import GOOD, GitFixture
+from tests.test_oo_ratchet import GOOD, WORSE, GitFixture
 
 pytestmark = pytest.mark.slow
+
+# Between GOOD (complexity 1) and WORSE (complexity 3): one branch.
+MIDDLE = GOOD.replace(
+    '        return "pos"\n',
+    '        if self._n > 0:\n            return "pos"\n        return "neg"\n',
+)
+assert MIDDLE != GOOD, "GOOD fixture drifted; MIDDLE no longer differs"
 
 # GOOD plus one more simple method: more code lines, same complexity.
 GROWN = (
@@ -82,6 +95,22 @@ class TestThresholdTable:
         assert Thresholds.strictly_better("module_size", 420, 450)
         assert Thresholds.strictly_better("module_size", 390, 450)
 
+    def test_ceiling_boundary(self) -> None:
+        assert Thresholds.better_or_equal("module_size", 400, 300)
+        assert not Thresholds.strictly_better("module_size", 400, 300)
+        assert Thresholds.strictly_better("module_size", 400, 401)
+        assert not Thresholds.better_or_equal("module_size", 401, 400)
+
+
+class TestUpdateRecords:
+    def test_growth_under_ceiling_is_not_counted_as_an_improvement(self) -> None:
+        deltas = {"sub/w.py": {"module_size": [9.0, 10.0]}}
+        assert PlanApplier.improved_count(deltas) == 0
+
+    def test_a_real_improvement_is_counted(self) -> None:
+        deltas = {"sub/w.py": {"module_size": [9.0, 10.0], "avg_params": [3.0, 2.0]}}
+        assert PlanApplier.improved_count(deltas) == 1
+
 
 class TestGateEndToEnd:
     """Drive the ratchet against a real git history."""
@@ -110,6 +139,19 @@ class TestGateEndToEnd:
         )
         assert outcome.exit_code == 0, outcome.lines
 
+    def test_growing_past_the_ceiling_fails(self, fx: GitFixture) -> None:
+        fx.write("sub/w.py", GOOD + "".join(f"A{i} = {i}\n" for i in range(370)))
+        fx.snapshot("sub")
+        base = fx.commit("base, under 400 lines")
+        fx.write("sub/w.py", GOOD + "".join(f"A{i} = {i}\n" for i in range(400)))
+        fx.snapshot("sub")
+        fx.commit("grow past 400")
+        outcome = fx.ratchet().check(
+            fx.scorer(), base_ref=base, require_base=True, allow_no_improvement=True
+        )
+        assert outcome.exit_code == 1
+        assert any("module_size" in line for line in outcome.lines)
+
     def test_new_function_module_passes(self, fx: GitFixture) -> None:
         fx.write("sub/w.py", GOOD)
         fx.snapshot("sub")
@@ -119,6 +161,133 @@ class TestGateEndToEnd:
         fx.commit("add api")
         outcome = fx.ratchet().check(fx.scorer(), base_ref=base, require_base=True)
         assert outcome.exit_code == 0, outcome.lines
+
+
+class TestCeilingsAreWellFormed:
+    def test_every_ceiling_is_a_le_metric_in_the_table(self) -> None:
+        # max(value, target) ranks correctly only for a <= metric; a typo or a
+        # >= metric here would silently change the ordering.
+        for metric in Thresholds.CEILINGS:
+            assert Thresholds.TABLE[metric][0] == "<="
+
+
+class TestMissingBaseMetricFailsClosed:
+    """A gated metric absent from a file's base row is judged by its target."""
+
+    def test_missing_base_metric_over_target_regresses(self) -> None:
+        review = FileReview(
+            "sub/w.py",
+            {"module_size": 5000.0, "avg_params": 1.0},
+            {"avg_params": 2.0},
+            {"module_size": 5000.0, "avg_params": 1.0},
+            frozenset(),
+        )
+        assert "module_size" in review.regressed
+
+    def test_missing_base_metric_within_target_is_no_improvement(self) -> None:
+        review = FileReview(
+            "sub/w.py",
+            {"module_size": 50.0, "avg_params": 2.0},
+            {"avg_params": 2.0},
+            {"module_size": 50.0, "avg_params": 2.0},
+            frozenset(),
+        )
+        assert not review.regressed
+        assert not review.improved
+
+
+class TestLegacyBaselineFields:
+    """Adopter baselines written before PL-1685 still carry the removed metrics."""
+
+    LEGACY: ClassVar[dict[str, float]] = {
+        "method_ratio": 0.5,
+        "class_to_func_ratio": 0.5,
+        "classes_per_module": 1.0,
+    }
+
+    def test_check_passes_and_update_drops_fields_on_rewritten_rows(
+        self, fx: GitFixture
+    ) -> None:
+        fx.write("sub/w.py", GOOD)
+        fx.write("sub/other.py", GOOD)
+        rows = Baseline.metrics_by_file(fx.scorer().results)
+        fx.write_baseline({path: {**row, **self.LEGACY} for path, row in rows.items()})
+        base = fx.commit("base with legacy fields")
+        fx.write("sub/w.py", GROWN)
+        updated = fx.writer().update(
+            fx.scorer(),
+            base_ref=base,
+            require_base=True,
+            allow_ci_write=True,
+            source=None,
+        )
+        assert updated.exit_code == 0, updated.lines
+        fx.commit("grow w.py")
+        outcome = fx.ratchet().check(
+            fx.scorer(), base_ref=base, require_base=True, allow_no_improvement=True
+        )
+        assert outcome.exit_code == 0, outcome.lines
+        saved = json.loads((fx.root / ".oo-baseline.json").read_text())
+        assert not set(self.LEGACY) & set(saved["sub/w.py"])
+        assert set(self.LEGACY) <= set(saved["sub/other.py"])
+
+
+class TestBranchComparesAgainstMergeBase:
+    """A branch of several commits is judged against main, not against itself.
+
+    PL-1685: rows regressed only against values an earlier commit on the same
+    branch had recorded, while every row was equal or better against main.
+    """
+
+    def test_update_accepts_a_later_commit_still_better_than_main(
+        self, fx: GitFixture
+    ) -> None:
+        fx.write("sub/w.py", WORSE)
+        fx.snapshot("sub")
+        main = fx.commit("main")
+        fx.set_origin_main(main)
+        fx.checkout_new("feature")
+        fx.write("sub/w.py", GOOD)
+        first = fx.writer().update(
+            fx.scorer(),
+            base_ref=main,
+            require_base=True,
+            allow_ci_write=True,
+            source=None,
+        )
+        assert first.exit_code == 0, first.lines
+        fx.commit("first: complexity 3 -> 1")
+        fx.write("sub/w.py", MIDDLE)
+        second = fx.writer().update(
+            fx.scorer(),
+            base_ref=main,
+            require_base=True,
+            allow_ci_write=True,
+            source=None,
+        )
+        assert second.exit_code == 0, second.lines
+        fx.commit("second: complexity 1 -> 2, still below main's 3")
+        outcome = fx.ratchet().check(fx.scorer(), base_ref=main, require_base=True)
+        assert outcome.exit_code == 0, outcome.lines
+
+    def test_update_still_refuses_a_regression_against_main(
+        self, fx: GitFixture
+    ) -> None:
+        fx.write("sub/w.py", GOOD)
+        fx.snapshot("sub")
+        main = fx.commit("main")
+        fx.set_origin_main(main)
+        fx.checkout_new("feature")
+        fx.write("sub/w.py", WORSE)
+        outcome = fx.writer().update(
+            fx.scorer(),
+            base_ref=main,
+            require_base=True,
+            allow_ci_write=True,
+            source=None,
+        )
+        assert outcome.exit_code == 1
+        assert any("max_complexity" in line for line in outcome.lines)
 
 
 @pytest.fixture

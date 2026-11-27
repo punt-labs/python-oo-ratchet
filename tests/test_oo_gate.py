@@ -208,7 +208,6 @@ class Calc:
 # public_attr_violations 0 -> 1, encapsulation_ratio 1.0 -> 0.0.
 _BAD_PUBLIC_ATTR_SOURCE = _BASE_SOURCE.replace("self._value", "self.value")
 
-# module_size grows (strict under vox — any growth regresses).
 # Grows the module past the 400-code-line ceiling: a module_size regression.
 _BAD_MODULE_SIZE_SOURCE = (
     _BASE_SOURCE + "\n\n" + "".join(f"V{i} = {i}\n" for i in range(400))

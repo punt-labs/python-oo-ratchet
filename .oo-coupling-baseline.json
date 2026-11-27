@@ -836,8 +836,8 @@
     "efferent_coupling": 7.0,
     "public_names": 1.0,
     "circular_imports": 0.0,
-    "max_lcom": 0.071,
-    "avg_lcom": 0.071
+    "max_lcom": 0.222,
+    "avg_lcom": 0.222
   },
   "src/oo_ratchet/source_archive.py": {
     "efferent_coupling": 2.0,

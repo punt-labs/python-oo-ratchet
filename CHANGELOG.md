@@ -39,9 +39,12 @@ at the time of writing: vox `punt-oo-ratchet==0.4.0`, quarry `==0.4.0`, z-spec
   target now has no improvement, so must-improve fails:
   `FAIL: no metric improved on any touched file`). Replaying each adopter's last
   15 main commits with `oo --base-ref HEAD~1 --require-base`, that is 0 commits
-  for vox, 1 for quarry, 4 for z-spec and 2 for lux; quarry and lux run main
-  without `--allow-no-improvement`, so those commits would turn their main CI
-  red. Baselines load unchanged
+  for vox, 1 for quarry, 4 for z-spec and 2 for lux (lux's replay covers its
+  main source set only, and 5 of its 15 commits fail to resolve a source root
+  in both versions, so it is 2 of 10). quarry and lux's main source set run
+  main without `--allow-no-improvement`, so those commits would turn their main
+  CI red; vox, z-spec and lux's service source set pass the flag there.
+  Baselines load unchanged
   (`docs/architecture/b7-adopter-dry-runs.md`). `coupling --update` drops the
   rows of deleted files.
 - **New commands and flags.** `layers --suggest` (new in this release, so it

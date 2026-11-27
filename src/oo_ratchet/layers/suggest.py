@@ -27,8 +27,9 @@ HEADER = (
     "# that imports a ring it may not (or an unclassified module) is unclassified too.",
     "# A glob such as pkg.sub.* also claims any module added later under that prefix.",
     "# Exception: the package root goes in entry whatever it imports, as vox, lux and",
-    "# z-spec place theirs; only entry may import entry, so a root that a non-entry",
-    "# module imports is unclassified.",
+    "# z-spec place theirs. It is unclassified instead when a non-entry module imports",
+    "# it (only entry may import entry) or when it has a relative import that climbs",
+    "# above the package.",
 )
 NO_PYPROJECT = "# No pyproject.toml was found: console scripts were not read."
 

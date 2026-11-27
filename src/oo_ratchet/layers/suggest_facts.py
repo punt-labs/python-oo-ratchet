@@ -22,10 +22,11 @@ ENTRY_LIBRARIES = ("argparse", "typer")
 _NAME = r"[^\W\d]\w*"
 _DOTTED = rf"{_NAME}(?:\.{_NAME})*"
 _EXTRA = r"[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?"
-_EXTRAS = rf"\[\s*{_EXTRA}(?:\s*,\s*{_EXTRA})*\s*\]"
+_EXTRAS = rf"\[\s*(?:{_EXTRA}(?:\s*,\s*{_EXTRA})*)?\s*\]"
 # module[.module]*, then optionally ":" object[.object]*, then optionally
-# [extra, ...] of PEP 508 extra names. Anchored by fullmatch: importlib.metadata's
-# own pattern accepts any text inside the brackets.
+# [extra, ...] of PEP 508 extra names; the list may be empty, as PEP 508 allows.
+# Anchored by fullmatch: importlib.metadata's own pattern accepts any text
+# inside the brackets.
 ENTRY_POINT = re.compile(
     rf"(?P<module>{_DOTTED})(?:\s*:\s*{_DOTTED})?(?:\s*{_EXTRAS})?"
 )

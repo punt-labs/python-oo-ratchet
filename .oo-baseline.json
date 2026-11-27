@@ -1267,7 +1267,7 @@
     "avg_params": 0.86,
     "max_complexity": 9.0,
     "avg_complexity": 3.57,
-    "module_size": 88.0,
+    "module_size": 89.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0

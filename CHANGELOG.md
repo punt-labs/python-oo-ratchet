@@ -19,7 +19,7 @@
   a namespace root with one module and no `__init__.py` is accepted. Names and
   reasons are escaped so no dynamic text can start an active TOML line, and a
   `[project.scripts]` value must be a valid entry point (spaces around the
-  colon are fine; extras are PEP 508 names). Non-BMP module names are written
+  colon are fine; extras are PEP 508 names, and an empty `[]` is allowed). Non-BMP module names are written
   as TOML `\UXXXXXXXX` escapes. The header and README name the package root as
   an exception to the ring rules.
 

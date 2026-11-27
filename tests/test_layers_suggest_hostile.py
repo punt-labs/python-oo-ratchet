@@ -162,6 +162,9 @@ class TestEntryPointSyntax:
             "app.runner:main [a, b]",
             "app.runner:main [ a ]",
             "app.runner [a]",
+            "app.runner []",
+            "app.runner [ ]",
+            "app.runner:main []",
             "app.runner:main [extra]",
             "app.runner:main [a.b-c_d]",
         ],
@@ -177,7 +180,6 @@ class TestEntryPointSyntax:
         [
             "app.runner [!!!]",
             "app.runner [!!!",
-            "app.runner []",
             "app.runner [,]",
             "app.runner [a,]",
             "app.runner [,a]",
@@ -231,3 +233,16 @@ class TestRootException:
         out = repo.run("--suggest")[1]
         assert "Exception: the package root" in out
         assert "entry" in out.split("Exception:")[1].splitlines()[0]
+        lines = out.split("Exception:")[1].splitlines()
+        exception = " ".join(ln for ln in lines[:4] if ln.startswith("#"))
+        assert "relative import" in exception
+        assert "non-entry" in exception
+
+    def test_root_with_an_unresolvable_relative_import_is_unclassified(
+        self, repo: LayersRepo
+    ) -> None:
+        start(repo)
+        repo.write("src/app/__init__.py", "from .. import x\n")
+        out = repo.run("--suggest")[1]
+        assert "app" not in rings(out)["entry"]
+        assert "# app: unclassified (unresolvable relative import" in out

@@ -14,23 +14,40 @@ from .gitrepo import GitRepo
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-CHECKOUT_TIMEOUT = 300
+_CHECKOUT_TIMEOUT = 300
 
 
 class ShadowTree:
-    """Check out an isolated detached tree and unregister it afterward."""
+    """Resolve a base commit and check it out as an isolated detached tree."""
 
     _git: GitRepo
-    _base: str
 
-    def __new__(cls, git: GitRepo, base: str) -> Self:
+    def __new__(cls, start: Path) -> Self:
         self = super().__new__(cls)
-        self._git = git
-        self._base = base
+        self._git = GitRepo.stateless(start)
         return self
 
+    def root_over(self, paths: list[Path], message: str) -> Path:
+        """Return the repository root, or raise ``GitError(message)``."""
+        root = self._git.root
+        if root is None or not all(p.is_relative_to(root) for p in paths):
+            raise GitError(message)
+        return root
+
+    def fork_point(self, ref: str) -> str:
+        """Return the commit where ``ref`` diverges from HEAD."""
+        commit = self._git.resolve(ref)
+        out = self._git.run(["merge-base", commit, "HEAD"]) if commit else None
+        if not out or not out.strip():
+            raise GitError("--shadow-check ref has no resolvable merge base with HEAD")
+        return out.strip()
+
+    def renames(self, base: str) -> dict[str, str]:
+        """Return the paths renamed since ``base``, as new path to old path."""
+        return self._git.changes_since(base).renames
+
     @contextmanager
-    def checkout(self) -> Iterator[Path]:
+    def checkout(self, base: str) -> Iterator[Path]:
         """Yield the detached base tree without touching the caller's checkout."""
         root = self._git.root
         if root is None:
@@ -39,8 +56,8 @@ class ShadowTree:
         tree = Path(temporary.name) / root.name
         try:
             with temporary:
-                args = ["worktree", "add", "--quiet", "--detach", str(tree), self._base]
-                if self._git.run(args, CHECKOUT_TIMEOUT) is None:
+                args = ["worktree", "add", "--quiet", "--detach", str(tree), base]
+                if self._git.run(args, _CHECKOUT_TIMEOUT) is None:
                     raise GitError("cannot check out the shadow merge base")
                 yield tree
         finally:

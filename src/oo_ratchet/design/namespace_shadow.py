@@ -5,9 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Self
 
-from oo_ratchet.core.adapters.gitrepo import GitRepo
 from oo_ratchet.core.adapters.shadowtree import ShadowTree
-from oo_ratchet.core.domain.errors import GitError
 
 from .shadow_keys import KeyChanges
 from .shadow_metrics import ShadowMetrics
@@ -25,16 +23,15 @@ class NamespaceShadow:
 
     def __new__(cls, source: SourceSet, layers: Path | None, ref: str) -> Self:
         self = super().__new__(cls)
-        git = GitRepo.stateless(source.anchor)
-        root = git.root
-        if root is None or not all(p.is_relative_to(root) for p in source.roots):
-            raise GitError("namespace shadow roots must be inside one git repository")
+        git = ShadowTree(source.anchor)
+        root = git.root_over(
+            list(source.roots),
+            "namespace shadow roots must be inside one git repository",
+        )
         base = git.fork_point(ref)
-        if base is None:
-            raise GitError("--shadow-check ref has no resolvable merge base with HEAD")
-        renames = git.changes_since(base).renames
+        renames = git.renames(base)
         override = layers.resolve() if layers is not None else None
-        with ShadowTree(git, base).checkout() as tree:
+        with git.checkout(base) as tree:
             before = ShadowScan(
                 source.at_base(root, tree, renames),
                 tree,

@@ -54,16 +54,6 @@ class GitRepo:
         """Return the repository root, or ``None`` outside a repo."""
         return self._root
 
-    def merge_base(self, left: str, right: str) -> str | None:
-        """Return the merge-base commit of two refs, or ``None``."""
-        out = self._git(["merge-base", left, right])
-        return out.strip() if out else None
-
-    def fork_point(self, ref: str) -> str | None:
-        """Return where ``ref`` diverges from HEAD, ``None`` if unresolvable."""
-        commit = self.resolve(ref)
-        return self.merge_base(commit, "HEAD") if commit is not None else None
-
     def run(self, args: list[str], timeout: float = TIMEOUT) -> str | None:
         """Run one git command in the repository: stdout, or ``None`` on failure."""
         if self._root is None:

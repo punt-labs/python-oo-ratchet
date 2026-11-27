@@ -6,9 +6,7 @@ import os.path
 from pathlib import Path
 from typing import Self
 
-from oo_ratchet.core.adapters.gitrepo import GitRepo
 from oo_ratchet.core.adapters.shadowtree import ShadowTree
-from oo_ratchet.core.domain.errors import GitError
 
 from .shadow_keys import KeyChanges
 from .shadow_metrics import ShadowMetrics
@@ -24,16 +22,12 @@ class LegacyShadow:
     def __new__(cls, source: Path, layers: Path | None, ref: str) -> Self:
         self = super().__new__(cls)
         source = Path(os.path.normpath(source.absolute()))
-        git = GitRepo.stateless(source)
-        root = git.root
-        if root is None:
-            raise GitError("--shadow-check requires a git repository")
+        git = ShadowTree(source)
+        root = git.root_over([], "--shadow-check requires a git repository")
         relative = source.resolve().relative_to(root)
         base = git.fork_point(ref)
-        if base is None:
-            raise GitError("--shadow-check ref has no resolvable merge base with HEAD")
         override = layers.resolve() if layers is not None else None
-        with ShadowTree(git, base).checkout() as tree:
+        with git.checkout(base) as tree:
             before = ShadowScan(
                 tree / relative, tree, override, package_name=source.name
             )

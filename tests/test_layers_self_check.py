@@ -20,6 +20,8 @@ class TestOwnLayers:
         self, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
     ) -> None:
         monkeypatch.chdir(ROOT)
-        code = dispatch(["layers", "src/oo_ratchet/", "--check"])
+        # HEAD as the base keeps the test independent of whether origin/main
+        # is fetched: it compares the committed baseline with the source.
+        code = dispatch(["layers", "src/oo_ratchet/", "--check", "--base-ref", "HEAD"])
         out = capsys.readouterr().out
         assert (code, "PASS" in out) == (0, True), out

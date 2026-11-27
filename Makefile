@@ -5,6 +5,7 @@ OO_BASE ?=
 COUPLING_BASE ?=
 SUPPRESSION_BASE ?=
 LAYERS_BASE ?=
+LAYERS_UPDATE ?=
 EVAL_VARIANTS := $(wildcard evals/design/*/bad evals/design/*/good)
 EVAL_TYPE_TARGETS := $(addprefix type-,$(EVAL_VARIANTS))
 
@@ -50,8 +51,8 @@ update-suppressions:
 check-layers: ## layer-import ratchet (the four-ring table in pyproject.toml)
 	uv run oo-ratchet layers $(SRC) --check $(LAYERS_BASE)
 
-update-layers:
-	uv run oo-ratchet layers $(SRC) --update $(LAYERS_BASE)
+update-layers: ## drop retired layer edges from the baseline (extra flags: LAYERS_UPDATE)
+	uv run oo-ratchet layers $(SRC) --update $(LAYERS_UPDATE)
 
 build: ## wheel + sdist
 	uv build

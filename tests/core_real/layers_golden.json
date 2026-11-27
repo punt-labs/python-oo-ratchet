@@ -1,0 +1,757 @@
+{
+ "TestBases::test_bad_base_ref_fails": [
+  {
+   "argv": [
+    "--update"
+   ],
+   "code": 0,
+   "out": "Wrote <ROOT>/.oo-layers-baseline.json\n  violations: 1 (0 removed)\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":null,\"source\":null,\"modules_scanned\":4,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.kernel -> app.service\"],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.kernel\": [\n    \"app.service\"\n  ]\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "--check",
+    "--base-ref",
+    "nope"
+   ],
+   "code": 1,
+   "out": "FAIL: cannot resolve merge-base (origin/main unfetched or stale) with an in-tree baseline present; fetch origin/main or pass --base-ref\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":null,\"source\":null,\"modules_scanned\":4,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.kernel -> app.service\"],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.kernel\": [\n    \"app.service\"\n  ]\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "--check",
+    "--base-ref",
+    "nope",
+    "--require-base"
+   ],
+   "code": 1,
+   "out": "FAIL: base ref unresolvable and --require-base is set\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":null,\"source\":null,\"modules_scanned\":4,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.kernel -> app.service\"],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.kernel\": [\n    \"app.service\"\n  ]\n}\n"
+   }
+  }
+ ],
+ "TestBases::test_base_before_adoption_fails_when_main_has_the_baseline": [
+  {
+   "argv": [
+    "--update"
+   ],
+   "code": 0,
+   "out": "Wrote <ROOT>/.oo-layers-baseline.json\n  violations: 1 (0 removed)\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":4,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.kernel -> app.service\"],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.kernel\": [\n    \"app.service\"\n  ]\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "--check",
+    "--base-ref",
+    "93663c654498343912a422acb2f3498fab4ad902"
+   ],
+   "code": 1,
+   "out": "FAIL: base commit predates baseline adoption; rebase onto current main\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":4,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.kernel -> app.service\"],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.kernel\": [\n    \"app.service\"\n  ]\n}\n"
+   }
+  }
+ ],
+ "TestBases::test_base_before_adoption_passes_when_main_lacks_it": [
+  {
+   "argv": [
+    "--update"
+   ],
+   "code": 0,
+   "out": "Wrote <ROOT>/.oo-layers-baseline.json\n  violations: 1 (0 removed)\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":4,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.kernel -> app.service\"],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.kernel\": [\n    \"app.service\"\n  ]\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "--check",
+    "--base-ref",
+    "93663c654498343912a422acb2f3498fab4ad902"
+   ],
+   "code": 0,
+   "out": "PASS: 4 modules scanned, 0 unassigned, 1 baselined layer violations, none new/stale\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":4,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.kernel -> app.service\"],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.kernel\": [\n    \"app.service\"\n  ]\n}\n"
+   }
+  }
+ ],
+ "TestBases::test_new_package_at_the_base_is_adopted": [
+  {
+   "argv": [
+    "--check"
+   ],
+   "code": 1,
+   "out": "FAIL: layer violations not in the baseline:\n  fresh.kernel -> fresh.service  (kernel -> service)\n",
+   "state": {
+    ".oo-layers-audit.jsonl": null,
+    ".oo-layers-baseline.json": null
+   }
+  },
+  {
+   "argv": [
+    "--update"
+   ],
+   "code": 0,
+   "out": "Wrote <ROOT>/.oo-layers-baseline.json\n  violations: 1 (0 removed)\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":4,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"fresh.kernel -> fresh.service\"],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{\n  \"fresh.kernel\": [\n    \"fresh.service\"\n  ]\n}\n"
+   }
+  }
+ ],
+ "TestBases::test_tree_without_the_base_baseline_fails": [
+  {
+   "argv": [
+    "--update"
+   ],
+   "code": 0,
+   "out": "Wrote <ROOT>/.oo-layers-baseline.json\n  violations: 1 (0 removed)\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":null,\"source\":null,\"modules_scanned\":4,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.kernel -> app.service\"],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.kernel\": [\n    \"app.service\"\n  ]\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "--check"
+   ],
+   "code": 1,
+   "out": "FAIL: the base has a layers baseline but the tree has none; restore it or run --update\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":null,\"source\":null,\"modules_scanned\":4,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.kernel -> app.service\"],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": null
+   }
+  }
+ ],
+ "TestBases::test_tripwire_bootstraps_the_adoption_commit": [
+  {
+   "argv": [
+    "--update"
+   ],
+   "code": 0,
+   "out": "Wrote <ROOT>/.oo-layers-baseline.json\n  violations: 1 (0 removed)\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":4,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.kernel -> app.service\"],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.kernel\": [\n    \"app.service\"\n  ]\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "--check",
+    "--base-ref",
+    "93663c654498343912a422acb2f3498fab4ad902",
+    "--tripwire"
+   ],
+   "code": 0,
+   "out": "PASS: 4 modules scanned, 0 unassigned, 1 baselined layer violations, none new/stale\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":4,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.kernel -> app.service\"],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.kernel\": [\n    \"app.service\"\n  ]\n}\n"
+   }
+  }
+ ],
+ "TestBases::test_tripwire_without_a_baseline_fails": [
+  {
+   "argv": [
+    "--check",
+    "--base-ref",
+    "93663c654498343912a422acb2f3498fab4ad902",
+    "--tripwire"
+   ],
+   "code": 1,
+   "out": "FAIL: --tripwire with no baseline on main; only the adoption commit that adds the baseline may bootstrap\n",
+   "state": {
+    ".oo-layers-audit.jsonl": null,
+    ".oo-layers-baseline.json": null
+   }
+  }
+ ],
+ "TestBases::test_unresolvable_base_with_a_baseline_fails": [
+  {
+   "argv": [
+    "--update"
+   ],
+   "code": 0,
+   "out": "Wrote <ROOT>/.oo-layers-baseline.json\n  violations: 1 (0 removed)\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":null,\"source\":null,\"modules_scanned\":4,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.kernel -> app.service\"],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.kernel\": [\n    \"app.service\"\n  ]\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "--check"
+   ],
+   "code": 1,
+   "out": "FAIL: cannot resolve merge-base (origin/main unfetched or stale) with an in-tree baseline present; fetch origin/main or pass --base-ref\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":null,\"source\":null,\"modules_scanned\":4,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.kernel -> app.service\"],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.kernel\": [\n    \"app.service\"\n  ]\n}\n"
+   }
+  }
+ ],
+ "TestBases::test_unresolvable_base_with_require_base_fails": [
+  {
+   "argv": [
+    "--check",
+    "--require-base"
+   ],
+   "code": 1,
+   "out": "FAIL: base ref unresolvable and --require-base is set\n",
+   "state": {
+    ".oo-layers-audit.jsonl": null,
+    ".oo-layers-baseline.json": null
+   }
+  }
+ ],
+ "TestChanges::test_baseline_hand_grown_past_the_base_fails": [
+  {
+   "argv": [
+    "--check"
+   ],
+   "code": 1,
+   "out": "FAIL: baseline holds edges the base <SHA> did not:\n  app.service -> app.cli\nFAIL: edges that violate under the base config, not in the base baseline:\n  app.service -> app.cli\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":4,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.kernel -> app.service\"],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.kernel\": [\n    \"app.service\"\n  ],\n  \"app.service\": [\n    \"app.cli\"\n  ]\n}"
+   }
+  }
+ ],
+ "TestChanges::test_check_names_the_base_with_an_explicit_ref": [
+  {
+   "argv": [
+    "--update"
+   ],
+   "code": 0,
+   "out": "Wrote <ROOT>/.oo-layers-baseline.json\n  violations: 1 (0 removed)\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":4,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.kernel -> app.service\"],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.kernel\": [\n    \"app.service\"\n  ]\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "--check",
+    "--base-ref",
+    "93663c654498343912a422acb2f3498fab4ad902"
+   ],
+   "code": 0,
+   "out": "PASS: 4 modules scanned, 0 unassigned, 1 baselined layer violations, none new/stale\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":4,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.kernel -> app.service\"],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.kernel\": [\n    \"app.service\"\n  ]\n}\n"
+   }
+  }
+ ],
+ "TestChanges::test_fix_is_stale_until_update_then_passes": [
+  {
+   "argv": [
+    "--check"
+   ],
+   "code": 1,
+   "out": "FAIL: baseline entries that no longer violate (--update):\n  app.kernel -> app.service\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":4,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.kernel -> app.service\"],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.kernel\": [\n    \"app.service\"\n  ]\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "--update"
+   ],
+   "code": 0,
+   "out": "Wrote <ROOT>/.oo-layers-baseline.json\n  violations: 0 (1 removed)\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":4,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.kernel -> app.service\"],\"removed\":[]}\n{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":4,\"violations\":0,\"verdict\":\"pass\",\"added\":[],\"removed\":[\"app.kernel -> app.service\"]}\n",
+    ".oo-layers-baseline.json": "{}\n"
+   }
+  },
+  {
+   "argv": [
+    "--check"
+   ],
+   "code": 0,
+   "out": "PASS: 4 modules scanned, 0 unassigned, 0 baselined layer violations, none new/stale\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":4,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.kernel -> app.service\"],\"removed\":[]}\n{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":4,\"violations\":0,\"verdict\":\"pass\",\"added\":[],\"removed\":[\"app.kernel -> app.service\"]}\n",
+    ".oo-layers-baseline.json": "{}\n"
+   }
+  }
+ ],
+ "TestChanges::test_new_violation_fails_check_and_update": [
+  {
+   "argv": [
+    "--check"
+   ],
+   "code": 1,
+   "out": "FAIL: layer violations not in the baseline:\n  app.service -> app.cli  (service -> cli)\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":4,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.kernel -> app.service\"],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.kernel\": [\n    \"app.service\"\n  ]\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "--update"
+   ],
+   "code": 1,
+   "out": "FAIL: refusing to baseline new layer violations:\n  app.service -> app.cli\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":4,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.kernel -> app.service\"],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.kernel\": [\n    \"app.service\"\n  ]\n}\n"
+   }
+  }
+ ],
+ "TestChanges::test_renamed_module_is_a_new_edge_and_a_stale_one": [
+  {
+   "argv": [
+    "--check"
+   ],
+   "code": 1,
+   "out": "FAIL: baseline entries that no longer violate (--update):\n  app.kernel -> app.service\nFAIL: the layer contract does not cover the package:\n  unassigned module: app.core\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":4,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.kernel -> app.service\"],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.kernel\": [\n    \"app.service\"\n  ]\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "--update"
+   ],
+   "code": 1,
+   "out": "FAIL: refusing to baseline a package the layers do not cover:\n  unassigned module: app.core\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":4,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.kernel -> app.service\"],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.kernel\": [\n    \"app.service\"\n  ]\n}\n"
+   }
+  }
+ ],
+ "TestChanges::test_unchanged_tree_passes": [
+  {
+   "argv": [
+    "--check"
+   ],
+   "code": 0,
+   "out": "PASS: 4 modules scanned, 0 unassigned, 1 baselined layer violations, none new/stale\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":4,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.kernel -> app.service\"],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.kernel\": [\n    \"app.service\"\n  ]\n}\n"
+   }
+  }
+ ],
+ "TestFirstAdoption::test_clean_tree_without_a_baseline_passes": [
+  {
+   "argv": [
+    "--check"
+   ],
+   "code": 0,
+   "out": "PASS: 4 modules scanned, 0 unassigned, 0 baselined layer violations, none new/stale\n",
+   "state": {
+    ".oo-layers-audit.jsonl": null,
+    ".oo-layers-baseline.json": null
+   }
+  }
+ ],
+ "TestFirstAdoption::test_update_adopts_then_check_passes": [
+  {
+   "argv": [
+    "--update"
+   ],
+   "code": 0,
+   "out": "Wrote <ROOT>/.oo-layers-baseline.json\n  violations: 1 (0 removed)\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":null,\"source\":null,\"modules_scanned\":4,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.kernel -> app.service\"],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.kernel\": [\n    \"app.service\"\n  ]\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "--check"
+   ],
+   "code": 0,
+   "out": "PASS: 4 modules scanned, 0 unassigned, 1 baselined layer violations, none new/stale\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":null,\"source\":null,\"modules_scanned\":4,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.kernel -> app.service\"],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.kernel\": [\n    \"app.service\"\n  ]\n}\n"
+   }
+  }
+ ],
+ "TestFirstAdoption::test_update_records_the_source": [
+  {
+   "argv": [
+    "--update",
+    "--source",
+    "PR-7"
+   ],
+   "code": 0,
+   "out": "Wrote <ROOT>/.oo-layers-baseline.json\n  violations: 1 (0 removed)\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":\"PR-7\",\"modules_scanned\":4,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.kernel -> app.service\"],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.kernel\": [\n    \"app.service\"\n  ]\n}\n"
+   }
+  }
+ ],
+ "TestFirstAdoption::test_violation_without_a_baseline_fails": [
+  {
+   "argv": [
+    "--check"
+   ],
+   "code": 1,
+   "out": "FAIL: layer violations not in the baseline:\n  app.kernel -> app.service  (kernel -> service)\n",
+   "state": {
+    ".oo-layers-audit.jsonl": null,
+    ".oo-layers-baseline.json": null
+   }
+  }
+ ],
+ "TestPackages::test_rows_of_other_packages_survive_and_dead_ones_retire": [
+  {
+   "argv": [
+    "--update"
+   ],
+   "code": 0,
+   "out": "Wrote <ROOT>/.oo-layers-baseline.json\n  violations: 0 (0 removed)\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":4,\"violations\":0,\"verdict\":\"adopt\",\"added\":[],\"removed\":[],\"retired\":[\"gone.a -> gone.b\"]}\n",
+    ".oo-layers-baseline.json": "{\n  \"other.kernel\": [\n    \"other.service\"\n  ]\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "--check"
+   ],
+   "code": 0,
+   "out": "PASS: 4 modules scanned, 0 unassigned, 0 baselined layer violations, none new/stale\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":4,\"violations\":0,\"verdict\":\"adopt\",\"added\":[],\"removed\":[],\"retired\":[\"gone.a -> gone.b\"]}\n",
+    ".oo-layers-baseline.json": "{\n  \"other.kernel\": [\n    \"other.service\"\n  ]\n}\n"
+   }
+  }
+ ],
+ "TestPolicy::test_config_missing_at_the_base_fails": [
+  {
+   "argv": [
+    "--check"
+   ],
+   "code": 1,
+   "out": "FAIL: no layer config at the base (<SHA>:pyproject.toml) but a baseline exists\n",
+   "state": {
+    ".oo-layers-audit.jsonl": null,
+    ".oo-layers-baseline.json": "{}\n"
+   }
+  }
+ ],
+ "TestPolicy::test_widening_fails_and_can_be_accepted": [
+  {
+   "argv": [
+    "--check"
+   ],
+   "code": 1,
+   "out": "FAIL: layer policy widened (land it alone, --allow-config-change):\n  layer 'service' may now import cli\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":4,\"violations\":0,\"verdict\":\"adopt\",\"added\":[],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{}\n"
+   }
+  },
+  {
+   "argv": [
+    "--check",
+    "--allow-config-change"
+   ],
+   "code": 0,
+   "out": "PASS: 4 modules scanned, 0 unassigned, 0 baselined layer violations, none new/stale\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":4,\"violations\":0,\"verdict\":\"adopt\",\"added\":[],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{}\n"
+   }
+  }
+ ],
+ "TestPurity::test_allow_config_change_accepts_the_io_edge": [
+  {
+   "argv": [
+    "--check",
+    "--allow-config-change"
+   ],
+   "code": 1,
+   "out": "FAIL: layer violations not in the baseline:\n  app.domain -> socket  (domain -> io)\n  domain purity: move the IO behind a port in the application layer, implemented in an adapter; or accept the edge once with `oo-ratchet layers --update --allow-config-change --source <ref>`\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":3,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.domain -> subprocess\"],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.domain\": [\n    \"subprocess\"\n  ]\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "--update"
+   ],
+   "code": 1,
+   "out": "FAIL: refusing to baseline new layer violations:\n  app.domain -> socket\n  domain purity: move the IO behind a port in the application layer, implemented in an adapter; or accept the edge once with `oo-ratchet layers --update --allow-config-change --source <ref>`\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":3,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.domain -> subprocess\"],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.domain\": [\n    \"subprocess\"\n  ]\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "--update",
+    "--allow-config-change"
+   ],
+   "code": 0,
+   "out": "Wrote <ROOT>/.oo-layers-baseline.json\n  violations: 2 (0 removed)\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":3,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.domain -> subprocess\"],\"removed\":[]}\n{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":3,\"violations\":2,\"verdict\":\"pass\",\"added\":[\"app.domain -> socket\"],\"removed\":[],\"config_change\":true}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.domain\": [\n    \"socket\",\n    \"subprocess\"\n  ]\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "--check",
+    "--allow-config-change"
+   ],
+   "code": 0,
+   "out": "PASS: 3 modules scanned, 0 unassigned, 2 baselined layer violations, none new/stale\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":3,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.domain -> subprocess\"],\"removed\":[]}\n{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":3,\"violations\":2,\"verdict\":\"pass\",\"added\":[\"app.domain -> socket\"],\"removed\":[],\"config_change\":true}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.domain\": [\n    \"socket\",\n    \"subprocess\"\n  ]\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "--check"
+   ],
+   "code": 1,
+   "out": "FAIL: baseline holds edges the base <SHA> did not:\n  app.domain -> socket\n  domain purity: move the IO behind a port in the application layer, implemented in an adapter; or accept the edge once with `oo-ratchet layers --update --allow-config-change --source <ref>`\nFAIL: edges that violate under the base config, not in the base baseline:\n  app.domain -> socket\n  domain purity: move the IO behind a port in the application layer, implemented in an adapter; or accept the edge once with `oo-ratchet layers --update --allow-config-change --source <ref>`\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":3,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.domain -> subprocess\"],\"removed\":[]}\n{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":3,\"violations\":2,\"verdict\":\"pass\",\"added\":[\"app.domain -> socket\"],\"removed\":[],\"config_change\":true}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.domain\": [\n    \"socket\",\n    \"subprocess\"\n  ]\n}\n"
+   }
+  }
+ ],
+ "TestPurity::test_empty_baseline_adopts_an_io_edge": [
+  {
+   "argv": [
+    "--update"
+   ],
+   "code": 0,
+   "out": "Wrote <ROOT>/.oo-layers-baseline.json\n  violations: 1 (0 removed)\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":3,\"violations\":0,\"verdict\":\"adopt\",\"added\":[],\"removed\":[]}\n{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":3,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.domain -> subprocess\"],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.domain\": [\n    \"subprocess\"\n  ]\n}\n"
+   }
+  }
+ ],
+ "TestPurity::test_new_io_import_fails_and_is_refused_by_update": [
+  {
+   "argv": [
+    "--check"
+   ],
+   "code": 1,
+   "out": "FAIL: layer violations not in the baseline:\n  app.domain -> socket  (domain -> io)\n  domain purity: move the IO behind a port in the application layer, implemented in an adapter; or accept the edge once with `oo-ratchet layers --update --allow-config-change --source <ref>`\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":3,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.domain -> subprocess\"],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.domain\": [\n    \"subprocess\"\n  ]\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "--update"
+   ],
+   "code": 1,
+   "out": "FAIL: refusing to baseline new layer violations:\n  app.domain -> socket\n  domain purity: move the IO behind a port in the application layer, implemented in an adapter; or accept the edge once with `oo-ratchet layers --update --allow-config-change --source <ref>`\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":\"<SHA>\",\"source\":null,\"modules_scanned\":3,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.domain -> subprocess\"],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.domain\": [\n    \"subprocess\"\n  ]\n}\n"
+   }
+  }
+ ],
+ "TestRefusals::test_base_flags_need_check": [
+  {
+   "argv": [
+    "--update",
+    "--tripwire"
+   ],
+   "code": 2,
+   "out": "usage: oo-ratchet layers [-h] [--namespace NAMESPACE] [--check | --update |\n                         --json | --suggest] [--base-ref REF] [--require-base]\n                         [--allow-ci-write] [--source REF]\n                         [--allow-config-change] [--tripwire]\n                         [src ...]\noo-ratchet layers: error: --base-ref, --require-base and --tripwire need --check\n",
+   "state": {
+    ".oo-layers-audit.jsonl": null,
+    ".oo-layers-baseline.json": null
+   }
+  },
+  {
+   "argv": [
+    "--allow-config-change"
+   ],
+   "code": 2,
+   "out": "usage: oo-ratchet layers [-h] [--namespace NAMESPACE] [--check | --update |\n                         --json | --suggest] [--base-ref REF] [--require-base]\n                         [--allow-ci-write] [--source REF]\n                         [--allow-config-change] [--tripwire]\n                         [src ...]\noo-ratchet layers: error: --allow-config-change needs --check or --update\n",
+   "state": {
+    ".oo-layers-audit.jsonl": null,
+    ".oo-layers-baseline.json": null
+   }
+  }
+ ],
+ "TestRefusals::test_ci_write_is_refused_without_the_flag": [
+  {
+   "argv": [
+    "--update"
+   ],
+   "code": 1,
+   "out": "FAIL: refusing to write layers baseline under GITHUB_ACTIONS without --allow-ci-write\n",
+   "state": {
+    ".oo-layers-audit.jsonl": null,
+    ".oo-layers-baseline.json": null
+   }
+  },
+  {
+   "argv": [
+    "--update",
+    "--allow-ci-write"
+   ],
+   "code": 0,
+   "out": "Wrote <ROOT>/.oo-layers-baseline.json\n  violations: 1 (0 removed)\n",
+   "state": {
+    ".oo-layers-audit.jsonl": "{\"ts\":\"T\",\"commit\":null,\"source\":null,\"modules_scanned\":4,\"violations\":1,\"verdict\":\"adopt\",\"added\":[\"app.kernel -> app.service\"],\"removed\":[]}\n",
+    ".oo-layers-baseline.json": "{\n  \"app.kernel\": [\n    \"app.service\"\n  ]\n}\n"
+   }
+  }
+ ],
+ "TestRefusals::test_corrupt_base_baseline": [
+  {
+   "argv": [
+    "--check"
+   ],
+   "code": 1,
+   "out": "FAIL: unreadable layers baseline <SHA>:.oo-layers-baseline.json: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)\n",
+   "state": {
+    ".oo-layers-audit.jsonl": null,
+    ".oo-layers-baseline.json": "{}"
+   }
+  }
+ ],
+ "TestRefusals::test_corrupt_in_tree_baseline": [
+  {
+   "argv": [
+    "--check"
+   ],
+   "code": 1,
+   "out": "FAIL: unreadable layers baseline <ROOT>/.oo-layers-baseline.json: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)\n",
+   "state": {
+    ".oo-layers-audit.jsonl": null,
+    ".oo-layers-baseline.json": "{"
+   }
+  },
+  {
+   "argv": [
+    "--update"
+   ],
+   "code": 1,
+   "out": "FAIL: unreadable layers baseline <ROOT>/.oo-layers-baseline.json: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)\n",
+   "state": {
+    ".oo-layers-audit.jsonl": null,
+    ".oo-layers-baseline.json": "{"
+   }
+  }
+ ],
+ "TestRefusals::test_missing_config": [
+  {
+   "argv": [
+    "--check"
+   ],
+   "code": 1,
+   "out": "FAIL: no [tool.oo-ratchet.layers] table above <SRC>\n",
+   "state": {
+    ".oo-layers-audit.jsonl": null,
+    ".oo-layers-baseline.json": null
+   }
+  },
+  {
+   "argv": [
+    "--update"
+   ],
+   "code": 1,
+   "out": "FAIL: no [tool.oo-ratchet.layers] table above <SRC>\n",
+   "state": {
+    ".oo-layers-audit.jsonl": null,
+    ".oo-layers-baseline.json": null
+   }
+  }
+ ],
+ "TestRefusals::test_missing_source_directory": [
+  {
+   "argv": [
+    "--check"
+   ],
+   "code": 1,
+   "out": "Not found: <SRC>\n",
+   "state": {
+    ".oo-layers-audit.jsonl": null,
+    ".oo-layers-baseline.json": null
+   }
+  }
+ ],
+ "TestRefusals::test_relax_is_not_a_flag_of_this_gate": [
+  {
+   "argv": [
+    "--relax",
+    "app/kernel.py"
+   ],
+   "code": 2,
+   "out": "usage: oo-ratchet layers [-h] [--namespace NAMESPACE] [--check | --update |\n                         --json | --suggest] [--base-ref REF] [--require-base]\n                         [--allow-ci-write] [--source REF]\n                         [--allow-config-change] [--tripwire]\n                         [src ...]\noo-ratchet layers: error: unrecognized arguments: --relax app/kernel.py\n",
+   "state": {
+    ".oo-layers-audit.jsonl": null,
+    ".oo-layers-baseline.json": null
+   }
+  }
+ ],
+ "TestRefusals::test_unassigned_module_is_refused": [
+  {
+   "argv": [
+    "--check"
+   ],
+   "code": 1,
+   "out": "FAIL: layer violations not in the baseline:\n  app.kernel -> app.service  (kernel -> service)\nFAIL: the layer contract does not cover the package:\n  unassigned module: app.stray\n",
+   "state": {
+    ".oo-layers-audit.jsonl": null,
+    ".oo-layers-baseline.json": null
+   }
+  },
+  {
+   "argv": [
+    "--update"
+   ],
+   "code": 1,
+   "out": "FAIL: refusing to baseline a package the layers do not cover:\n  unassigned module: app.stray\n",
+   "state": {
+    ".oo-layers-audit.jsonl": null,
+    ".oo-layers-baseline.json": null
+   }
+  }
+ ],
+ "TestRefusals::test_wrong_shape_in_tree_baseline": [
+  {
+   "argv": [
+    "--check"
+   ],
+   "code": 1,
+   "out": "FAIL: layers baseline <ROOT>/.oo-layers-baseline.json must map a module to a list of modules\n",
+   "state": {
+    ".oo-layers-audit.jsonl": null,
+    ".oo-layers-baseline.json": "{\"a\": \"b\"}"
+   }
+  }
+ ]
+}

@@ -7,11 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from oo_ratchet.coupling.baseline import CouplingBaseline
-from oo_ratchet.coupling.bless import CouplingBless
 from oo_ratchet.coupling.cli import main
 from oo_ratchet.coupling.config import CouplingConfig, CouplingConfigError
-from oo_ratchet.coupling.gitio import GitRepo
 from oo_ratchet.coupling.imports import ImportResolver
 from oo_ratchet.coupling.metrics import ModuleCouplingMetrics
 from oo_ratchet.coupling.report import CouplingReport
@@ -33,8 +30,13 @@ def _hub(fx: GitFixture, imports: int) -> None:
 
 
 @pytest.fixture
-def fx(tmp_path: Path) -> GitFixture:
-    return GitFixture(tmp_path)
+def fx(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> GitFixture:
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    return GitFixture(tmp_path, capsys, monkeypatch)
 
 
 class TestConfigLoad:
@@ -276,32 +278,36 @@ class TestCouplingBless:
         _hub(fx, 12)
         return base
 
-    def _bless(self, fx: GitFixture, caps: dict[str, dict[str, float]]) -> int:
-        scorer = CouplingScorer(fx.root / "pkg", fx.root, CouplingConfig(caps=caps))
-        outcome = CouplingBless(fx.root, GitRepo(fx.root), caps).apply(
-            CouplingBaseline.metrics_by_file(scorer.results),
-            ["pkg/hub.py"],
-            reason="wiring hub gains a module",
-            source=None,
-            allow_ci_write=True,
+    @staticmethod
+    def _caps(fx: GitFixture, caps: dict[str, dict[str, float]]) -> None:
+        rows = "".join(
+            f'"{path}" = {{ {metric} = {cap:g} }}\n'
+            for path, metrics in caps.items()
+            for metric, cap in metrics.items()
         )
+        if rows:
+            fx.write("pyproject.toml", f"[tool.oo-ratchet.coupling.caps]\n{rows}")
+
+    def _bless(self, fx: GitFixture, caps: dict[str, dict[str, float]]) -> int:
+        self._caps(fx, caps)
+        outcome = fx.writer().bless(["pkg/hub.py"], reason="wiring hub gains a module")
         return outcome.exit_code
 
     def test_over_default_cap_refused(self, fx: GitFixture) -> None:
         self._setup(fx)
         assert self._bless(fx, {}) == 1
-        entry = CouplingBaseline(fx.root).get("pkg/hub.py")
+        entry = fx.row("pkg/hub.py")
         assert entry is not None
         assert entry["efferent_coupling"] == 11.0
 
     def test_within_path_cap_blessed_and_waived(self, fx: GitFixture) -> None:
         base = self._setup(fx)
         assert self._bless(fx, _HUB_CAPS) == 0
-        entry = CouplingBaseline(fx.root).get("pkg/hub.py")
+        entry = fx.row("pkg/hub.py")
         assert entry is not None
         assert entry["efferent_coupling"] == 12.0
         fx.commit("bless")
-        outcome = fx.ratchet().check(fx.scorer(), base_ref=base, require_base=True)
+        outcome = fx.ratchet().check(base_ref=base, require_base=True)
         assert outcome.exit_code == 0, outcome.lines
 
     def test_renamed_file_bless_waives_at_check(self, fx: GitFixture) -> None:
@@ -311,56 +317,36 @@ class TestCouplingBless:
         fx.move("pkg/hub.py", "pkg/wiring.py")
         body = "".join(f"from . import m{i}\n" for i in range(12))
         fx.write("pkg/wiring.py", f"{_HEADER}{body}")
-        caps = {"pkg/wiring.py": {"efferent_coupling": 20.0}}
-        scorer = CouplingScorer(fx.root / "pkg", fx.root, CouplingConfig(caps=caps))
-        outcome = CouplingBless(fx.root, GitRepo(fx.root), caps).apply(
-            CouplingBaseline.metrics_by_file(scorer.results),
-            ["pkg/wiring.py"],
-            reason="renamed hub gains a module",
-            source=None,
-            allow_ci_write=True,
-            base_ref=base,
+        self._caps(fx, {"pkg/wiring.py": {"efferent_coupling": 20.0}})
+        outcome = fx.writer().bless(
+            ["pkg/wiring.py"], reason="renamed hub gains a module", base_ref=base
         )
         assert outcome.exit_code == 0, outcome.lines
-        assert CouplingBaseline(fx.root).get("pkg/hub.py") is None
+        assert fx.row("pkg/hub.py") is None
         fx.commit("rename and bless")
-        check = fx.ratchet().check(fx.scorer(), base_ref=base, require_base=True)
+        check = fx.ratchet().check(base_ref=base, require_base=True)
         assert check.exit_code == 0, check.lines
 
     def test_unblessed_regression_still_fails(self, fx: GitFixture) -> None:
         base = self._setup(fx)
         fx.commit("no bless")
-        outcome = fx.ratchet().check(fx.scorer(), base_ref=base, require_base=True)
+        outcome = fx.ratchet().check(base_ref=base, require_base=True)
         assert outcome.exit_code == 1
 
     def test_edited_worktree_baseline_does_not_bypass_gate(
         self, fx: GitFixture
     ) -> None:
         base = self._setup(fx)
-        row = CouplingBaseline(fx.root).get("pkg/hub.py")
+        row = fx.row("pkg/hub.py")
         assert row is not None
         fx.write_baseline({"pkg/hub.py": {**row, "efferent_coupling": 12.0}})
-        scorer = fx.scorer()
-        outcome = CouplingBless(fx.root, GitRepo(fx.root)).apply(
-            CouplingBaseline.metrics_by_file(scorer.results),
-            ["pkg/hub.py"],
-            reason="r",
-            source=None,
-            allow_ci_write=True,
-            base_ref=base,
-        )
+        outcome = fx.writer().bless(["pkg/hub.py"], base_ref=base)
         assert outcome.exit_code == 1
 
     def test_unresolvable_base_ref_fails(self, fx: GitFixture) -> None:
         self._setup(fx)
-        outcome = CouplingBless(fx.root, GitRepo(fx.root), _HUB_CAPS).apply(
-            {},
-            ["pkg/hub.py"],
-            reason="r",
-            source=None,
-            allow_ci_write=True,
-            base_ref="no-such-ref",
-        )
+        self._caps(fx, _HUB_CAPS)
+        outcome = fx.writer().bless(["pkg/hub.py"], base_ref="no-such-ref")
         assert outcome.exit_code == 1
 
     def test_new_over_cap_file_refused_despite_worktree_row(
@@ -368,66 +354,37 @@ class TestCouplingBless:
     ) -> None:
         base = self._setup(fx)
         fx.write("pkg/fresh.py", fx.root.joinpath("pkg/hub.py").read_text())
-        scorer = fx.scorer()
-        current = CouplingBaseline.metrics_by_file(scorer.results)
-        fx.write_baseline({**CouplingBaseline(fx.root).entries, **current})
-        outcome = CouplingBless(fx.root, GitRepo(fx.root)).apply(
-            current,
-            ["pkg/fresh.py"],
-            reason="r",
-            source=None,
-            allow_ci_write=True,
-            base_ref=base,
-        )
+        current = fx.metrics()
+        fx.write_baseline({**fx.rows(), **current})
+        outcome = fx.writer().bless(["pkg/fresh.py"], base_ref=base)
         assert outcome.exit_code == 1
 
     def test_require_base_without_base_fails(self, fx: GitFixture) -> None:
         self._setup(fx)
-        outcome = CouplingBless(fx.root, GitRepo(fx.root), _HUB_CAPS).apply(
-            {},
-            ["pkg/hub.py"],
-            reason="r",
-            source=None,
-            allow_ci_write=True,
-            require_base=True,
-        )
+        self._caps(fx, _HUB_CAPS)
+        outcome = fx.writer().bless(["pkg/hub.py"], require_base=True)
         assert outcome.exit_code == 1
 
     def test_require_base_with_empty_base_baseline_fails(self, fx: GitFixture) -> None:
         _hub(fx, 11)
         fx.write_baseline({})
         base = fx.commit("base without rows")
-        outcome = CouplingBless(fx.root, GitRepo(fx.root), _HUB_CAPS).apply(
-            {},
-            ["pkg/hub.py"],
-            reason="r",
-            source=None,
-            allow_ci_write=True,
-            base_ref=base,
-            require_base=True,
-        )
+        self._caps(fx, _HUB_CAPS)
+        outcome = fx.writer().bless(["pkg/hub.py"], base_ref=base, require_base=True)
         assert outcome.exit_code == 1
 
     def test_unknown_path_refused(self, fx: GitFixture) -> None:
         self._setup(fx)
-        scorer = fx.scorer()
-        outcome = CouplingBless(fx.root, GitRepo(fx.root)).apply(
-            CouplingBaseline.metrics_by_file(scorer.results),
-            ["pkg/missing.py"],
-            reason="r",
-            source=None,
-            allow_ci_write=True,
-        )
+        outcome = fx.writer().bless(["pkg/missing.py"])
         assert outcome.exit_code == 1
 
     def test_blocked_in_ci(
         self, fx: GitFixture, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         self._setup(fx)
+        self._caps(fx, _HUB_CAPS)
         monkeypatch.setenv("GITHUB_ACTIONS", "true")
-        outcome = CouplingBless(fx.root, GitRepo(fx.root), _HUB_CAPS).apply(
-            {}, ["pkg/hub.py"], reason="r", source=None
-        )
+        outcome = fx.writer().bless(["pkg/hub.py"], allow_ci_write=False)
         assert outcome.exit_code == 1
 
     def test_cli_reads_pyproject_caps(

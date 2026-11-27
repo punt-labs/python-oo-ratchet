@@ -7,14 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from oo_ratchet.coupling.audit import CouplingAudit
-from oo_ratchet.coupling.baseline import CouplingBaseline
-from oo_ratchet.coupling.bless import CouplingBless
-from oo_ratchet.coupling.gitio import GitRepo
-from oo_ratchet.oo.audit import AuditLog
-
 from .test_coupling_config import _HEADER, _frozen, _hub, _max_lcom
-from .test_coupling_ratchet import GitFixture
+from .test_coupling_ratchet import AUDIT, GitFixture
 from .test_oo_ratchet import GOOD, WORSE
 from .test_oo_ratchet import GitFixture as OoFixture
 
@@ -65,41 +59,43 @@ def test_oo_rebaseline_files_audits_improvements(tmp_path: Path) -> None:
         fx.scorer(), ["sub/w.py"], reason="r", allow_ci_write=True, source=None
     )
     assert outcome.exit_code == 0
-    entry = _last(fx.root / AuditLog.FILENAME)
+    entry = _last(fx.root / ".oo-audit.jsonl")
     assert entry["deltas"] == {}
     assert entry["improved"] == {"sub/w.py": {"max_complexity": [3.0, 1.0]}}
 
 
-def test_coupling_rebaseline_files_audits_improvements(tmp_path: Path) -> None:
-    fx = GitFixture(tmp_path)
+def test_coupling_rebaseline_files_audits_improvements(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fx = GitFixture(tmp_path, capsys, monkeypatch)
     _hub(fx, 9)
     fx.snapshot()
     fx.commit("base")
     _hub(fx, 8)
-    outcome = CouplingBless(fx.root, GitRepo(fx.root)).apply(
-        CouplingBaseline.metrics_by_file(fx.scorer().results),
-        ["pkg/hub.py"],
-        reason="r",
-        source=None,
-        allow_ci_write=True,
-    )
+    outcome = fx.writer().bless(["pkg/hub.py"])
     assert outcome.exit_code == 0
-    entry = _last(fx.root / CouplingAudit.FILENAME)
+    entry = _last(fx.root / AUDIT)
     assert entry["deltas"] == {}
     assert entry["improved"] == {"pkg/hub.py": {"efferent_coupling": [9.0, 8.0]}}
     assert entry["files_improved"] == 1
 
 
-def test_coupling_rebaseline_records_deltas_and_reason(tmp_path: Path) -> None:
-    fx = GitFixture(tmp_path)
+def test_coupling_rebaseline_records_deltas_and_reason(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fx = GitFixture(tmp_path, capsys, monkeypatch)
     _hub(fx, 8)
     fx.snapshot()
     _hub(fx, 9)
     outcome = fx.writer().rebaseline(
-        fx.scorer(), allow_ci_write=True, source="PL-1", reason="counter change"
+        allow_ci_write=True, source="PL-1", reason="counter change"
     )
     assert outcome.exit_code == 0
-    entry = _last(fx.root / CouplingAudit.FILENAME)
+    entry = _last(fx.root / AUDIT)
     assert entry["reason"] == "counter change"
     deltas = entry["deltas"]
     assert isinstance(deltas, dict)
@@ -107,11 +103,15 @@ def test_coupling_rebaseline_records_deltas_and_reason(tmp_path: Path) -> None:
     assert (entry["files_improved"], entry["files_regressed"]) == (0, 1)
 
 
-def test_coupling_rebaseline_counts_improved_files(tmp_path: Path) -> None:
-    fx = GitFixture(tmp_path)
+def test_coupling_rebaseline_counts_improved_files(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fx = GitFixture(tmp_path, capsys, monkeypatch)
     _hub(fx, 9)
     fx.snapshot()
     _hub(fx, 8)
-    fx.writer().rebaseline(fx.scorer(), allow_ci_write=True, source=None)
-    entry = _last(fx.root / CouplingAudit.FILENAME)
+    fx.writer().rebaseline(allow_ci_write=True, source=None)
+    entry = _last(fx.root / AUDIT)
     assert (entry["files_improved"], entry["files_regressed"]) == (1, 0)

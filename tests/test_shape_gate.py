@@ -11,17 +11,16 @@ metrics are not gated.
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from typing import ClassVar
 
 import pytest
 
-from oo_ratchet.oo.apply import PlanApplier, UpdatePlan
-from oo_ratchet.oo.audit import AuditLog
+from oo_ratchet.core.application.update import PlanApplier, UpdatePlan
 from oo_ratchet.oo.baseline import Baseline
+from oo_ratchet.oo.cli import Cli
 from oo_ratchet.oo.compare import FileReview
-from oo_ratchet.oo.gitio import GitRepo
 from oo_ratchet.oo.thresholds import Thresholds
+from tests.core.doubles import World
 from tests.test_oo_ratchet import GOOD, WORSE, GitFixture
 
 pytestmark = pytest.mark.slow
@@ -108,41 +107,38 @@ class TestThresholdTable:
 class TestUpdateRecords:
     def test_growth_under_ceiling_is_not_counted_as_an_improvement(self) -> None:
         deltas = {"sub/w.py": {"module_size": [9.0, 10.0]}}
-        assert PlanApplier.improved_count(deltas) == 0
+        assert Cli.POLICY.improved_count(deltas) == 0
 
     def test_metric_missing_from_base_row_is_judged_by_target(self) -> None:
         entry = {"module_size": 5000.0, "avg_params": 1.0}
-        assert PlanApplier.regressed(entry, {"avg_params": 2.0}) == ["module_size"]
+        assert Cli.POLICY.regressed(entry, {"avg_params": 2.0}) == ["module_size"]
         small = {"module_size": 50.0, "avg_params": 1.0}
-        assert PlanApplier.regressed(small, {"avg_params": 2.0}) == []
+        assert Cli.POLICY.regressed(small, {"avg_params": 2.0}) == []
 
     def test_refused_only_when_worse_than_every_comparison_row(self) -> None:
         entry = {"max_complexity": 2.0}
-        assert PlanApplier.refusals(entry, [{"max_complexity": 1.0}]) == [
+        assert Cli.POLICY.refusals(entry, [{"max_complexity": 1.0}]) == [
             "max_complexity"
         ]
         # Worse than the merge base but no worse than the in-tree (relaxed) row.
         rows = [{"max_complexity": 1.0}, {"max_complexity": 3.0}]
-        assert PlanApplier.refusals(entry, rows) == []
-        assert PlanApplier.refusals(entry, []) == []
+        assert Cli.POLICY.refusals(entry, rows) == []
+        assert Cli.POLICY.refusals(entry, []) == []
 
-    def test_a_renamed_file_already_moved_keeps_its_credit(
-        self, tmp_path: Path
-    ) -> None:
+    def test_a_renamed_file_already_moved_keeps_its_credit(self) -> None:
         # A prior run already moved the row to the new path and dropped the old.
-        (tmp_path / ".oo-baseline.json").write_text(
-            json.dumps({"sub/new.py": {"max_complexity": 3.0}})
-        )
-        applier = PlanApplier(Baseline(tmp_path), AuditLog(tmp_path), GitRepo(tmp_path))
+        world = World()
+        world.store.data = {"sub/new.py": {"max_complexity": 3.0}}
+        applier = PlanApplier(*world.args(Cli.POLICY))
         plan = UpdatePlan({}, frozenset(), renames={"sub/new.py": "sub/old.py"})
         deltas = {"sub/new.py": {"max_complexity": [3.0, 2.0]}}
-        assert applier._improved_files(plan, deltas) == 1
+        assert applier._improved(plan, world.store.rows(), deltas) == 1
 
     def test_a_real_improvement_is_counted(self) -> None:
         deltas = {
             "sub/w.py": {"module_size": [9.0, 10.0], "max_complexity": [3.0, 2.0]}
         }
-        assert PlanApplier.improved_count(deltas) == 1
+        assert Cli.POLICY.improved_count(deltas) == 1
 
 
 class TestGateEndToEnd:

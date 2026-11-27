@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-from oo_ratchet.coupling.gitio import GitError
+from oo_ratchet.core.domain.errors import StateError
 from oo_ratchet.design.layer_config import LayerConfigError
 
-from .baseline import LayersBaselineError
 from .scan import LayersScanError
 
 FAILURES: tuple[type[Exception], ...] = (
-    GitError,
-    LayersBaselineError,
+    StateError,
     LayerConfigError,
     LayersScanError,
     OSError,

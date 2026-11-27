@@ -278,6 +278,86 @@ text and the three state files are unchanged.
   `suppression/__init__.py` said `efferent_coupling` 0; the file measured 8 at
   the merge base. The row was blessed (audited) at 5.
 
+### A3 decisions: `coupling` (PL-1721)
+
+The coupling gate runs the shared operations (`Check`, `Update`, `Relax`,
+`RebaselineFiles`, `Rebaseline`). The CLI flags, exit codes, report text and
+the two state files are unchanged, except the wording of a state error (below).
+
+- **`GatePolicy` grew three flags and a table.** `in_tree_only`: an update is
+  compared with the in-tree rows alone, never reads the merge-base baseline,
+  and counts every file it writes a delta for as improved (a new file too).
+  `detailed_refusals`: a refused bless names each metric's value and the target
+  it broke. `targets` (`PathTargets`): per-file targets, a suffix rule
+  (`__main__.py` gets `public_names <= 100`, `efferent_coupling <= 15`) and
+  exact-path caps from `[tool.oo-ratchet.coupling.caps]`; `GatePolicy.for_path`
+  returns the policy a file is judged by. `_worse` treats a metric missing from
+  the recorded row as not worse when `absolute_targets` is false.
+- **`RebaselineFiles` takes a `BlessBase`**: the baseline at the comparison
+  base and its renames. A file is judged by its row there, a renamed file's old
+  row is dropped, and a path named twice is written once. Without a base the
+  in-tree rows stand in, as before. `BlessBase.load` returns the refusal for an
+  unresolvable `--base-ref`, an unresolvable base under `--require-base`, or an
+  empty base baseline under `--require-base`.
+- **`Rebaseline` takes `reason` and `detail`.** With `detail` the audit record
+  carries each changed metric as `[old, new]`, the files that gained and lost
+  (`RowChanges`) and the stripped reason. Without it the record is as before.
+- **Adapters:** `MetricGate` (one object per CLI run: the five operations,
+  `--log`, report text through `CouplingView`), `ScoredTree` (the tree the CLI
+  scored once, resolving a bless path as the repository root, the working
+  directory or an absolute path), `CouplingAuditFormat` (the audit line the
+  adopters hold: `reason` always present, `removed` only when non-empty),
+  `AuditView` (`--log`). `coupling/gateinput.py` turns a scorer and a config
+  into the core's `Measurement` and `GatePolicy`.
+- **Deleted:** coupling `audit`, `baseline`, `bless`, `compare`, `delta`,
+  `ratchet`, `writer`, and `GitRepo.show_baseline` / `show_audit`.
+  `coupling/gitio.py` and `outcome.py` stay: `layers` and `design` still use
+  them, and the `layers` port deletes them.
+- **Proof:** `tests/core_real/test_coupling_gate.py` plays 68 scripted
+  scenarios (`coupling_scenarios.py`) through the CLI on real git repositories
+  and compares exit code, report lines, baseline text and audit lines with
+  `golden_coupling_gate.json`, recorded from the gate before it moved. While
+  both ran side by side, every transcript was equal.
+- **Known differences:** (1) a corrupt baseline or audit log names the file
+  format the core uses ("unreadable baseline ...") where the gate named
+  "coupling baseline file/blob"; exit code and state files are the same, and
+  the scenarios compare only the single `FAIL:` line. (2) A base baseline that
+  is malformed but present at the origin/main tip reads as "base commit
+  predates baseline adoption" (exit 1) where the gate raised the corruption
+  error (exit 1). (3) An audit entry whose `verdict` or `deltas` has the wrong
+  type waives nothing; the gate crashed on a non-string verdict. (4) A
+  malformed in-tree baseline is read when the CLI starts, for every action, as
+  the gate did, so the adoption-merge case fails closed.
+
+### A3 decisions: `oo` (PL-1721)
+
+The OO gate runs on the A2 operations. CLI flags, exit codes, report text and
+both state files are unchanged.
+
+- **Adapters:** `OoGate` (routes one command line, renders, guards CI writes),
+  `OoCli` (verdict to report lines, in the old wording), `OoTree` (the scored
+  tree as a `SourceReader`, with the old path-spelling lookup), `OoBaselineStore`
+  (names the file in its errors, as the old gate did) and `Requested` (the
+  read-only view of parsed options). `OoGate` takes the `Scorer` class and the
+  `GatePolicy` from `oo/cli.py`, so no core module imports `oo`.
+- **Application:** `Reconcile` (the whole-tree sweep, built on `PlanApplier`)
+  and `OoRebaselineFiles` (a refusal names each metric's value and target).
+- **Deleted:** `oo/ratchet`, `writer`, `apply`, `bless`, `audit`, `outcome`;
+  `oo/baseline` and `oo/gitio` shrink to what the design `--shadow-check`
+  still imports (`metrics_by_file`; refs, merge base, diff). `oo/compare` and
+  `oo/diffmodel` stay for the same reason. They go with the design port.
+- **Differences found and handled:** an audit entry whose `deltas` is not
+  `{path: {metric: ...}}` waived nothing in the old gate; the core read a list
+  as waiving. `AuditFormat` now drops such entries. A bless refusal, bless path
+  spellings (working-directory relative) and a corrupt in-tree baseline failing
+  every command are kept as before.
+- **Differences left:** a corrupt baseline blob at the base reads
+  `non-dict entry in baseline <ref>:<file>` (the old text added `blob at`), and
+  a non-object audit line reads `not an object`. Both still exit 1 with `FAIL`.
+- **Proof:** `tests/core_real/test_oo_gate.py` runs 75 invocations against
+  `oo_gate_golden.json`, the old gate's recorded exit codes, stdout and state
+  files. Commit b3fd2f7 ran 74 of them through both implementations.
+
 ## Order
 
 | Wave | In parallel | Waits on |

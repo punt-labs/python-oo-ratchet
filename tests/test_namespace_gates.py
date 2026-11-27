@@ -10,9 +10,9 @@ import pytest
 from oo_ratchet.__main__ import main
 from oo_ratchet.core.adapters.gitrepo import GitRepo
 from oo_ratchet.core.adapters.tallyrepo import TallyRepo
+from oo_ratchet.core.adapters.treeviews import BaseTree, WorkingTree
 from oo_ratchet.core.domain.tallies import Tally
 from oo_ratchet.coupling.cli import Options
-from oo_ratchet.layers.trees import BaseTree, WorkingTree
 from oo_ratchet.source_set import Source, SourceSet
 from oo_ratchet.suppression.scanner import Scanner
 from tests.conftest import GitSandbox

@@ -36,6 +36,7 @@ class AuditRecord:
         return frozenset(
             Waiver(path, metric)
             for path, metrics in self.deltas.items()
+            if isinstance(metrics, Mapping)
             for metric in metrics
         )
 

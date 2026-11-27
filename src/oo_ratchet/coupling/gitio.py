@@ -7,7 +7,6 @@ launder a regression by hand-editing the in-tree ``.oo-coupling-baseline.json``.
 
 from __future__ import annotations
 
-import json
 import logging
 import subprocess
 from dataclasses import dataclass, field
@@ -47,9 +46,6 @@ class GitRepo:
     """Answer the ratchet's git questions, or degrade to ``None`` outside git."""
 
     _root: Path | None
-
-    BASELINE_FILE: str = ".oo-coupling-baseline.json"
-    AUDIT_FILE: str = ".oo-coupling-audit.jsonl"
 
     def __new__(cls, start: Path | None = None) -> Self:
         self = super().__new__(cls)
@@ -149,53 +145,6 @@ class GitRepo:
             elif len(parts) >= 2:
                 touched.add(parts[1])
         return Diff(frozenset(touched), renames)
-
-    def show_baseline(self, ref: str) -> dict[str, dict[str, float]] | None:
-        """Return the coupling baseline committed at ``ref``, or ``None`` if absent.
-
-        ``None`` means the blob genuinely does not exist at that ref — the
-        first-adoption case. A real git error (bad ref, timeout, infra) raises
-        ``GitError`` rather than masquerading as absence, so the gate never
-        fails open on a broken git call.
-        """
-        out = self._show_file(ref, self.BASELINE_FILE)
-        if out is None:
-            return None
-        try:
-            loaded = json.loads(out)
-        except json.JSONDecodeError as exc:
-            msg = f"corrupt coupling baseline blob at {ref}:{self.BASELINE_FILE}: {exc}"
-            raise GitError(msg) from exc
-        if not isinstance(loaded, dict):
-            msg = f"non-dict coupling baseline blob at {ref}:{self.BASELINE_FILE}"
-            raise GitError(msg)
-        # Each value must be a per-metric dict. A non-dict value (e.g. a string)
-        # passes the top-level check but makes ``metric not in entry`` a substring
-        # test that silently skips every metric -- a fail-OPEN. Reject it here.
-        if not all(isinstance(v, dict) for v in loaded.values()):
-            blob = f"{ref}:{self.BASELINE_FILE}"
-            raise GitError(f"non-dict entry in coupling baseline blob at {blob}")
-        # Each metric value must be a real number. A bool (`true`) is an int
-        # subclass that would compare as 0/1 (fail-open); a string would raise
-        # TypeError in the comparison. Reject both here so the gate fails closed.
-        if not all(
-            isinstance(m, (int, float)) and not isinstance(m, bool)
-            for entry in loaded.values()
-            for m in entry.values()
-        ):
-            blob = f"{ref}:{self.BASELINE_FILE}"
-            raise GitError(f"non-numeric metric in coupling baseline blob at {blob}")
-        parsed: dict[str, dict[str, float]] = loaded
-        return parsed
-
-    def show_audit(self, ref: str) -> str | None:
-        """Return the audit-log text committed at ``ref``, or ``None`` if absent.
-
-        ``None`` means the blob genuinely does not exist at that ref (no base
-        history); a real git error raises ``GitError`` rather than silently
-        reading as "no base relaxations" and over-waiving.
-        """
-        return self._show_file(ref, self.AUDIT_FILE)
 
     def _show_file(self, ref: str, path: str) -> str | None:
         """Return ``git show <ref>:<path>`` text, ``None`` if the path is absent.

@@ -7,7 +7,6 @@ from pathlib import Path
 
 import pytest
 
-
 from .test_coupling_config import _HEADER, _frozen, _hub, _max_lcom
 from .test_coupling_ratchet import AUDIT, GitFixture
 from .test_oo_ratchet import GOOD, WORSE

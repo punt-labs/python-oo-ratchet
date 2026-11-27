@@ -2,16 +2,21 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from oo_ratchet.core.domain.scores import Rows
 
 from .waive import RebaselineFiles
+
+if TYPE_CHECKING:
+    from .blessbase import BlessBase
 
 
 class OoRebaselineFiles(RebaselineFiles):
     """Bless named files, explaining a refusal as ``metric=value fails target``."""
 
     def _partition(
-        self, paths: list[str], current: Rows, stored: Rows
+        self, paths: list[str], current: Rows, base: BlessBase
     ) -> tuple[list[str], list[str]]:
         accepted: list[str] = []
         refused: list[str] = []
@@ -20,7 +25,7 @@ class OoRebaselineFiles(RebaselineFiles):
             if path not in current:
                 refused.append(f"{requested}: not found in scored tree")
                 continue
-            gated = self._policy.over_cap_and_regressed(current[path], stored.get(path))
+            gated = self._policy.over_cap_and_regressed(current[path], base.row(path))
             if gated:
                 refused.append(f"{requested}: {self._why(current[path], gated)}")
             else:

@@ -160,6 +160,7 @@ application = [
   "oo_ratchet.*.apply",
   "oo_ratchet.*.adoption",
   "oo_ratchet.*.verdict",
+  "oo_ratchet.*.diagram",
   "oo_ratchet.*.widening",
   "oo_ratchet.*.chain",
   "oo_ratchet.*.comparison",

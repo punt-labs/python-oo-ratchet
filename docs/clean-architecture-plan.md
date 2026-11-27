@@ -280,7 +280,8 @@ generators are in `docs/architecture/tools/`:
 
 | Script | Draws |
 |--------|-------|
-| `class_diagram.py <repo> <out.json>` | the current state, from the live code and `oo-ratchet design --json`; rerun after each unit |
+| `layers_diagram.py <repo> <out.json> [package-dir]` | the current state in the four rings, from `oo-ratchet layers --json` alone (`module_rings`, `ring_edges`, `marked_violations`); run from the repo root, it uses the pyproject `[tool.oo-ratchet.layers]` table; an optional third argument names the package directory (default `src/oo_ratchet`); rerun after each unit |
+| `class_diagram.py <repo> <out.json>` | the older current-state view: packages and key classes, from an ad-hoc import scan and `oo-ratchet design --json` |
 | `target_diagram.py <out.json>` | the intermediate target (hand-specified) |
 | `clean_diagram.py <out.json>` | the four-ring target (hand-specified) |
 | `package_graph.py <repo>/src/oo_ratchet [--one-root]` | prints the package import edges, then every package cycle and every module cycle (strongly connected components, `TYPE_CHECKING` imports included); `--one-root` groups the entry modules with the shared root modules. `test_graph_tools.py` tests the cycle finder (`uv run pytest docs/architecture/tools/test_graph_tools.py`) |
@@ -297,7 +298,7 @@ All three read the gate through `oo_json.py`. It runs `oo-ratchet --json`, stops
 with a message when the command is missing, prints no JSON, or cannot score a
 file, and checks each value against the target that run reported.
 
-The three diagram scripts each write one lux `draw` element as JSON;
+The four diagram scripts each write one lux `draw` element as JSON;
 `package_graph.py` and the measurement scripts above print plain text. To
 show a diagram:
 
@@ -307,6 +308,12 @@ show a diagram:
 2. Run `lux display start`, then `lux scene show <id> --from request.json`.
 3. Capture the image with lux's `display_screenshot` tool.
 
-Run `class_diagram.py` with `uv run --directory <repo> python ...`, because
-it calls `oo-ratchet`.
-B6 (PL-1714) replaces the current-state script with `layers --json`.
+Run `layers_diagram.py` and `class_diagram.py` with
+`uv run --directory <repo> python ...`, because they call `oo-ratchet`.
+
+`layers --json` counts one edge per pair of importing and imported module. The
+design check's `layer-import` rule counts one finding per import site, so its
+totals are larger. With the table in `pyproject.toml`, `layers --json` reports
+application to adapters 50, domain to adapters 29, domain to application 14 and
+domain to entry 4: 97 layer edges, plus 9 domain-purity (`io`) edges, 106 in
+all, the number of baselined edges `make check-layers` reports.

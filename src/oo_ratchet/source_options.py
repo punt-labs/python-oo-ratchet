@@ -92,4 +92,6 @@ class SourceOptions:
                 if not isinstance(config, dict):
                     raise ValueError("[tool.oo-ratchet] must be a table")
                 return config, parent
+            if (parent / ".git").exists():
+                break
         return {}, Path.cwd()

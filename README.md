@@ -356,23 +356,25 @@ The OO targets are fixed in
 These are absolute targets for new files, not permission to regress an
 existing file that is already below a cap. Existing debt may remain unchanged
 or improve; `--update` never loosens a recorded metric, even within a cap,
-except `module_size` under its 400-line ceiling (below).
+except the ceiling metrics `module_size`, `avg_params` and `avg_complexity` under their targets (below).
 
 | OO baseline field | Target | Computation |
 |-------------------|--------|-------------|
 | `encapsulation_ratio` | >= 1.0 | Private `self` attribute assignments / all such assignments; 1 if none |
-| `avg_params` | <= 4.0 | Mean parameter count over every `def` / `async def` |
+| `avg_params` | <= 4.0, ceiling | Mean parameter count over every `def` / `async def` |
 | `max_complexity` | <= 10 | Maximum function cyclomatic complexity; 0 if no functions |
-| `avg_complexity` | <= 5.0 | Mean function cyclomatic complexity; 0 if no functions |
+| `avg_complexity` | <= 5.0, ceiling | Mean function cyclomatic complexity; 0 if no functions |
 | `module_size` | <= 400, ceiling | Physical lines carrying code tokens, excluding docstrings |
 | `init_violations` | == 0 | Explicit synchronous `__init__` methods on non-dataclass classes |
 | `public_attr_violations` | == 0 | Assignments to `self` attributes not starting with `_` |
 | `future_annotations` | == 1 | Presence of `from __future__ import annotations` |
 
-`module_size` is a ceiling, not a ratcheted value. Under 400 code lines,
-growing a file is not a regression and shrinking it is not an improvement;
-over 400, any growth regresses and any shrinkage improves. Comparing module
-size file by file rewarded splitting cohesive code into tiny modules.
+`module_size`, `avg_params` and `avg_complexity` are ceilings, not ratcheted
+values. Under its target (400 code lines, 4.0 parameters, 5.0 complexity), a
+metric may rise without a regression and falling is not an improvement; over
+its target, any rise regresses and any fall improves. Comparing module size
+file by file rewarded splitting cohesive code into tiny modules; comparing the
+averages punished deleting trivial functions or adding real decisions.
 
 Module shape is not gated. `--json` still reports `method_ratio`,
 `class_to_func_ratio` and `classes_per_module` per file, but no target applies
@@ -572,7 +574,7 @@ write. Their fields are:
 | `commit` | Short HEAD SHA, or null when unavailable |
 | `source` | Optional caller reference, otherwise null |
 | `files_scored` | Number of parse-clean files scored |
-| `files_improved` | Writer's improvement count. OO updates count files with a metric strictly better than their previous row (not new rows, backfills, or `module_size` growth under its ceiling); coupling updates count changed accepted rows, including new rows, not backfills |
+| `files_improved` | Writer's improvement count. OO updates count files with a metric strictly better than their previous row (not new rows, backfills, or a move of a ceiling metric (`module_size`, `avg_params`, `avg_complexity`) that stays under its target); coupling updates count changed accepted rows, including new rows, not backfills |
 | `files_regressed` | Writer's refused/regressed file count (updates also include parse failures); not necessarily zero for an intentional bless |
 | `verdict` | Operation/result: `pass`, `fail`, `relaxed`, `rebaseline-files`, `rebaseline` |
 | `reason` | Human justification; OO omits it if unset, coupling writes null |
@@ -584,7 +586,7 @@ write. Their fields are:
 Example OO relax audit line (illustrative values):
 
 ```json
-{"ts":"2026-01-01T00:00:00Z","commit":"abc1234","source":"PL-123","files_scored":4,"files_improved":0,"files_regressed":1,"verdict":"relaxed","reason":"Required API change","deltas":{"src/pkg/model.py":{"avg_params":[1.0,2.0]}},"removed":[]}
+{"ts":"2026-01-01T00:00:00Z","commit":"abc1234","source":"PL-123","files_scored":4,"files_improved":0,"files_regressed":1,"verdict":"relaxed","reason":"Required API change","deltas":{"src/pkg/model.py":{"max_complexity":[3.0,5.0]}},"removed":[]}
 ```
 
 `.suppression-baseline.json` has `total` (sum of categories), `by_category`

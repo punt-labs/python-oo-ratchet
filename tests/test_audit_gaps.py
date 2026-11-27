@@ -13,10 +13,10 @@ from oo_ratchet.coupling.bless import CouplingBless
 from oo_ratchet.coupling.gitio import GitRepo
 from oo_ratchet.oo.audit import AuditLog
 
-from .lux.lux_test_oo_ratchet import FLOOR_BASE, FLOOR_REGRESSED_WITHIN_CAP
 from .lux.lux_test_oo_ratchet import GitFixture as OoFixture
 from .test_coupling_config import _HEADER, _frozen, _hub, _max_lcom
 from .test_coupling_ratchet import GitFixture
+from .test_oo_ratchet import GOOD, WORSE
 
 pytestmark = pytest.mark.slow
 
@@ -57,17 +57,17 @@ def _last(path: Path) -> dict[str, object]:
 
 def test_oo_rebaseline_files_audits_improvements(tmp_path: Path) -> None:
     fx = OoFixture(tmp_path)
-    fx.write("sub/w.py", FLOOR_REGRESSED_WITHIN_CAP)
+    fx.write("sub/w.py", WORSE)
     fx.snapshot("sub")
     fx.commit("base")
-    fx.write("sub/w.py", FLOOR_BASE)
+    fx.write("sub/w.py", GOOD)
     outcome = fx.writer().rebaseline_files(
         fx.scorer(), ["sub/w.py"], reason="r", allow_ci_write=True, source=None
     )
     assert outcome.exit_code == 0
     entry = _last(fx.root / AuditLog.FILENAME)
     assert entry["deltas"] == {}
-    assert entry["improved"] == {"sub/w.py": {"avg_params": [1.5, 0.5]}}
+    assert entry["improved"] == {"sub/w.py": {"max_complexity": [3.0, 1.0]}}
 
 
 def test_coupling_rebaseline_files_audits_improvements(tmp_path: Path) -> None:

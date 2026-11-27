@@ -131,15 +131,17 @@ class TestUpdateRecords:
     ) -> None:
         # A prior run already moved the row to the new path and dropped the old.
         (tmp_path / ".oo-baseline.json").write_text(
-            json.dumps({"sub/new.py": {"avg_params": 3.0}})
+            json.dumps({"sub/new.py": {"max_complexity": 3.0}})
         )
         applier = PlanApplier(Baseline(tmp_path), AuditLog(tmp_path), GitRepo(tmp_path))
         plan = UpdatePlan({}, frozenset(), renames={"sub/new.py": "sub/old.py"})
-        deltas = {"sub/new.py": {"avg_params": [3.0, 2.0]}}
+        deltas = {"sub/new.py": {"max_complexity": [3.0, 2.0]}}
         assert applier._improved_files(plan, deltas) == 1
 
     def test_a_real_improvement_is_counted(self) -> None:
-        deltas = {"sub/w.py": {"module_size": [9.0, 10.0], "avg_params": [3.0, 2.0]}}
+        deltas = {
+            "sub/w.py": {"module_size": [9.0, 10.0], "max_complexity": [3.0, 2.0]}
+        }
         assert PlanApplier.improved_count(deltas) == 1
 
 

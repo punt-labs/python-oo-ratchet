@@ -104,8 +104,9 @@ tabled in `README.md` under "Targets and counting rules"): encapsulation ratio
 >= 1.0, average params <= 4, max complexity <= 10, average complexity <= 5,
 at most 400 code lines per module, no explicit `__init__` on non-dataclass
 classes, no public `self.x` assignments, and `from __future__ import
-annotations` in every module. Module size is a ceiling: growth under 400 lines
-is neither a regression nor an improvement. Module shape (classes per module,
+annotations` in every module. Module size, average params and average
+complexity are ceilings: a move that stays at or under the target is neither a
+regression nor an improvement. Module shape (classes per module,
 methods versus functions) is not gated; keep cohesive code together rather
 than splitting it to shrink files. Classes here construct in `__new__` with
 private, class-level-annotated `_fields` instead of `__init__`. Follow that
@@ -127,7 +128,8 @@ pattern.
   `audit.py` (append to the `.jsonl` log), `outcome.py`/`report.py` (render).
 - In `oo/`, `thresholds.py` holds the targets and the comparison order:
   each metric ranks values by a badness function, and a ceiling metric
-  (`module_size`) ranks every value under its target the same.
+  (`module_size`, `avg_params`, `avg_complexity`) ranks every value under its
+  target the same.
   `backfill.py` (top level) adds missing baseline rows on scoped `--update`.
 - `design/` is the advisory scanner: rule modules (`*_rules.py`,
   `middle_man.py`, `tag_switch.py`, `misplaced_rule.py`, `domain_io.py`,

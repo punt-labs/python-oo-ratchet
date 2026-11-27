@@ -12,6 +12,11 @@
   smaller is better. Existing baselines load unchanged; their extra fields are
   ignored and dropped when a row is rewritten. On vox, modules failing a
   new-file target fall from 22 to 5.
+- `avg_params` and `avg_complexity` are ceilings, like `module_size` (PL-1712).
+  A file whose average moves but stays at or under its target (4 params, 5.0
+  complexity) no longer regresses or improves; deleting a trivial function no
+  longer counts against the file. Over the target, lower is still better.
+  Adopters pass changes the gate used to refuse; baselines load unchanged.
 - OO `--update` compares rows against the baseline at the merge base, as
   `--check` does, not against the in-tree baseline. A later commit on a branch
   is no longer refused for giving back part of an earlier commit's gain while
@@ -21,6 +26,9 @@
 
 ### Fixed
 
+- Reading `[tool.oo-ratchet]` stops at the checkout root. A repository with no
+  `pyproject.toml` inside a directory tree that has one adopted the outer
+  file's namespace and roots.
 - A gated metric missing from a file's base baseline row was skipped, so a
   hand-edited row could hide a regression. It is now judged by its target and
   never counts as an improvement.

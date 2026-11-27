@@ -17,7 +17,7 @@ GATES = ("oo", "coupling", "suppression", "layers", "design")
 
 # Names the plan says exactly one package may define. The list grows as each
 # duplicate is removed.
-SINGLE_OWNER = ("GitRepo", "GitError", "Diff", "Row")
+SINGLE_OWNER = ("GitRepo", "GitError", "Diff", "Row", "Outcome", "Cli", "Options")
 
 
 def _classes(package: Path) -> set[str]:

@@ -1,4 +1,4 @@
-"""The result of a coupling ratchet operation: an exit code plus report lines."""
+"""The result of a gate command: an exit code plus report lines."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from typing import Self
 
 @dataclass(frozen=True, slots=True)
 class Outcome:
-    """An exit code paired with the lines to print for a ratchet operation."""
+    """An exit code paired with the lines to print for a command."""
 
     exit_code: int
     lines: tuple[str, ...]

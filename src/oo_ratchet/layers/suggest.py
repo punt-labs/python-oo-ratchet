@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Self
 
-from oo_ratchet.coupling.outcome import Outcome
+from oo_ratchet.core.domain.exits import Outcome
 from oo_ratchet.design.layer_table import LayerTable
 from oo_ratchet.design.modules import ModuleIndex
 from oo_ratchet.source_set import Source, SourceSet

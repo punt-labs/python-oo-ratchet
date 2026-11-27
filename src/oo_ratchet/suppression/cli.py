@@ -25,7 +25,7 @@ _FILES = GateFiles(
 
 
 @dataclass(frozen=True, slots=True)
-class Options:
+class SuppressionOptions:
     """Parsed command-line options for one suppression ratchet invocation."""
 
     src: Source
@@ -108,13 +108,13 @@ class Options:
         return parser
 
 
-class Cli:
+class SuppressionCommand:
     """Scan the target and route the request to the ratchet or a view."""
 
-    _opts: Options
+    _opts: SuppressionOptions
     _gate: TallyGate
 
-    def __new__(cls, options: Options) -> Self:
+    def __new__(cls, options: SuppressionOptions) -> Self:
         self = super().__new__(cls)
         self._opts = options
         self._gate = TallyGate(_FILES, options.src, cls._count)
@@ -177,7 +177,7 @@ class Cli:
 
     @staticmethod
     def _count(target: Source, project: Path) -> Tally:
-        return Cli._count_report(Scanner(target, project).report)
+        return SuppressionCommand._count_report(Scanner(target, project).report)
 
     @staticmethod
     def _count_report(report: SuppressionReport) -> Tally:
@@ -191,4 +191,4 @@ class Cli:
 
 def main(argv: list[str] | None = None) -> int:
     """Parse arguments and run the suppression ratchet CLI, returning a code."""
-    return Cli(Options.parse(argv)).run()
+    return SuppressionCommand(SuppressionOptions.parse(argv)).run()

@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-from .cli import Cli, Options, main
+from .cli import OoCommand, OoOptions, main
 from .metrics import ModuleMetrics
 from .scorer import Scorer
 from .thresholds import Thresholds
 
 __all__ = [
-    "Cli",
     "ModuleMetrics",
-    "Options",
+    "OoCommand",
+    "OoOptions",
     "Scorer",
     "Thresholds",
     "main",

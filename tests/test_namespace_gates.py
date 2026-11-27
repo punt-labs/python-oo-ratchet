@@ -12,7 +12,7 @@ from oo_ratchet.core.adapters.gitrepo import GitRepo
 from oo_ratchet.core.adapters.tallyrepo import TallyRepo
 from oo_ratchet.core.adapters.treeviews import BaseTree, WorkingTree
 from oo_ratchet.core.domain.tallies import Tally
-from oo_ratchet.coupling.cli import Options
+from oo_ratchet.coupling.cli import CouplingOptions
 from oo_ratchet.source_set import Source, SourceSet
 from oo_ratchet.suppression.scanner import Scanner
 from tests.conftest import GitSandbox
@@ -270,7 +270,7 @@ def test_deleted_configured_portion_stays_in_base_suppressions(
     repo.write(deleted, HEADER + "value = 1  # noqa: F841\n")
     base = repo.commit("two configured portions")
     repo.run_git("rm", "-r", "packages/deleted")
-    before = rescan(repo.root, base, Options.parse([]).src)
+    before = rescan(repo.root, base, CouplingOptions.parse([]).src)
     assert before is not None
     assert before.total == 1
     assert deleted in before.by_file
@@ -332,7 +332,7 @@ def test_renames_do_not_move_literal_ignore_pattern_counts(
 def test_equivalent_source_root_spellings_are_deduplicated(
     workspace: GitSandbox,
 ) -> None:
-    options = Options.parse(["--namespace", "app", "src/app", "src/../src/app"])
+    options = CouplingOptions.parse(["--namespace", "app", "src/app", "src/../src/app"])
     assert isinstance(options.src, SourceSet)
     assert options.src.roots == ((workspace.root / "src/app").resolve(),)
 
@@ -346,7 +346,7 @@ def test_namespace_history_does_not_export_unselected_symlinks(
     legacy = rescan(repo.root, base, Path("src/app"))
     assert legacy is not None
     before = rescan(
-        repo.root, base, Options.parse(["--namespace", "app", "src/app"]).src
+        repo.root, base, CouplingOptions.parse(["--namespace", "app", "src/app"]).src
     )
     assert before is not None
     assert before.total == legacy.total
@@ -361,7 +361,7 @@ def test_export_ignore_is_already_honored_by_legacy_history(
     base = repo.commit("archive exclusion")
     for source in (
         Path("src/app"),
-        Options.parse(["--namespace", "app", "src/app"]).src,
+        CouplingOptions.parse(["--namespace", "app", "src/app"]).src,
     ):
         before = rescan(repo.root, base, source)
         assert before is not None
@@ -373,7 +373,7 @@ def test_namespace_history_returns_none_for_an_absent_portion(
 ) -> None:
     base = workspace.commit("original portions")
     workspace.write("packages/new/src/app/new.py", HEADER)
-    source = Options.parse(["--namespace", "app", "packages/new/src/app"]).src
+    source = CouplingOptions.parse(["--namespace", "app", "packages/new/src/app"]).src
     assert rescan(workspace.root, base, source) is None
 
 
@@ -388,7 +388,7 @@ def test_namespace_history_surfaces_directory_listing_failure(
         return None if args[0] == "ls-tree" else original(repo, args)
 
     monkeypatch.setattr(GitRepo, "_git", fail_listing)
-    source = Options.parse(["--namespace", "app", "src/app"]).src
+    source = CouplingOptions.parse(["--namespace", "app", "src/app"]).src
     with pytest.raises(OSError, match="git ls-tree"):
         rescan(workspace.root, base, source)
 
@@ -406,7 +406,7 @@ def test_nested_namespace_history_keeps_repository_ruff_ignores(
     repo.write("nested/src/app/core.py", HEADER)
     base = repo.commit("nested namespace with root Ruff configuration")
     monkeypatch.chdir(repo.root / "nested")
-    source = Options.parse(["--namespace", "app", "src/app"]).src
+    source = CouplingOptions.parse(["--namespace", "app", "src/app"]).src
     current = Scanner(source, repo.root).report
     before = rescan(repo.root, base, source)
     assert before is not None
@@ -425,7 +425,7 @@ def test_historical_root_globs_ignore_deleted_namesakes(
     repo.write("portions/other/__init__.py", HEADER)
     base = repo.commit("unrelated glob match")
     repo.run_git("rm", "-r", "portions/other")
-    before = rescan(repo.root, base, Options.parse([]).src)
+    before = rescan(repo.root, base, CouplingOptions.parse([]).src)
     assert before is not None
     assert before.total == 0
 
@@ -442,7 +442,7 @@ def test_historical_root_globs_keep_resolved_symlink_portions(
     (repo.root / "members").mkdir()
     (repo.root / "members/app").symlink_to("../actual/app", target_is_directory=True)
     base = repo.commit("symlink-selected namespace")
-    before = rescan(repo.root, base, Options.parse([]).src)
+    before = rescan(repo.root, base, CouplingOptions.parse([]).src)
     assert before is not None
     assert before.total == 1
 
@@ -482,7 +482,7 @@ def test_namespace_history_does_not_confuse_config_probe_failure_with_absence(
         return None if args[0] == "cat-file" else original(git, args)
 
     monkeypatch.setattr(GitRepo, "_git", fail_probe)
-    source = Options.parse(["--namespace", "app", "src/app"]).src
+    source = CouplingOptions.parse(["--namespace", "app", "src/app"]).src
     before = rescan(repo.root, base, source)
     assert before is not None
     assert before.total == 1
@@ -493,7 +493,7 @@ def test_namespace_history_accepts_missing_configuration(
 ) -> None:
     (workspace.root / "pyproject.toml").unlink()
     base = workspace.commit("namespace without configuration")
-    source = Options.parse(["--namespace", "app", "src/app"]).src
+    source = CouplingOptions.parse(["--namespace", "app", "src/app"]).src
     before = rescan(workspace.root, base, source)
     assert before is not None
     assert before.total == 0

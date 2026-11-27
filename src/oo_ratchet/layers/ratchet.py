@@ -34,7 +34,12 @@ def _every_module(modules: Iterable[str], _base: str, _package: str) -> list[str
 
 
 class LayersRatchet:
-    """Enforce the layers gate against the baseline and the merge base."""
+    """Enforce the layers gate against the baseline and the merge base.
+
+    The CLI passes a historical lookup of the base package's modules; a direct
+    caller that omits it gets the stricter default: every module counts as
+    present at the base, so a new module is judged like an existing one.
+    """
 
     _config: BaseConfig
     _adoption: Adoption

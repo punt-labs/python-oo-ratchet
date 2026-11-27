@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from oo_ratchet.layers.gitio import LayersGit
@@ -118,6 +119,67 @@ class TestWhereThePackageLives:
         code, out = repo.run_on(repo.root / "lib" / "app", "--check")
         assert code == 1
         assert "more than one" in out
+
+
+class TestPlainPackageEdges:
+    """Stray files, nested namesakes and a missing initializer at the base."""
+
+    def test_non_utf8_filename_elsewhere_does_not_block(self, repo: LayersRepo) -> None:
+        repo.write(os.fsdecode(b"stray\xff.txt"), "x\n")
+        _adopted(repo, TABLE)
+        repo.write("pyproject.toml", PROMOTED)
+        code, out = repo.run("--check")
+        assert code == 1
+        assert "app.thing" in out
+
+    def test_nested_namesake_is_not_a_candidate(self, repo: LayersRepo) -> None:
+        _adopted(repo, TABLE)
+        repo.write("pkg/__init__.py", "")
+        repo.write("pkg/vendor/app/__init__.py", "")
+        repo.commit_as_origin_main()
+        for name in ("__init__", *MODULES):
+            (repo.root / "src/app" / f"{name}.py").unlink()
+            repo.write(
+                f"lib/app/{name}.py", "" if name == "__init__" else MODULES[name]
+            )
+        repo.write("pyproject.toml", PROMOTED)
+        code, out = repo.run_on(repo.root / "lib" / "app", "--check")
+        assert "more than one" not in out
+        assert code == 1
+        assert "app.thing" in out
+
+    def test_base_without_an_initializer_still_compares(self, repo: LayersRepo) -> None:
+        _package(repo, TABLE)
+        repo.adopt()
+        (repo.root / "src/app/__init__.py").unlink()
+        repo.commit_as_origin_main()
+        repo.write("src/app/__init__.py", "")
+        repo.write("pyproject.toml", PROMOTED)
+        code, out = repo.run("--check")
+        assert code == 1, out
+        assert "app.thing" in out
+
+
+class TestNamespaceMode:
+    """A namespace selection compares every current module: strict, no history."""
+
+    def test_new_adapter_needs_the_flag(self, repo: LayersRepo) -> None:
+        _adopted(repo, TABLE.replace('"app.thing"]', '"app.thing", "app.fresh"]'))
+        repo.write("src/app/fresh.py", "W = 1\n")
+        repo.write(
+            "pyproject.toml",
+            TABLE.replace(
+                'adapters = ["app.store"]', 'adapters = ["app.store", "app.fresh"]'
+            ),
+        )
+        src = repo.root / "src" / "app"
+        refused = repo.run_on(src, "--namespace", "app", "--check")
+        assert refused[0] == 1
+        assert "app.fresh" in refused[1]
+        waived = repo.run_on(
+            src, "--namespace", "app", "--check", "--allow-config-change"
+        )
+        assert waived[0] == 0, waived[1]
 
 
 class TestDirectCallers:

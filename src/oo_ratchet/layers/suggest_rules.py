@@ -72,10 +72,15 @@ class RingRules:
 
     def _entries(self, importers: dict[str, set[str]]) -> set[str]:
         """Return the entry modules; the root is one only if just entry imports it."""
-        found = {f.name for f in self._facts if not f.forced and f.entry and not f.root}
+        found = {f.name for f in self._facts if self._evidenced(f)}
         roots = (f.name for f in self._facts if f.root and not f.forced)
         found.update(r for r in roots if not importers.get(r, set()) - found)
         return found
+
+    @staticmethod
+    def _evidenced(fact: ModuleFacts) -> bool:
+        """Return whether a placeable non-root module shows entry evidence."""
+        return bool(fact.entry) and not fact.forced and not fact.root
 
     def _first(
         self,
@@ -148,10 +153,7 @@ class RingRules:
         if ring not in self.ALLOWED:
             return None
         allowed = self.ALLOWED[ring]
-        known = [t for t in fact.imports if t in names]
-        refused = [t for t in known if result[t].ring not in allowed]
-        ringed = sorted(t for t in refused if result[t].ring)
-        bare = sorted(t for t in refused if not result[t].ring)
+        ringed, bare = self._refused(fact, allowed, result, names)
         may = f"{ring} may import only {' or '.join(sorted(allowed))}"
         if ringed:
             edge = f"{fact.name} -> {ringed[0]} ({result[ringed[0]].ring})"
@@ -159,3 +161,17 @@ class RingRules:
         if bare and ring != "adapters":
             return Verdict(None, f"{may}; imports unclassified {', '.join(bare)}")
         return None
+
+    @staticmethod
+    def _refused(
+        fact: ModuleFacts,
+        allowed: frozenset[str],
+        result: dict[str, Verdict],
+        names: set[str],
+    ) -> tuple[list[str], list[str]]:
+        """Return the imports of a refused ring, and those with no ring at all."""
+        refused = [
+            t for t in fact.imports if t in names and result[t].ring not in allowed
+        ]
+        ringed = sorted(t for t in refused if result[t].ring)
+        return ringed, sorted(t for t in refused if not result[t].ring)

@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import ClassVar, Self
 
-from oo_ratchet.design.layer_config import LayerConfig
+from oo_ratchet.design.layer_config import LayerConfig, LayerConfigError
 
 from .suggest_model import ModuleFacts
 
@@ -39,10 +39,26 @@ class NameConvention:
     }
     _names: dict[str, tuple[str, ...]]
 
-    def __new__(cls, overrides: dict[str, tuple[str, ...]] | None = None) -> Self:
+    def __new__(cls, overrides: dict[str, object] | None = None) -> Self:
         self = super().__new__(cls)
-        self._names = {**cls.DEFAULTS, **(overrides or {})}
+        self._names = {**cls.DEFAULTS, **cls._checked(overrides or {})}
         return self
+
+    @staticmethod
+    def _checked(table: dict[str, object]) -> dict[str, tuple[str, ...]]:
+        """Validate ``[tool.oo-ratchet.suggest]``: ring keys, each a name list."""
+        where = "[tool.oo-ratchet.suggest]"
+        found: dict[str, tuple[str, ...]] = {}
+        for key, value in table.items():
+            if key not in NameConvention.DEFAULTS:
+                allowed = list(NameConvention.DEFAULTS)
+                raise LayerConfigError(f"{where} unknown key {key!r}; use {allowed}")
+            if not isinstance(value, list) or not all(
+                isinstance(v, str) and v for v in value
+            ):
+                raise LayerConfigError(f"{where} {key} must be a list of package names")
+            found[key] = tuple(value)
+        return found
 
     def intent(self, module: str, package: str) -> Intent | None:
         """Return the ring the module's package names suggest, if any."""
@@ -69,10 +85,10 @@ class RingIntent:
     _table: LayerConfig | None
     _names: NameConvention
 
-    def __new__(cls, table: LayerConfig | None, names: NameConvention) -> Self:
+    def __new__(cls, table: LayerConfig | None, overrides: dict[str, object]) -> Self:
         self = super().__new__(cls)
         self._table = table
-        self._names = names
+        self._names = NameConvention(overrides)
         return self
 
     def of(self, fact: ModuleFacts, package: str) -> Intent | None:

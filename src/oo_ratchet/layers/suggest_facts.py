@@ -15,7 +15,6 @@ from oo_ratchet.design.modules import Module, ModuleIndex
 from oo_ratchet.design.targets import ImportTargets
 
 from .io_sites import IoSites
-from .ring_intent import RINGS
 from .strict import StrictViolations
 from .suggest_model import ModuleFacts
 
@@ -200,28 +199,24 @@ class PackageFacts:
     @staticmethod
     def _assigned(node: ast.stmt) -> ast.expr | None:
         """Return the value a top-level ``__ring__ = ...`` statement assigns."""
-        if isinstance(node, ast.Assign) and any(
-            isinstance(t, ast.Name) and t.id == "__ring__" for t in node.targets
-        ):
-            return node.value
-        if (
-            isinstance(node, ast.AnnAssign)
-            and isinstance(node.target, ast.Name)
-            and node.target.id == "__ring__"
-            and node.value is not None
-        ):
-            return node.value
-        return None
+        value: ast.expr | None
+        if isinstance(node, ast.Assign):
+            targets, value = node.targets, node.value
+        elif isinstance(node, ast.AnnAssign):
+            targets, value = [node.target], node.value
+        else:
+            return None
+        named = any(isinstance(t, ast.Name) and t.id == "__ring__" for t in targets)
+        return value if named else None
 
 
 class SuggestNames:
-    """The ``[tool.oo-ratchet.suggest]`` table: package names per ring.
+    """The ``[tool.oo-ratchet.suggest]`` table as written: names per ring.
 
-    Each key (``domain``, ``application``, ``adapters``) lists the package
-    names that suggest that ring and replaces the built-in list for it.
+    ``NameConvention`` checks the keys and values; this only finds the table.
     """
 
-    _table: dict[str, tuple[str, ...]]
+    _table: dict[str, object]
 
     def __new__(cls, pyproject: Path | None) -> Self:
         self = super().__new__(cls)
@@ -229,35 +224,25 @@ class SuggestNames:
         return self
 
     @property
-    def table(self) -> dict[str, tuple[str, ...]]:
+    def table(self) -> dict[str, object]:
         """Return the configured names per ring; empty when none are configured."""
         return self._table
 
     @classmethod
-    def _read(cls, pyproject: Path | None) -> dict[str, tuple[str, ...]]:
+    def _read(cls, pyproject: Path | None) -> dict[str, object]:
         if pyproject is None:
             return {}
         try:
             text = tomllib.loads(pyproject.read_text(encoding="utf-8"))
         except (OSError, UnicodeError, tomllib.TOMLDecodeError) as exc:
             raise LayerConfigError(f"cannot read {pyproject}: {exc}") from exc
-        tool = text.get("tool", {})
-        config = tool.get("oo-ratchet", {}) if isinstance(tool, dict) else {}
-        table = config.get("suggest", {}) if isinstance(config, dict) else {}
-        if not isinstance(table, dict):
+        node: object = text
+        for key in ("tool", "oo-ratchet", "suggest"):
+            if not isinstance(node, dict) or key not in node:
+                return {}
+            node = node[key]
+        if not isinstance(node, dict):
             raise LayerConfigError(
                 f"{pyproject}: [tool.oo-ratchet.suggest] is not a table"
             )
-        return {key: cls._names(pyproject, key, value) for key, value in table.items()}
-
-    @staticmethod
-    def _names(pyproject: Path, key: str, value: object) -> tuple[str, ...]:
-        allowed = [r for r in RINGS if r != "entry"]
-        where = f"{pyproject}: [tool.oo-ratchet.suggest]"
-        if key not in allowed:
-            raise LayerConfigError(f"{where} unknown key {key!r}; use {allowed}")
-        if not isinstance(value, list) or not all(
-            isinstance(v, str) and v for v in value
-        ):
-            raise LayerConfigError(f"{where} {key} must be a list of package names")
-        return tuple(value)
+        return node

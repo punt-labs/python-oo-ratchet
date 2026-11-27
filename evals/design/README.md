@@ -14,16 +14,10 @@ The evals do not change production ratchet gates.
 
 Run `uv run pytest tests/test_design_evals.py`. All seeded rules are implemented;
 recall, precision and ordering include D1-D8, layer rules and Tier 0 size caps.
-Precision checks remain active around the exact known-misfire keys; separate
-strict xfails track their removal. The known cases are:
-
-- `decoys`, both variants: `Codec.from_wire` triggers
-  `stateless-single-method` on `adapters/wire.py:Codec`, despite being boundary
-  deserialization rather than a domain strategy.
-- `layer-leak`, good: wiring `FeeStore` in `entry.py` triggers
-  `concrete-cross-package-import`, despite keeping the concrete dependency out
-  of the domain. Ordering excludes known-misfire keys, as precision does;
-  separate precision xfails still track their removal.
+Precision checks cover every seeded rule. The `decoys` pair declares its rings in
+`layers.toml`; with them, `Codec.from_wire` in `adapters/wire.py` and the `entry.py`
+wiring of `FeeStore` in layer-leak no longer fire, because `stateless-single-method`
+and `concrete-cross-package-import` are scoped by ring. No known misfire is open.
 
 The layer-leak pair passes its `layers.toml` to the scanner; its four layer
 expectations are implemented checks, not future-rule xfails.

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Self
 
 from .findings import Finding, Rules
@@ -32,9 +33,17 @@ class BoundaryCheck:
         self._targets = ImportTargets(index)
         return self
 
-    def findings(self) -> list[Finding]:
-        """Return every concrete cross-package import in the tree."""
-        return [f for module in self._index.modules() for f in self._scan(module)]
+    def findings(self, skips: Callable[[Module, str], bool]) -> list[Finding]:
+        """Return every concrete cross-package import in the tree.
+
+        Modules for which ``skips`` is true for the rule are not scanned.
+        """
+        return [
+            f
+            for module in self._index.modules()
+            if not skips(module, Rules.CONCRETE_IMPORT)
+            for f in self._scan(module)
+        ]
 
     def _scan(self, module: Module) -> list[Finding]:
         type_only = self._targets.type_only(module.tree)

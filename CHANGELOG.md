@@ -31,6 +31,16 @@
 
 ### Changed
 
+- `design` scopes two rules by ring when the fixed four-ring
+  `[tool.oo-ratchet.layers]` table is configured (PL-1715):
+  `stateless-single-method` and `stateless-function-bag` skip classes in
+  `adapters` and `entry` modules, and `concrete-cross-package-import` skips
+  imports made by `entry` modules (the composition root). Both still fire in
+  the other rings and unlayered modules. With no layers table, or the
+  declared-layers form, findings are unchanged. The two known false positives
+  in `evals/design` (`decoys` `Codec`, `layer-leak` `FeeStore`) no longer fire,
+  so their strict xfails are removed.
+
 - The OO gate no longer pushes code into small one-class modules (PL-1685).
   `method_ratio`, `class_to_func_ratio` and `classes_per_module` are no longer
   gated or recorded in baselines; `--json` still reports them. `module_size`

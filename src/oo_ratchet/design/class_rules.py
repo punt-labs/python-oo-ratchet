@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import ClassVar, Self
 
 from .findings import Finding, Rules
@@ -21,10 +22,16 @@ class ClassRules:
     GETTER_SHARE: ClassVar[float] = 0.5
 
     _interfaces: tuple[frozenset[str], ...]
+    _skips: Callable[[Module, str], bool]
 
-    def __new__(cls, interface_methods: tuple[frozenset[str], ...]) -> Self:
+    def __new__(
+        cls,
+        interface_methods: tuple[frozenset[str], ...],
+        skips: Callable[[Module, str], bool],
+    ) -> Self:
         self = super().__new__(cls)
         self._interfaces = interface_methods
+        self._skips = skips
         return self
 
     def findings(self, module: Module) -> list[Finding]:
@@ -34,7 +41,7 @@ class ClassRules:
             if shape.is_exempt or shape.is_abstract:
                 continue
             for rule, detail in (self._stateless(shape), self._getters(shape)):
-                if rule:
+                if rule and not self._skips(module, rule):
                     out.append(
                         Finding(rule, str(module.path), shape.line, shape.name, detail)
                     )
@@ -46,10 +53,14 @@ class ClassRules:
             return "", ""
         if any(iface.issuperset(methods) for iface in self._interfaces):
             return "", ""
-        listed = ", ".join(methods[:4]) + (", ..." if len(methods) > 4 else "")
+        listed = self._listed(methods)
         if len(methods) == 1:
             return Rules.STATELESS_SINGLE, f"only public method: {listed}"
         return Rules.STATELESS_BAG, f"{len(methods)} public methods: {listed}"
+
+    @staticmethod
+    def _listed(methods: list[str]) -> str:
+        return ", ".join(methods[:4]) + (", ..." if len(methods) > 4 else "")
 
     def _getters(self, shape: ClassShape) -> tuple[str, str]:
         getters = shape.accessors()

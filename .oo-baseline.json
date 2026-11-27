@@ -695,14 +695,11 @@
     "future_annotations": 1.0
   },
   "src/oo_ratchet/design/boundaries.py": {
-    "method_ratio": 1.0,
     "encapsulation_ratio": 1.0,
-    "avg_params": 2.0,
+    "avg_params": 2.12,
     "max_complexity": 7.0,
-    "avg_complexity": 4.5,
-    "module_size": 88.0,
-    "classes_per_module": 1.0,
-    "class_to_func_ratio": 1.0,
+    "avg_complexity": 4.62,
+    "module_size": 94.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -721,14 +718,11 @@
     "future_annotations": 1.0
   },
   "src/oo_ratchet/design/class_rules.py": {
-    "method_ratio": 1.0,
     "encapsulation_ratio": 1.0,
-    "avg_params": 1.0,
-    "max_complexity": 8.0,
-    "avg_complexity": 4.5,
-    "module_size": 42.0,
-    "classes_per_module": 1.0,
-    "class_to_func_ratio": 1.0,
+    "avg_params": 1.2,
+    "max_complexity": 7.0,
+    "avg_complexity": 4.0,
+    "module_size": 52.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -978,14 +972,11 @@
     "future_annotations": 1.0
   },
   "src/oo_ratchet/design/layers.py": {
-    "method_ratio": 1.0,
     "encapsulation_ratio": 1.0,
-    "avg_params": 2.29,
+    "avg_params": 2.22,
     "max_complexity": 5.0,
-    "avg_complexity": 2.86,
-    "module_size": 78.0,
-    "classes_per_module": 1.0,
-    "class_to_func_ratio": 1.0,
+    "avg_complexity": 2.67,
+    "module_size": 96.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -1147,14 +1138,11 @@
     "future_annotations": 1.0
   },
   "src/oo_ratchet/design/scan.py": {
-    "method_ratio": 1.0,
     "encapsulation_ratio": 1.0,
     "avg_params": 1.33,
     "max_complexity": 4.0,
     "avg_complexity": 2.0,
-    "module_size": 39.0,
-    "classes_per_module": 1.0,
-    "class_to_func_ratio": 1.0,
+    "module_size": 40.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0

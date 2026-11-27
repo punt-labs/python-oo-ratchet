@@ -7,8 +7,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Self
 
+from oo_ratchet.source_set import SourceSet
+
 from .graph import ImportGraph
-from .layout import PackageLayout
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,12 +38,12 @@ class PackageMetrics:
 class PackageScorer:
     """Score each sub-package of a tree against the shared import graph."""
 
-    _layout: PackageLayout
+    _source: SourceSet
     _graph: ImportGraph
 
-    def __new__(cls, layout: PackageLayout, graph: ImportGraph) -> Self:
+    def __new__(cls, source: SourceSet, graph: ImportGraph) -> Self:
         self = super().__new__(cls)
-        self._layout = layout
+        self._source = source
         self._graph = graph
         return self
 
@@ -51,10 +52,10 @@ class PackageScorer:
         return [self._score_one(pkg_dir) for pkg_dir in self._sub_packages()]
 
     def _sub_packages(self) -> list[Path]:
-        return self._layout.package_dirs()
+        return self._source.package_dirs()
 
     def _score_one(self, pkg_dir: Path) -> PackageMetrics:
-        pkg_name = self._layout.key_for(pkg_dir / "__init__.py")
+        pkg_name = self._source.key_for(pkg_dir / "__init__.py")
         keys = self._module_keys(pkg_name)
         return PackageMetrics(
             package=pkg_name,

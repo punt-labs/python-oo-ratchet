@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Self
 
 from .config import CouplingConfig
 from .imports import ImportResolver
-from .layout import PackageLayout
 from .metrics import ModuleCouplingMetrics
 from .packages import PackageMetrics
 from .thresholds import CouplingThresholds
@@ -41,9 +40,7 @@ class CouplingScorer:
         self._config = config if config is not None else CouplingConfig()
         tree = CouplingTree(target)
         cycle = tree.cycles
-        self._results = [
-            self._safe_score(f, tree.layout, cycle, root) for f in tree.files
-        ]
+        self._results = [self._safe_score(f, tree, cycle, root) for f in tree.files]
         self._packages = tree.packages
         return self
 
@@ -123,7 +120,7 @@ class CouplingScorer:
     def _safe_score(
         self,
         py_file: Path,
-        layout: PackageLayout,
+        scope: CouplingTree,
         cycle: frozenset[str],
         root: Path,
     ) -> dict[str, float | int | str]:
@@ -135,11 +132,11 @@ class CouplingScorer:
             # syntax error: the ratchet fails on it if it is a touched file
             # (fail-closed), rather than crashing the whole scoring pass.
             return {"file": key, "error": str(exc)}
-        mod_key = layout.key_for(py_file)
+        mod_key = scope.source.key_for(py_file)
         resolver = ImportResolver(
             mod_key,
-            layout.modules,
-            layout.name,
+            scope.modules,
+            scope.source.name,
             is_package=py_file.name == "__init__.py",
         )
         metrics = ModuleCouplingMetrics(

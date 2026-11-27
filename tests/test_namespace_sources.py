@@ -11,7 +11,6 @@ import pytest
 from oo_ratchet.__main__ import main
 from oo_ratchet.coupling.cli import CouplingOptions
 from oo_ratchet.coupling.graph import ImportGraph
-from oo_ratchet.coupling.layout import PackageLayout
 from oo_ratchet.coupling.scorer import CouplingScorer
 from oo_ratchet.design.scan import DesignScanner
 from oo_ratchet.layers.scan import LayerScan
@@ -66,8 +65,11 @@ def test_split_matches_entire_graph_cycles_metrics_and_layers(
     trees: tuple[Path, SourceSet],
 ) -> None:
     single, split = trees
-    before, after = PackageLayout(single), PackageLayout(split)
-    a, b = ImportGraph.build(before), ImportGraph.build(after)
+    before, after = SourceSet(single), SourceSet(split)
+    a, b = (
+        ImportGraph.build(s, frozenset(s.key_for(p) for p in s.files()))
+        for s in (before, after)
+    )
     assert a.edges == b.edges
     assert a.cycle_members() == b.cycle_members() == {"a.core", "b.core"}
     old, new = CouplingScorer(single), CouplingScorer(split)
@@ -218,7 +220,6 @@ def test_resolved_namespace_is_passed_through_unchanged(
     options = CouplingOptions.parse(["--namespace", "app", *map(str, source.roots)])
     assert isinstance(options.src, SourceSet)
     assert SourceSet(options.src) is options.src
-    assert PackageLayout(options.src)._source is options.src
 
 
 def test_resolved_legacy_file_preserves_single_file_metrics(tmp_path: Path) -> None:

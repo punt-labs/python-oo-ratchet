@@ -10,7 +10,8 @@ from pathlib import Path
 import pytest
 
 from oo_ratchet.core.adapters.edgefiles import EdgeAuditFile
-from oo_ratchet.core.adapters.treeviews import BaseTree, WorkingTree
+from oo_ratchet.core.adapters.packagetrees import PackageTree
+from oo_ratchet.core.adapters.treeviews import WorkingTree
 from oo_ratchet.core.domain.edges import EdgeRecord
 from oo_ratchet.core.domain.layer_edges import Edge
 from oo_ratchet.layers.scan import LayerScan
@@ -34,7 +35,7 @@ class TestQuotedPaths:
     ) -> None:
         git_sandbox.write(QUOTED, "")
         sha = git_sandbox.commit("one")
-        tree = BaseTree(sha, git_sandbox.root)
+        tree = PackageTree.base(sha, git_sandbox.root)
         assert tree.package_at("app")
         assert tree.path_at('weird"dir')
 
@@ -55,7 +56,7 @@ class TestExactPaths:
     def test_base_tree_keeps_a_carriage_return(self, git_sandbox: GitSandbox) -> None:
         git_sandbox.write(CARRIAGE_RETURN, "")
         sha = git_sandbox.commit("one")
-        assert BaseTree(sha, git_sandbox.root).path_at("weird\rdir")
+        assert PackageTree.base(sha, git_sandbox.root).path_at("weird\rdir")
 
 
 class TestUndecodablePaths:
@@ -78,7 +79,7 @@ class TestUndecodablePaths:
     def test_base_tree_finds_the_directory(self, git_sandbox: GitSandbox) -> None:
         folder = self._write(git_sandbox.root)
         sha = git_sandbox.commit("one")
-        assert BaseTree(sha, git_sandbox.root).path_at(folder)
+        assert PackageTree.base(sha, git_sandbox.root).path_at(folder)
 
 
 class TestDeepChains:

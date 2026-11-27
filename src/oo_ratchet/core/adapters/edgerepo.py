@@ -14,7 +14,7 @@ from oo_ratchet.source_set import Source, SourceSet
 from .edgeformats import EdgeFormat
 from .edgemodules import BaseModules
 from .gitrepo import GitRepo
-from .treeviews import BaseTree
+from .packagetrees import PackageTree
 
 
 class EdgeRepo:
@@ -63,7 +63,7 @@ class EdgeRepo:
         tree, or anything at the scanned directory's real path (a symlink, or a
         package at the repository root).
         """
-        tree = BaseTree(ref, self._root)
+        tree = PackageTree.base(ref, self._root)
         real = SourceSet.path(self._src).resolve().relative_to(self._root.resolve())
         return tree.package_at(package) or tree.path_at(real.as_posix())
 

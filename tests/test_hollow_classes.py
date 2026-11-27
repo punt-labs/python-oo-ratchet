@@ -36,6 +36,8 @@ def own_findings() -> frozenset[tuple[str, str]]:
         (Rules.STATELESS_SINGLE, "TypeReference"),
         (Rules.STATELESS_SINGLE, "NulListing"),
         (Rules.STATELESS_SINGLE, "_ExitStatus"),
+        (Rules.MIDDLE_MAN, "BaseTree"),
+        (Rules.MIDDLE_MAN, "PackageLayout"),
     ],
 )
 def test_hollow_class_is_not_reported(rule: str, symbol: str) -> None:

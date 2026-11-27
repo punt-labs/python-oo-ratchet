@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import ast
-from typing import Self
+from collections.abc import Callable
+from typing import ClassVar, Self
 
 from oo_ratchet.oo.metrics import ModuleMetrics
 
@@ -16,6 +17,12 @@ from .modules import Module, ModuleIndex
 
 class LayerCheck:
     """Apply optional layer declarations without changing existing design rules."""
+
+    EXEMPT: ClassVar[dict[str, frozenset[str]]] = {
+        Rules.STATELESS_SINGLE: frozenset({"adapters", "entry"}),
+        Rules.STATELESS_BAG: frozenset({"adapters", "entry"}),
+        Rules.CONCRETE_IMPORT: frozenset({"entry"}),
+    }
 
     _index: ModuleIndex
     _config: LayerConfig
@@ -40,6 +47,28 @@ class LayerCheck:
             out.extend(self._dependencies(module, layer))
             out.extend(self._shape(module, layer))
         return out
+
+    @classmethod
+    def skipper(
+        cls, index: ModuleIndex, config: LayerConfig | None
+    ) -> Callable[[Module, str], bool]:
+        """Return ``skips`` of a check on ``config``; with none, skip nothing."""
+        if config is None:
+            return lambda _module, _rule: False
+        return cls(index, config).skips
+
+    def skips(self, module: Module, rule: str) -> bool:
+        """Return whether ``rule`` is not reported for ``module``'s ring.
+
+        Adapters and the entry ring translate and wire: a stateless codec class
+        there is boundary code, not a function-object strategy, and the entry
+        ring is the composition root, where importing a concrete adapter is the
+        wiring. Only the fixed four-ring form has rings to exempt.
+        """
+        if not self._config.ORDERED:
+            return False
+        layer = self._config.layer(self._found.name(module))
+        return layer in self.EXEMPT.get(rule, frozenset())
 
     def _unlayered(self, module: Module, name: str) -> list[Finding]:
         if self._config.EXEMPTS_ROOT and "." not in name:

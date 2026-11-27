@@ -37,11 +37,6 @@ class Expectations(TypedDict):
 ROOT = Path(__file__).resolve().parents[1] / "evals" / "design"
 PAIRS = sorted(path.parent for path in ROOT.glob("*/expected.toml"))
 VARIANTS = ("bad", "good")
-KNOWN_MISFIRES: dict[tuple[str, str], Key] = {
-    ("decoys", "bad"): (Rules.STATELESS_SINGLE, "adapters/wire.py", "Codec"),
-    ("decoys", "good"): (Rules.STATELESS_SINGLE, "adapters/wire.py", "Codec"),
-    ("layer-leak", "good"): (Rules.CONCRETE_IMPORT, "entry.py", "FeeStore"),
-}
 
 
 def _expected(pair: Path, variant: str) -> set[Key]:
@@ -114,38 +109,7 @@ def test_implemented_precision(
     pair: Path, variant: str, findings: dict[tuple[Path, str], set[Key]]
 ) -> None:
     actual = {key for key in findings[pair, variant] if key[0] in Rules.ordered()}
-    known = KNOWN_MISFIRES.get((pair.name, variant))
-    if known is not None:
-        actual.discard(known)
     assert actual <= _expected(pair, variant)
-
-
-@pytest.mark.parametrize(
-    ("pair_name", "variant", "key"),
-    [
-        pytest.param(
-            pair_name,
-            variant,
-            key,
-            id=f"{pair_name}-{variant}-{key[2]}",
-            marks=pytest.mark.xfail(
-                strict=True,
-                reason=(
-                    "Advisory rules lack layer/codec exemptions: intentional "
-                    "from_wire codec or entry composition-root import"
-                ),
-            ),
-        )
-        for (pair_name, variant), key in KNOWN_MISFIRES.items()
-    ],
-)
-def test_known_precision_misfire(
-    pair_name: str,
-    variant: str,
-    key: Key,
-    findings: dict[tuple[Path, str], set[Key]],
-) -> None:
-    assert key not in findings[ROOT / pair_name, variant]
 
 
 @pytest.mark.parametrize(
@@ -161,10 +125,6 @@ def test_implemented_ordering(
 ) -> None:
     bad = {key for key in findings[pair, "bad"] if key[0] in Rules.ordered()}
     good = {key for key in findings[pair, "good"] if key[0] in Rules.ordered()}
-    for variant, keys in (("bad", bad), ("good", good)):
-        known = KNOWN_MISFIRES.get((pair.name, variant))
-        if known is not None:
-            keys.discard(known)
     assert len(bad) > len(good)
 
 

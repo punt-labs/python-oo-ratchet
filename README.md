@@ -203,6 +203,17 @@ No table means no layer findings; an empty table marks every module unlayered.
 - `thick-entry`: an entry function/method exceeds cyclomatic complexity 4,
   using the same scope-aware computation as the OO metrics.
 
+With the fixed four-ring table, two class and import rules are scoped by ring
+(no table, or the declared-layers form, changes nothing):
+
+- `stateless-single-method` and `stateless-function-bag` are not reported for
+  classes in `adapters` or `entry` modules: a stateless codec or wiring class at
+  the boundary is not a function-object strategy. They still fire in `domain`,
+  `application` and unlayered modules.
+- `concrete-cross-package-import` is not reported for imports made by an `entry`
+  module: the entry ring is the composition root and wires concrete adapters. It
+  still fires for imports made by every other ring and unlayered modules.
+
 Data-placement checks run **without** layer configuration too. With a table,
 declarations and consumers in `entry` or `adapters` are excluded; application,
 domain and unlayered modules remain eligible:
@@ -319,9 +330,11 @@ Existing adopter gates, thresholds and release behavior are unchanged.
 **Design evals.** `evals/design/` seeds eleven library-loan bad/good pairs with
 shared behavior checks and stable `(rule, path, symbol)` keys in `expected.toml`.
 `tests/test_design_evals.py` checks recall, precision and ordering for every seeded
-rule. Known false positives remain strict xfails, never fixture workarounds.
+rule. Known false positives remain strict xfails, never fixture workarounds
+(none are open now: the ring-scoped rules above cleared the `decoys` codec and
+`layer-leak` entry-wiring cases).
 `make check` lints and type-checks the fixtures and runs the harness, but the
-self-ratchets still scan only `src/oo_ratchet/`. The layer-leak pair's `layers.toml`
+self-ratchets still scan only `src/oo_ratchet/`. The layer-leak and decoys pairs' `layers.toml`
 is consumed by the scanner with `--layers` (and by the eval harness).
 
 ## Configure

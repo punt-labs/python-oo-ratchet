@@ -57,11 +57,12 @@ class BaselineWriter:
         A genuine first-adoption (no in-tree baseline) does bootstrap the whole
         tree; ``--reconcile`` is the explicit opt-in for a whole-tree sweep.
 
-        The base is used only to scope the touched set; the regression check is
-        against the *in-tree* baseline (update's job is to tighten it, refusing
-        any loosening). No improvement-vs-base is measured here, so a stale or
-        diverged branch cannot launder a regression through update -- the
-        merge-base comparison lives in ``check``, which reads the base baseline.
+        The base scopes the touched set and, when it has a baseline, is what
+        each row is compared against, as ``check`` does: a later commit on a
+        branch may give back part of an earlier commit's gain as long as it is
+        no worse than the base (PL-1685). With no baseline at the base, rows
+        are compared against the in-tree baseline. ``check`` still enforces
+        the merge-base comparison, so nothing is laundered through update.
         """
         blocked = self._guard(allow_ci_write=allow_ci_write)
         if blocked is not None:
@@ -77,16 +78,35 @@ class BaselineWriter:
             )
         else:
             diff = self._git.diff(base)
-            touched = self._in_scope(
-                diff.python_files(), current.keys() | scorer.parse_errors
-            ) | self._vanished(diff.renames)
+            base_rows = self._git.show_baseline(base)
+            touched = (
+                self._in_scope(
+                    diff.python_files(), current.keys() | scorer.parse_errors
+                )
+                | self._vanished(diff.renames)
+                | self._reverted(base_rows, current)
+            )
             plan = UpdatePlan(
                 current,
                 touched,
                 diff.renames,
                 parse_errors=touched & scorer.parse_errors,
+                base_baseline=base_rows,
             )
         return self._applier.apply(plan, source)
+
+    def _reverted(
+        self,
+        base_rows: dict[str, dict[str, float]] | None,
+        current: dict[str, dict[str, float]],
+    ) -> frozenset[str]:
+        """Return scored files whose row the branch rewrote, diff or not.
+
+        A file reverted to its base contents is absent from the diff, yet its
+        row may still hold an earlier branch commit's scores (PL-1685).
+        """
+        rewritten = Baseline.changed_rows(self._baseline.entries, base_rows or {})
+        return rewritten & current.keys()
 
     def _in_scope(
         self, paths: frozenset[str], scored: set[str] | frozenset[str]
@@ -179,11 +199,7 @@ class BaselineWriter:
                 f"FAIL: {file} has no baseline entry to relax; "
                 "use --update or --reconcile to add a new file"
             )
-        # Record ONLY the metrics this relaxation actually loosened (worse than
-        # the pre-relax baseline). A metric that held or improved is not waivable
-        # -- otherwise relaxing M1 would silently bless a future regression of an
-        # untouched M2 on the same file.
-        loosened = PlanApplier.regressed(entry, base_entry)
+        loosened = self._loosened(entry, base_entry)
         if not loosened:
             # Nothing is worse than the baseline: a relax here would write a
             # no-op "relaxed" line. Refuse instead of recording an empty waiver.
@@ -191,7 +207,7 @@ class BaselineWriter:
                 f"FAIL: nothing to relax for {file} "
                 "(no metric is worse than its baseline)"
             )
-        deltas = {file: {m: [base_entry.get(m, entry[m]), entry[m]] for m in loosened}}
+        deltas = {file: {m: [base_entry[m], entry[m]] for m in loosened}}
         new_baseline = dict(self._baseline.entries)
         new_baseline[file] = entry
         self._baseline.save(new_baseline)
@@ -209,6 +225,17 @@ class BaselineWriter:
             f"\nRelaxed {file} (reason: {justify})",
             f"  baseline: {self._baseline.path}",
         )
+
+    @staticmethod
+    def _loosened(entry: dict[str, float], recorded: dict[str, float]) -> list[str]:
+        """Return the recorded metrics a relax would loosen.
+
+        Only metrics worse than their recorded value are waivable; a metric
+        that held or improved is not, or relaxing M1 would bless a later
+        regression of M2. A metric with no recorded value has nothing to
+        loosen, and relaxing it would audit an invented old value.
+        """
+        return [m for m in PlanApplier.regressed(entry, recorded) if m in recorded]
 
     def rebaseline_files(
         self,

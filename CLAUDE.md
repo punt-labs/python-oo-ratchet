@@ -99,15 +99,17 @@ Consequences for any change under `src/oo_ratchet/`:
   `--rebaseline-files PATHS --reason`, `--rebaseline`). Writes refuse under
   `GITHUB_ACTIONS=true` without `--allow-ci-write`.
 
-OO targets new code must meet, all eleven (`src/oo_ratchet/oo/thresholds.py`,
-tabled in `README.md` under "Targets and counting rules"): method ratio >= 0.8,
-encapsulation ratio >= 1.0, average params <= 4, max complexity <= 10, average
-complexity <= 5, <= 300 code lines and <= 3 top-level classes per module,
-class-to-function ratio >= 0.5, no explicit `__init__` on non-dataclass
+OO targets new code must meet, all eight (`src/oo_ratchet/oo/thresholds.py`,
+tabled in `README.md` under "Targets and counting rules"): encapsulation ratio
+>= 1.0, average params <= 4, max complexity <= 10, average complexity <= 5,
+at most 400 code lines per module, no explicit `__init__` on non-dataclass
 classes, no public `self.x` assignments, and `from __future__ import
-annotations` in every module. That is why classes here construct in `__new__` with
-private, class-level-annotated `_fields` instead of `__init__`, and why logic
-lives in methods rather than free functions. Follow that pattern.
+annotations` in every module. Module size is a ceiling: growth under 400 lines
+is neither a regression nor an improvement. Module shape (classes per module,
+methods versus functions) is not gated; keep cohesive code together rather
+than splitting it to shrink files. Classes here construct in `__new__` with
+private, class-level-annotated `_fields` instead of `__init__`. Follow that
+pattern.
 
 ## Architecture
 
@@ -123,10 +125,10 @@ lives in methods rather than free functions. Follow that pattern.
   commit's blobs and baseline via git), `ratchet.py` or `compare.py` (decide the
   verdict), `writer.py`/`bless.py`/`relax.py` (the audited write operations),
   `audit.py` (append to the `.jsonl` log), `outcome.py`/`report.py` (render).
-- `oo/` also holds `provenance.py` and `diffmodel.py`, which let a new
-  zero-class module extracted from already-baselined code waive the two shape
-  ratios. `backfill.py` (top level) adds missing baseline rows on scoped
-  `--update`.
+- In `oo/`, `thresholds.py` holds the targets and the comparison order:
+  each metric ranks values by a badness function, and a ceiling metric
+  (`module_size`) ranks every value under its target the same.
+  `backfill.py` (top level) adds missing baseline rows on scoped `--update`.
 - `design/` is the advisory scanner: rule modules (`*_rules.py`,
   `middle_man.py`, `tag_switch.py`, `misplaced_rule.py`, `domain_io.py`,
   `layer_*`) emit findings over a syntactic project-class index

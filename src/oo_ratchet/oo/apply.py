@@ -21,6 +21,11 @@ class UpdatePlan:
     ``parse_errors`` are paths on disk that failed to AST-parse. They must be
     preserved (never pruned as if deleted) and surfaced as a refusal, so a
     syntax error cannot silently erase a file's baseline history.
+
+    ``base_baseline`` is the baseline committed at the merge base. When
+    present, rows are compared against it, as ``check`` does, so a later
+    commit on a branch is never refused for giving back part of an earlier
+    commit's gain while still being no worse than the base (PL-1685).
     """
 
     current: dict[str, dict[str, float]]
@@ -28,6 +33,7 @@ class UpdatePlan:
     renames: dict[str, str] = field(default_factory=dict)
     prune: bool = False
     parse_errors: frozenset[str] = frozenset()
+    base_baseline: dict[str, dict[str, float]] | None = None
 
 
 class PlanApplier:
@@ -67,10 +73,11 @@ class PlanApplier:
         if plan.prune:
             removed += self._prune_kept(new_baseline, plan)
         broken = sorted(plan.parse_errors)
+        improved = self._improved_files(plan, deltas)
         self._baseline.save(new_baseline)
         self._audit.append(
             files_scored=len(plan.current),
-            files_improved=len(deltas),
+            files_improved=improved,
             files_regressed=len({p for p, _ in refused}) + len(broken),
             verdict="pass" if not refused and not broken else "fail",
             deltas=deltas,
@@ -79,7 +86,7 @@ class PlanApplier:
             commit=self._git.short_head(),
             **backfill.metadata,
         )
-        outcome = self._report(len(deltas), len(removed), refused, broken)
+        outcome = self._report(improved, len(removed), refused, broken)
         return Outcome(
             outcome.exit_code, outcome.lines + backfill.lines(outcome.exit_code)
         )
@@ -93,8 +100,11 @@ class PlanApplier:
         deltas: dict[str, dict[str, list[float]]],
     ) -> list[str]:
         entry = plan.current[path]
-        base_entry = self._base_for(plan, path)
-        regressed = self.regressed(entry, base_entry)
+        rows = self._comparison_rows(plan, path)
+        # Deltas record what this write changes: against the in-tree row (last)
+        # when there is one, so a rerun does not re-record the same gain.
+        base_entry = rows[-1] if rows else None
+        regressed = self.refusals(entry, rows)
         if regressed:
             # Keep the old rename-source entry so the carried base survives to
             # the next run -- dropping it would let a later run treat the rename
@@ -107,11 +117,31 @@ class PlanApplier:
             deltas[path] = file_deltas
         return self._drop_rename_source(new_baseline, plan, path)
 
-    def _base_for(self, plan: UpdatePlan, path: str) -> dict[str, float] | None:
-        base_entry = self._baseline.get(path)
-        if base_entry is None and path in plan.renames:
-            return self._baseline.get(plan.renames[path])
-        return base_entry
+    def _comparison_rows(self, plan: UpdatePlan, path: str) -> list[dict[str, float]]:
+        """Return the merge-base row, then the in-tree row, for ``path``.
+
+        A rename target falls back to its source's row in each baseline.
+        """
+        sources = [plan.base_baseline or {}, self._baseline.entries]
+        old = plan.renames.get(path, path)
+        found = (rows.get(path) or rows.get(old) for rows in sources)
+        return [row for row in found if row is not None]
+
+    @classmethod
+    def refusals(
+        cls, entry: dict[str, float], rows: list[dict[str, float]]
+    ) -> list[str]:
+        """Return the metrics worse than every comparison row.
+
+        The merge-base row is what ``check`` enforces; the in-tree row may
+        hold an audited relaxation made earlier on the branch. A metric no
+        worse than either is accepted, and ``check`` still rejects a
+        regression against the merge base that no relaxation waives.
+        """
+        if not rows:
+            return []
+        worse = [set(cls.regressed(entry, row)) for row in rows]
+        return [m for m in entry if all(m in w for w in worse)]
 
     def _drop_rename_source(
         self, new_baseline: dict[str, dict[str, float]], plan: UpdatePlan, path: str
@@ -146,15 +176,46 @@ class PlanApplier:
             del new_baseline[p]
         return stale
 
+    def _improved_files(
+        self, plan: UpdatePlan, deltas: dict[str, dict[str, list[float]]]
+    ) -> int:
+        """Count improved files among those with a prior row; a new file has none."""
+        prior = self._baseline.entries.keys() | (plan.base_baseline or {}).keys()
+        return self.improved_count(
+            {p: d for p, d in deltas.items() if {p, plan.renames.get(p)} & prior}
+        )
+
+    @staticmethod
+    def improved_count(deltas: dict[str, dict[str, list[float]]]) -> int:
+        """Return how many files have a metric strictly better than before.
+
+        A changed value is not necessarily better: ``module_size`` growing
+        under its ceiling is recorded but is neither better nor worse.
+        """
+        return sum(
+            any(
+                Thresholds.strictly_better(metric, new, old)
+                for metric, (old, new) in changes.items()
+            )
+            for changes in deltas.values()
+        )
+
     @staticmethod
     def regressed(entry: dict[str, float], base: dict[str, float] | None) -> list[str]:
-        """Return the metrics in ``entry`` worse than ``base`` (empty if new)."""
+        """Return the metrics in ``entry`` worse than ``base`` (empty if new).
+
+        A metric missing from ``base`` is judged by its target, never skipped.
+        """
         if base is None:
             return []
         return [
             m
             for m in entry
-            if m in base and not Thresholds.better_or_equal(m, entry[m], base[m])
+            if not (
+                Thresholds.better_or_equal(m, entry[m], base[m])
+                if m in base
+                else Thresholds.meets(m, entry[m])
+            )
         ]
 
     @staticmethod
@@ -167,8 +228,8 @@ class PlanApplier:
         ``Thresholds.meets`` cap AND regressed against ``base`` (worse than
         the file's existing committed baseline value for that metric, per
         ``Thresholds.better_or_equal`` -- direction-aware, so a floor metric
-        like ``method_ratio`` regresses on a DECREASE while a ceiling metric
-        like ``module_size`` regresses on an INCREASE). An over-cap metric
+        like ``encapsulation_ratio`` regresses on a DECREASE while a cap
+        metric like ``avg_params`` regresses on an INCREASE). An over-cap metric
         that is unchanged or improved against its baseline is carried
         forward untouched, not refused -- ``check()``'s own lock/
         no-regression rule already grandfathers a pre-existing,

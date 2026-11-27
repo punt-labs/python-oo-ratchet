@@ -355,30 +355,34 @@ The OO targets are fixed in
 [`oo/thresholds.py`](src/oo_ratchet/oo/thresholds.py), not configurable.
 These are absolute targets for new files, not permission to regress an
 existing file that is already below a cap. Existing debt may remain unchanged
-or improve; `--update` never loosens a recorded metric, even within a cap.
+or improve; `--update` never loosens a recorded metric, even within a cap,
+except `module_size` under its 400-line ceiling (below).
 
 | OO baseline field | Target | Computation |
 |-------------------|--------|-------------|
-| `method_ratio` | >= 0.80 | Methods / (methods + top-level functions) |
 | `encapsulation_ratio` | >= 1.0 | Private `self` attribute assignments / all such assignments; 1 if none |
 | `avg_params` | <= 4.0 | Mean parameter count over every `def` / `async def` |
 | `max_complexity` | <= 10 | Maximum function cyclomatic complexity; 0 if no functions |
 | `avg_complexity` | <= 5.0 | Mean function cyclomatic complexity; 0 if no functions |
-| `module_size` | <= 300 | Physical lines carrying code tokens, excluding docstrings |
-| `classes_per_module` | <= 3 | Top-level classes, with the exemptions below |
-| `class_to_func_ratio` | >= 0.5 | Classes / (classes + top-level functions), with its own narrower exclusions |
+| `module_size` | <= 400, ceiling | Physical lines carrying code tokens, excluding docstrings |
 | `init_violations` | == 0 | Explicit synchronous `__init__` methods on non-dataclass classes |
 | `public_attr_violations` | == 0 | Assignments to `self` attributes not starting with `_` |
 | `future_annotations` | == 1 | Presence of `from __future__ import annotations` |
 
-Details from [`oo/metrics.py`](src/oo_ratchet/oo/metrics.py): methods include
-direct methods of every class in the AST (including nested classes), not just
-public or instance methods. There is no methods-per-class cap. Both shape
-ratios return 1 when their denominator is zero, unless there are more than 5
-top-level statements, when they return 0. Imports, definitions and string
-expression statements do not count toward that fallback statement count.
-`class_to_func_ratio` excludes only classes with bare `Protocol` / `TypedDict`
-bases (also subscripted), not all the `classes_per_module` exemptions.
+`module_size` is a ceiling, not a ratcheted value. Under 400 code lines,
+growing a file is not a regression and shrinking it is not an improvement;
+over 400, any growth regresses and any shrinkage improves. Comparing module
+size file by file rewarded splitting cohesive code into tiny modules.
+
+Module shape is not gated. `--json` still reports `method_ratio`,
+`class_to_func_ratio` and `classes_per_module` per file, but no target applies
+to them and baselines do not record them: requiring classes over functions and
+few classes per module pushed code into one-class modules and functions
+wrapped in stateless classes. The advisory `design` check reports those shapes
+directly (`stateless-single-method`, `stateless-function-bag`), along with
+responsibility problems such as `envied-data` and `feature-envy`. Those
+findings measure design better than module size or shape does; they remain
+advisory until their precision on adopter repositories is measured (PL-1685).
 
 Parameter counts include positional-only, ordinary and keyword-only arguments,
 exclude `*args` / `**kwargs`, and subtract a leading `self` or `cls`; no
@@ -387,7 +391,7 @@ functions gives 0. Complexity starts at 1 and adds one for each `if`, ternary,
 or-pattern alternative after the first; each comprehension plus its filters;
 and each `case` (including `_`) plus its guard. Nested function bodies are
 scored separately, not charged to the enclosing function; their headers are
-still visited there. Shape/encapsulation ratios round to 3 decimal places;
+still visited there. Encapsulation ratios round to 3 decimal places;
 parameter and complexity averages round to 2.
 
 Encapsulation counts assignment occurrences, not unique fields: only direct
@@ -402,8 +406,8 @@ Trailing comments do not remove the code line. Non-docstring strings count,
 including nonblank lines spanned by multiline strings; a docstring sharing a
 line with real code does not remove that code. A physical line counts once.
 
-[`ClassKinds`](src/oo_ratchet/oo/class_kinds.py) excludes these from
-`classes_per_module` (nested classes never count):
+[`ClassKinds`](src/oo_ratchet/oo/class_kinds.py) excludes these from the
+reported, ungated `classes_per_module` (nested classes never count):
 
 - Bases named `Protocol` or `TypedDict`.
 - Bases named `Enum`, `IntEnum`, `StrEnum`, `Flag`, `IntFlag`, `ReprEnum`,
@@ -473,7 +477,7 @@ OO actions are mutually exclusive. The write contracts in
 
 | Action | Allowed / refused |
 |--------|-------------------|
-| `--update` | Scopes to the base diff, carries rename history, removes vanished rows, writes new/non-regressing rows; refuses any metric regression against the in-tree baseline and preserves refused rows. Parse-error rows are kept and refused. |
+| `--update` | Scopes to the base diff, carries rename history, removes vanished rows, writes new/non-regressing rows; refuses any metric regression against the baseline at the merge base (the in-tree baseline when the base has none) and preserves refused rows. A later commit on a branch may give back part of an earlier commit's gain while it stays no worse than the base. Parse-error rows are kept and refused. |
 | `--reconcile` | Explicit whole-scored-tree never-loosening sweep, with rename carry and deletion pruning; not a reset. |
 | `--relax FILE --justify TEXT` | Writes all current metrics for an already-baselined scored file, even over target. Refuses blank justification, unscored files, new files, or a file with no actual regression. Audits only loosened metrics as waiver deltas. |
 | `--rebaseline-files PATH[,PATH...] --reason TEXT` | Bounded bless of only named scored files; refuses blank reason or an empty path list. A metric blocks its file only if both outside target and worse than its prior baseline. Unchanged/improved over-target debt carries; without a prior metric, outside target refuses. Accepted files are written even if others refuse (exit 1). |
@@ -488,13 +492,17 @@ audit metadata (for example a PR/bead reference), not authorization;
 `--justify` belongs to relax and `--reason` to the bounded bless.
 
 OO `--check` requires touched-file baseline values to equal current scores.
-It compares those scores against the base baseline, follows renames, rejects
+It compares those scores against the baseline committed at the merge base,
+never against an intermediate commit on the branch, follows renames, rejects
 regressions, and normally requires at least one improvement across existing
-touched files. If all files are new, passing their targets suffices. New
-zero-class extractions proven to originate in baselined code may waive only
-`method_ratio` and `class_to_func_ratio`. No touched scored Python files is a
-trivial pass. `--allow-no-improvement` waives only the improvement requirement,
-not regressions, parse failures or baseline integrity.
+touched files. A gated metric missing from a file's base row is judged by its
+target and never counts as an improvement. If all files are new, passing
+their targets suffices. With no touched scored Python files, `--check`
+passes once every row the branch rewrote matches the code: a file improved
+and then reverted to its base contents leaves its row out of date until
+`--update` refreshes it.
+`--allow-no-improvement` waives only the improvement requirement, not
+regressions, parse failures or baseline integrity.
 
 Relax/bless audit entries absent from the comparison base waive only their
 recorded file/metric pairs, and only while the current value is locked in the
@@ -531,14 +539,11 @@ For example, one complete row in each respective file:
 ```json
 {
   "src/pkg/model.py": {
-    "method_ratio": 1.0,
     "encapsulation_ratio": 1.0,
     "avg_params": 1.0,
     "max_complexity": 1.0,
     "avg_complexity": 1.0,
     "module_size": 12.0,
-    "classes_per_module": 1.0,
-    "class_to_func_ratio": 1.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -567,7 +572,7 @@ write. Their fields are:
 | `commit` | Short HEAD SHA, or null when unavailable |
 | `source` | Optional caller reference, otherwise null |
 | `files_scored` | Number of parse-clean files scored |
-| `files_improved` | Writer's improvement count; ordinary updates count changed accepted rows, including new rows, not backfills |
+| `files_improved` | Writer's improvement count. OO updates count files with a metric strictly better than their previous row (not new rows, backfills, or `module_size` growth under its ceiling); coupling updates count changed accepted rows, including new rows, not backfills |
 | `files_regressed` | Writer's refused/regressed file count (updates also include parse failures); not necessarily zero for an intentional bless |
 | `verdict` | Operation/result: `pass`, `fail`, `relaxed`, `rebaseline-files`, `rebaseline` |
 | `reason` | Human justification; OO omits it if unset, coupling writes null |
@@ -634,8 +639,9 @@ prompts and regression protection, not a replacement for design review.
 Seeded from vox (`tools/oo_ratchet`, `tools/coupling`, `tools/suppression`),
 then merged:
 
-- **quarry**: extraction provenance for new zero-class modules (`diffmodel.py`,
-  `provenance.py`), coupling `--tripwire`, `tokenize`-based suppression scan.
+- **quarry**: coupling `--tripwire`, `tokenize`-based suppression scan, and an
+  extraction waiver for the two class-shape ratios, since removed with those
+  ratios.
 - **lux**: `--rebaseline-files` bounded bless with over-cap carry (`bless.py`),
   vanished-row cleanup on `--update`, removed rows recorded in the audit log;
   in 0.2.0 the broad stateless-value LCOM exemption, exact-path coupling caps

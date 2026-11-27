@@ -2,29 +2,46 @@
 
 from __future__ import annotations
 
+import operator
+from collections.abc import Callable
 from typing import ClassVar
 
 
 class Thresholds:
     """OO metric thresholds plus the ordering semantics each metric obeys.
 
-    A metric's operator (``>=``, ``<=``, ``==``) defines both its absolute
-    target and what "better" means: for ``==`` metrics, closer to the target
-    is better; for the others, the operator direction is the ordering.
+    A metric's operator (``>=``, ``<=``, ``==``) defines its absolute target.
+    Comparisons rank values by badness, where lower is better: the value for
+    ``<=``, its negation for ``>=``, and the distance to the target for ``==``.
+
+    A ceiling metric is bad only above its target, so it is ranked by
+    ``max(value, target)``: under the ceiling every value ranks the same, so
+    growing a small module is neither a regression nor shrinking it an
+    improvement; over the ceiling, smaller is better. Module size is a
+    ceiling: comparing it file by file rewarded splitting cohesive code into
+    many tiny modules (PL-1685).
     """
 
     TABLE: ClassVar[dict[str, tuple[str, float]]] = {
-        "method_ratio": (">=", 0.80),
         "encapsulation_ratio": (">=", 1.0),
         "avg_params": ("<=", 4.0),
         "max_complexity": ("<=", 10),
         "avg_complexity": ("<=", 5.0),
-        "module_size": ("<=", 300),
-        "classes_per_module": ("<=", 3),
-        "class_to_func_ratio": (">=", 0.5),
+        "module_size": ("<=", 400),
         "init_violations": ("==", 0),
         "public_attr_violations": ("==", 0),
         "future_annotations": ("==", 1),
+    }
+    CEILINGS: ClassVar[frozenset[str]] = frozenset({"module_size"})
+    _MEETS: ClassVar[dict[str, Callable[[float, float], bool]]] = {
+        ">=": operator.ge,
+        "<=": operator.le,
+        "==": operator.eq,
+    }
+    _BADNESS: ClassVar[dict[str, Callable[[float, float], float]]] = {
+        ">=": lambda value, _target: -value,
+        "<=": lambda value, _target: value,
+        "==": lambda value, target: abs(value - target),
     }
 
     @classmethod
@@ -42,28 +59,25 @@ class Thresholds:
     def meets(cls, metric: str, value: float) -> bool:
         """Return whether value satisfies the metric's absolute threshold."""
         op, target = cls.TABLE[metric]
-        if op == ">=":
-            return value >= target
-        if op == "<=":
-            return value <= target
-        return value == target
+        return cls._MEETS[op](value, target)
 
     @classmethod
     def better_or_equal(cls, metric: str, current: float, baseline: float) -> bool:
         """Return whether current is at least as good as baseline."""
-        op, target = cls.TABLE[metric]
-        if op == ">=":
-            return current >= baseline
-        if op == "<=":
-            return current <= baseline
-        return abs(current - target) <= abs(baseline - target)
+        rank = cls._rank(metric)
+        return rank(current) <= rank(baseline)
 
     @classmethod
     def strictly_better(cls, metric: str, current: float, baseline: float) -> bool:
         """Return whether current is strictly better than baseline."""
+        rank = cls._rank(metric)
+        return rank(current) < rank(baseline)
+
+    @classmethod
+    def _rank(cls, metric: str) -> Callable[[float], float]:
+        """Return the metric's badness function; lower is better."""
         op, target = cls.TABLE[metric]
-        if op == ">=":
-            return current > baseline
-        if op == "<=":
-            return current < baseline
-        return abs(current - target) < abs(baseline - target)
+        badness = cls._BADNESS[op]
+        if metric in cls.CEILINGS:
+            return lambda value: badness(max(value, target), target)
+        return lambda value: badness(value, target)

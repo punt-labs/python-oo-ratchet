@@ -70,7 +70,9 @@ def test_update_backfills_missing_rows(
     audit = json.loads(audit_path.read_text().splitlines()[-1])
     assert audit["backfilled"] == ["pkg/b.py"]
     assert "pkg/b.py" not in audit["deltas"]
-    expected_improved = 1 if scenario == "branch" else 0
+    # The branch adds pkg/new.py. Coupling counts a new row as improved;
+    # OO counts only files whose metrics beat a prior row (PL-1685).
+    expected_improved = 1 if scenario == "branch" and run is coupling_main else 0
     assert audit["files_improved"] == expected_improved
     assert f"files improved: {expected_improved}" in output
     if scenario == "branch":

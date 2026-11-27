@@ -66,7 +66,7 @@ Cells are true/sampled. Finding counts per repository (vox, quarry, lux, z-spec)
 "Gate" means: `oo-ratchet design --shadow-check REF --enforce` exits 1 when the
 comparison against the merge base adds a finding of a gate-capable rule. It is
 off by default; without `--enforce` the shadow check exits 0 as before. The
-gate-capable list is `Rules.GATE_CAPABLE` in `src/oo_ratchet/design/findings.py`:
+gate-capable list is `Rules.GATE_CAPABLE` in `src/oo_ratchet/core/domain/findings.py`:
 
 - `layer-import`, `unlayered-module`, `thick-entry`, `size-cap`: 100%, every
   finding verified.

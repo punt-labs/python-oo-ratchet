@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from oo_ratchet.__main__ import main
-from oo_ratchet.design.findings import Rules
+from oo_ratchet.core.domain.findings import Rules
 from tests.test_design_shadow import repo as repo
 from tests.test_design_shadow import seed, write
 

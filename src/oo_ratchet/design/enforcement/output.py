@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 from typing import Self
 
-from oo_ratchet.design.findings import Rules
+from oo_ratchet.core.domain.findings import Rules
 from oo_ratchet.design.scanner import DesignScanner
 from oo_ratchet.design.shadow import ShadowCheck
 from oo_ratchet.source_set import Source

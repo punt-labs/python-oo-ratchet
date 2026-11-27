@@ -31,9 +31,12 @@ class MethodGraph:
             return 1
         names = {n.name for n in self._members(self._owner)}
         prints = [self._footprint(m, names) for m in methods]
-        if not any(fields or calls for _, fields, calls in prints):
-            return 1  # no fields and no calls: LCOM4 has no edges to measure
-        return self._count(prints)
+        return self._count(prints) if self._has_edges(prints) else 1
+
+    @staticmethod
+    def _has_edges(prints: list[_Footprint]) -> bool:
+        """Return False when no method touches a field or calls a sibling."""
+        return any(fields or calls for _, fields, calls in prints)
 
     @classmethod
     def _methods(cls, owner: Declaration) -> list[Declaration]:
@@ -44,8 +47,8 @@ class MethodGraph:
             and not ModuleCouplingMetrics._is_static_or_class(n)
         ]
 
-    @staticmethod
-    def _members(owner: Declaration) -> list[Method]:
+    @classmethod
+    def _members(cls, owner: Declaration) -> list[Method]:
         node = owner.node
         if not isinstance(node, ast.ClassDef):
             return []
@@ -53,20 +56,24 @@ class MethodGraph:
             n
             for n in node.body
             if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
-            and not ClassShape._is_property(n)
-            and not ClassShape._is_setter(n)
+            and not cls._is_accessor(n)
         ]
+
+    @staticmethod
+    def _is_accessor(node: Method) -> bool:
+        return ClassShape._is_property(node) or ClassShape._is_setter(node)
 
     @classmethod
     def _footprint(cls, owner: Declaration, methods: set[str]) -> _Footprint:
         nodes = FunctionShape(owner).nodes()
+        called = cls._called(nodes, methods)
+        fields = {n.attr for n in cls._attributes(nodes) if n not in called}
+        return (owner.node.name, fields, {n.attr for n in called})
+
+    @classmethod
+    def _called(cls, nodes: list[ast.AST], methods: set[str]) -> set[ast.Attribute]:
         targets = {n.func for n in nodes if isinstance(n, ast.Call)}
-        attrs = cls._attributes(nodes)
-        return (
-            owner.node.name,
-            {n.attr for n in attrs if n not in targets or n.attr not in methods},
-            {n.attr for n in attrs if n in targets and n.attr in methods},
-        )
+        return {n for n in cls._attributes(nodes) if n in targets and n.attr in methods}
 
     @staticmethod
     def _attributes(nodes: list[ast.AST]) -> set[ast.Attribute]:

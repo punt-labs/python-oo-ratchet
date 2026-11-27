@@ -26,10 +26,11 @@ class BlessBase:
         """Return the base row of ``path``, following a rename."""
         return self.rows.get(self.renames.get(path, path))
 
-    def predecessor(self, path: str) -> str | None:
-        """Return the path ``path`` was renamed from, ``None`` if it was not."""
+    def forget_predecessor(self, rows: Rows, path: str) -> None:
+        """Drop from ``rows`` the path ``path`` was renamed from, if it was."""
         old = self.renames.get(path)
-        return old if old is not None and old != path else None
+        if old is not None and old != path:
+            rows.pop(old, None)
 
     @classmethod
     def load(

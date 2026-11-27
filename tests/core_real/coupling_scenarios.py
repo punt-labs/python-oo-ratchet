@@ -6,7 +6,9 @@ runs are recorded (see ``coupling_play``); a scenario asserts nothing itself.
 
 from __future__ import annotations
 
+import inspect
 from collections.abc import Callable
+from typing import cast
 
 from tests.core_real.coupling_play import BROKEN, HEADER, HIGH, HIGHER, LOW, Play
 
@@ -662,6 +664,52 @@ def log_views(p: Play) -> None:
     p.run("pkg", "--log")
 
 
+def check_audit_entries_of_odd_shape_waive_nothing(p: Play) -> None:
+    _base(p)
+    p.write("pkg/a.py", HIGH)
+    entries = [
+        '{"verdict":"relaxed","deltas":[1,2]}',
+        '{"verdict":"relaxed","deltas":{"pkg/a.py":"public_names"}}',
+        '{"verdict":"relaxed","deltas":{"pkg/a.py":["public_names"]}}',
+        '{"verdict":"relaxed"}',
+    ]
+    p.write(".oo-coupling-audit.jsonl", "\n".join(entries) + "\n")
+    p.seed().commit("regress with odd audit entries")
+    p.run(*CHECK)
+
+
+def check_from_a_subdirectory(p: Play) -> None:
+    _base(p)
+    p.write("pkg/a.py", HIGH).commit("regress")
+    p.chdir("pkg")
+    p.run("../pkg", "--check", "--base-ref", "base", "--require-base")
+    p.run(".", "--check", "--base-ref", "base", "--require-base")
+
+
+def check_a_single_file_target(p: Play) -> None:
+    _base(p)
+    p.write("pkg/a.py", HIGH).commit("regress")
+    p.run("pkg/a.py", "--check", "--base-ref", "base", "--require-base")
+    p.run("pkg/a.py", "--update", "--base-ref", "base", "--allow-ci-write")
+
+
+def no_repository(p: Play) -> None:
+    p.write("pkg/a.py", LOW).seed()
+    p.leave_repository()
+    p.run("pkg", "--check")
+    p.run("pkg", "--update", "--allow-ci-write")
+    p.run("pkg", "--rebaseline-files", "pkg/a.py", "--reason", "r", "--allow-ci-write")
+    p.run("pkg", "--rebaseline", "--allow-ci-write")
+    p.run("pkg", "--log")
+
+
+def check_corrupt_baseline_at_the_main_tip(p: Play) -> None:
+    p.write("pkg/a.py", LOW).commit("pre-adoption").tag("base")
+    p.write(".oo-coupling-baseline.json", "{oops").commit("corrupt").origin_main()
+    p.seed().commit("valid in-tree baseline")
+    p.run_state_error("pkg", "--check", "--base-ref", "base")
+
+
 def config_errors(p: Play) -> None:
     _base(p)
     p.write("pyproject.toml", "[tool.oo-ratchet.coupling]\nbogus = 1\n")
@@ -676,11 +724,14 @@ def argument_errors(p: Play) -> None:
     p.run("pkg", "--nonsense")
 
 
-SCENARIOS: dict[str, Scenario] = {
-    name: fn
-    for name, fn in sorted(globals().items())
-    if callable(fn)
-    and fn.__module__ == __name__
-    and not name.startswith("_")
-    and name not in {"Scenario"}
-}
+def _collect() -> dict[str, Scenario]:
+    """Return every public scenario function of this module, by name."""
+    found: dict[str, Scenario] = {}
+    for name, obj in sorted(globals().items()):
+        public = not name.startswith("_")
+        if public and inspect.isfunction(obj) and obj.__module__ == __name__:
+            found[name] = cast("Scenario", obj)
+    return found
+
+
+SCENARIOS = _collect()

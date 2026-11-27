@@ -70,9 +70,10 @@ class AuditFormat:
             raise StateError(f"malformed audit entry {line[:80]!r}: {exc}") from exc
         if not isinstance(raw, dict):
             raise StateError(f"malformed audit entry {line[:80]!r}: not an object")
+        verdict, deltas = raw.get("verdict"), raw.get("deltas")
         return AuditRecord(
-            verdict=raw.get("verdict", ""),
-            deltas=raw.get("deltas") or {},
+            verdict=verdict if isinstance(verdict, str) else "",
+            deltas=deltas if isinstance(deltas, dict) else {},
             files_scored=raw.get("files_scored", 0),
             files_improved=raw.get("files_improved", 0),
             files_regressed=raw.get("files_regressed", 0),

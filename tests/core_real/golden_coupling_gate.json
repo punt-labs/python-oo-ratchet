@@ -607,6 +607,89 @@
    }
   }
  ],
+ "check_a_single_file_target": [
+  {
+   "argv": [
+    "pkg/a.py",
+    "--check",
+    "--base-ref",
+    "base",
+    "--require-base"
+   ],
+   "code": 1,
+   "out": [
+    "",
+    "File                                     Metric                       Baseline    Current    Delta     Status",
+    "------------------------------------------------------------------------------------------------------------",
+    "pkg/a.py                                 public_names                    1.000      2.000   +1.000  REGRESSED",
+    "",
+    "FAIL: regression detected",
+    "  pkg/a.py: public_names"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg/a.py",
+    "--update",
+    "--base-ref",
+    "base",
+    "--allow-ci-write"
+   ],
+   "code": 1,
+   "out": [
+    "",
+    "Baseline updated: <root>/.oo-coupling-baseline.json",
+    "  files improved: 0",
+    "  files removed:  0",
+    "  REFUSED (1 files):",
+    "    pkg/a.py: public_names regressed"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":1,\"verdict\":\"fail\",\"reason\":null,\"deltas\":{}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "check_audit_entries_of_odd_shape_waive_nothing": [
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base",
+    "--require-base"
+   ],
+   "code": 1,
+   "out": [
+    "",
+    "File                                     Metric                       Baseline    Current    Delta     Status",
+    "------------------------------------------------------------------------------------------------------------",
+    "pkg/a.py                                 public_names                    1.000      2.000   +1.000  REGRESSED",
+    "",
+    "FAIL: regression detected",
+    "  pkg/a.py: public_names"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"verdict\":\"relaxed\",\"deltas\":[1,2],\"ts\":\"<ts>\"}",
+     "{\"verdict\":\"relaxed\",\"deltas\":{\"pkg/a.py\":\"public_names\"},\"ts\":\"<ts>\"}",
+     "{\"verdict\":\"relaxed\",\"deltas\":{\"pkg/a.py\":[\"public_names\"]},\"ts\":\"<ts>\"}",
+     "{\"verdict\":\"relaxed\",\"ts\":\"<ts>\"}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":1,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"public_names\":[1.0,2.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 2.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
  "check_base_unresolvable": [
   {
    "argv": [
@@ -758,6 +841,24 @@
     "--base-ref",
     "base",
     "--require-base"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: <state error>"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": null,
+    ".oo-coupling-baseline.json": "{oops"
+   }
+  }
+ ],
+ "check_corrupt_baseline_at_the_main_tip": [
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base"
    ],
    "code": 1,
    "out": [
@@ -952,6 +1053,58 @@
    "state": {
     ".oo-coupling-audit.jsonl": null,
     ".oo-coupling-baseline.json": null
+   }
+  }
+ ],
+ "check_from_a_subdirectory": [
+  {
+   "argv": [
+    "../pkg",
+    "--check",
+    "--base-ref",
+    "base",
+    "--require-base"
+   ],
+   "code": 1,
+   "out": [
+    "",
+    "File                                     Metric                       Baseline    Current    Delta     Status",
+    "------------------------------------------------------------------------------------------------------------",
+    "pkg/a.py                                 public_names                    1.000      2.000   +1.000  REGRESSED",
+    "",
+    "FAIL: regression detected",
+    "  pkg/a.py: public_names"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    ".",
+    "--check",
+    "--base-ref",
+    "base",
+    "--require-base"
+   ],
+   "code": 1,
+   "out": [
+    "",
+    "File                                     Metric                       Baseline    Current    Delta     Status",
+    "------------------------------------------------------------------------------------------------------------",
+    "pkg/a.py                                 public_names                    1.000      2.000   +1.000  REGRESSED",
+    "",
+    "FAIL: regression detected",
+    "  pkg/a.py: public_names"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
    }
   }
  ],
@@ -1578,6 +1731,109 @@
      "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":1,\"verdict\":\"rebaseline-files\",\"reason\":\"r\",\"deltas\":{\"pkg/__main__.py\":{\"public_names\":[90.0,99.0]}},\"improved\":{}}"
     ],
     ".oo-coupling-baseline.json": "{\n  \"pkg/__main__.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 99.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "no_repository": [
+  {
+   "argv": [
+    "pkg",
+    "--check"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: cannot resolve merge-base (origin/main unfetched or stale) with an in-tree baseline present; fetch origin/main or pass --base-ref"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--update",
+    "--allow-ci-write"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: cannot resolve base (origin/main unfetched or stale) with a coupling baseline present; fetch origin/main, pass --base-ref, or use --rebaseline for an intentional whole-tree reset"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--rebaseline-files",
+    "pkg/a.py",
+    "--reason",
+    "r",
+    "--allow-ci-write"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "Baseline blessed for 1 file(s) (reason: r):",
+    "  files:",
+    "    pkg/a.py"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline-files\",\"reason\":\"r\",\"deltas\":{},\"improved\":{}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--rebaseline",
+    "--allow-ci-write"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "Baseline reset: <root>/.oo-coupling-baseline.json",
+    "  files scored: 1"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline-files\",\"reason\":\"r\",\"deltas\":{},\"improved\":{}}",
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":null,\"deltas\":{}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--log"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "Timestamp              Commit      Scored  Improved  Regressed      Verdict",
+    "--------------------------------------------------------------------------",
+    "<ts>   ?                1         0          0   rebaseline",
+    "<ts>   ?                1         0          0 rebaseline-files",
+    "<ts>   ?                1         0          0   rebaseline"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline-files\",\"reason\":\"r\",\"deltas\":{},\"improved\":{}}",
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":null,\"deltas\":{}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
    }
   }
  ],

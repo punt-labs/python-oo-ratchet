@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from oo_ratchet.core.domain.records import AuditRecord
@@ -11,6 +10,7 @@ from oo_ratchet.core.domain.verdicts import Failure, Verdict
 
 from .blessbase import BlessBase
 from .operation import Operation
+from .rowchanges import RowChanges
 
 Deltas = dict[str, dict[str, list[float]]]
 
@@ -75,15 +75,15 @@ class Rebaseline(Operation):
         current = self._source.measure().metrics()
         stored = self._store.rows()
         removed = stored.keys() - current.keys()
-        deltas, improved, regressed = self._changes(stored, current, detail=detail)
+        changes = RowChanges(self._policy, stored if detail else current, current)
         self._store.save(current)
         self._audit.append(
             AuditRecord(
                 verdict="rebaseline",
-                deltas=deltas,
+                deltas=changes.deltas,
                 files_scored=len(current),
-                files_improved=improved,
-                files_regressed=regressed,
+                files_improved=changes.gained,
+                files_regressed=changes.lost,
                 removed=tuple(sorted(removed)),
                 reason=reason.strip() or None,
                 source=source,
@@ -91,30 +91,6 @@ class Rebaseline(Operation):
             )
         )
         return Verdict.ok("baseline reset", written=tuple(sorted(current)))
-
-    def _changes(
-        self, stored: Rows, current: Rows, *, detail: bool
-    ) -> tuple[Deltas, int, int]:
-        """Return the changed metrics, and how many files gained and lost."""
-        if not detail:
-            return {}, 0, 0
-        deltas: Deltas = {}
-        for path, entry in current.items():
-            old = stored.get(path, {})
-            diff = {
-                m: [old.get(m, 0.0), v] for m, v in entry.items() if old.get(m) != v
-            }
-            if diff:
-                deltas[path] = diff
-        kept = deltas.keys() & stored.keys()
-        worse = {path for path in kept if self._loosens(deltas[path])}
-        return deltas, len(kept - worse), len(worse)
-
-    def _loosens(self, diff: dict[str, list[float]]) -> bool:
-        return any(
-            not self._policy.metric(m).better_or_equal(new, old)
-            for m, (old, new) in diff.items()
-        )
 
 
 class RebaselineFiles(Operation):
@@ -143,8 +119,8 @@ class RebaselineFiles(Operation):
             return Verdict.refused("blank-reason")
         current = self._source.measure().metrics()
         stored = self._store.rows()
-        reference = base.row if base is not None else stored.get
-        accepted, refused = self._partition(paths, current, reference)
+        base = base or BlessBase(stored)
+        accepted, refused = self._partition(paths, current, base)
         if accepted:
             self._write(accepted, current, (stored, base), (reason, source))
         failures = (Failure("refused", tuple(refused)),) if refused else ()
@@ -154,7 +130,7 @@ class RebaselineFiles(Operation):
         self,
         paths: list[str],
         current: Rows,
-        reference: Callable[[str], dict[str, float] | None],
+        base: BlessBase,
     ) -> tuple[list[str], list[str]]:
         """Split ``paths`` into those that clear the gate and refusal messages."""
         accepted: list[str] = []
@@ -163,7 +139,7 @@ class RebaselineFiles(Operation):
             path = self._source.key(requested)
             entry = current.get(path, {})
             policy = self._policy.for_path(path)
-            gated = policy.over_cap_and_regressed(entry, reference(path))
+            gated = policy.over_cap_and_regressed(entry, base.row(path))
             if path not in current:
                 refused.append(f"{requested}: not found in scored tree")
             elif gated:
@@ -176,20 +152,16 @@ class RebaselineFiles(Operation):
         self,
         accepted: list[str],
         current: Rows,
-        recorded: tuple[Rows, BlessBase | None],
+        recorded: tuple[Rows, BlessBase],
         meta: tuple[str, str | None],
     ) -> None:
         stored, base = recorded
         rows = dict(stored)
         bless = Bless()
         for path in accepted:
-            entry = current[path]
-            old = base.row(path) if base is not None else stored.get(path)
-            if old is not None:
-                self._classify(path, entry, old, bless)
-            if base is not None and (renamed := base.predecessor(path)) is not None:
-                rows.pop(renamed, None)
-            rows[path] = entry
+            self._classify(path, current[path], base.row(path), bless)
+            base.forget_predecessor(rows, path)
+            rows[path] = current[path]
         reason, source = meta
         self._audit.append(
             AuditRecord(
@@ -207,8 +179,14 @@ class RebaselineFiles(Operation):
         self._store.save(rows)
 
     def _classify(
-        self, path: str, entry: dict[str, float], old: dict[str, float], bless: Bless
+        self,
+        path: str,
+        entry: dict[str, float],
+        old: dict[str, float] | None,
+        bless: Bless,
     ) -> None:
+        if old is None:
+            return
         waived, gains = self._policy.changes(entry, old)
         if waived:
             bless.waived[path] = waived

@@ -12,8 +12,12 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Self
 
-from oo_ratchet.coupling.baseline import CouplingBaseline
+from oo_ratchet.core.adapters.jsonstore import JsonBaselineStore
+from oo_ratchet.coupling.config import CouplingConfig
+from oo_ratchet.coupling.gateinput import GateInput
 from oo_ratchet.coupling.scorer import CouplingScorer
+
+FILE = ".oo-coupling-baseline.json"
 
 _MOD_A = (
     "from __future__ import annotations\n\n"
@@ -86,19 +90,19 @@ class TestBaselineRoundTrip:
     def test_reloaded_entries_equal_fresh_score(self, tmp_path: Path) -> None:
         pkg = _Package(tmp_path)
         first = CouplingScorer(pkg.target, repo_root=pkg.root)
-        baseline = CouplingBaseline(pkg.root)
-        baseline.save(CouplingBaseline.metrics_by_file(first.results))
+        JsonBaselineStore(pkg.root / FILE).save(
+            GateInput(CouplingConfig(), first).measurement.metrics()
+        )
 
-        reloaded = CouplingBaseline(pkg.root)
+        reloaded = JsonBaselineStore(pkg.root / FILE).rows()
         second = CouplingScorer(pkg.target, repo_root=pkg.root)
-        fresh = CouplingBaseline.metrics_by_file(second.results)
 
-        assert reloaded.entries == fresh
+        assert reloaded == GateInput(CouplingConfig(), second).measurement.metrics()
 
     def test_every_scored_file_lands_in_baseline(self, tmp_path: Path) -> None:
         pkg = _Package(tmp_path)
         scorer = CouplingScorer(pkg.target, repo_root=pkg.root)
-        baseline = CouplingBaseline(pkg.root)
-        baseline.save(CouplingBaseline.metrics_by_file(scorer.results))
+        store = JsonBaselineStore(pkg.root / FILE)
+        store.save(GateInput(CouplingConfig(), scorer).measurement.metrics())
 
-        assert set(baseline.entries) == scorer.files
+        assert set(store.rows()) == scorer.files

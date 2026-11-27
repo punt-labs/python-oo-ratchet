@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 import subprocess
 from collections.abc import Callable
 from pathlib import Path
@@ -100,6 +101,12 @@ class Play:
     def remove(self, rel: str) -> Self:
         """Delete a tracked or untracked file."""
         (self._root / rel).unlink()
+        return self
+
+    def leave_repository(self) -> Self:
+        """Delete the git directory: later runs are outside any repository."""
+        shutil.rmtree(self._root / ".git")
+        self._monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(self._root.parent))
         return self
 
     def move(self, src: str, dst: str) -> Self:

@@ -6,8 +6,6 @@ import ast
 from pathlib import Path
 from typing import TYPE_CHECKING, Self
 
-from oo_ratchet.core.domain.scores import Measurement, Score
-
 from .config import CouplingConfig
 from .imports import ImportResolver
 from .layout import PackageLayout
@@ -58,17 +56,6 @@ class CouplingScorer:
     def config(self) -> CouplingConfig:
         """Return the repository coupling settings this scorer applied."""
         return self._config
-
-    @property
-    def measurement(self) -> Measurement:
-        """Return the scored files and the unparseable ones, for the gate."""
-        names = CouplingThresholds.names()
-        scores = tuple(
-            Score(str(r["file"]), {k: float(r[k]) for k in names if k in r})
-            for r in self._results
-            if "error" not in r
-        )
-        return Measurement(scores, self.parse_errors)
 
     @property
     def packages(self) -> tuple[PackageMetrics, ...]:

@@ -135,6 +135,48 @@ class TestShadowedModules:
         assert "a.py" in out or "a/__init__.py" in out
 
 
+class TestShadowedRoundTrip:
+    """A shadowed name is unclassified as a whole: the gate sees one name."""
+
+    def test_shadowed_io_file_does_not_make_the_name_domain(
+        self, repo: LayersRepo
+    ) -> None:
+        start(repo)
+        repo.write("src/app/a/__init__.py", "X = 1\n")
+        repo.write("src/app/a.py", "import json\n")
+        out, data = roundtrip(repo)
+        assert data["violations"] == []
+        assert "app.a" not in {m for r in rings(out).values() for m in r}
+        assert "# app.a: unclassified (shadowed: 2 files are module app.a" in out
+
+    def test_shadowed_file_importing_an_adapter(self, repo: LayersRepo) -> None:
+        start(repo)
+        repo.write("src/app/db.py", "import subprocess\n")
+        repo.write("src/app/a/__init__.py", "X = 1\n")
+        repo.write("src/app/a.py", "import app.db\n")
+        out, data = roundtrip(repo)
+        assert data["violations"] == []
+        assert "app.a" not in {m for r in rings(out).values() for m in r}
+
+    def test_no_glob_over_a_shadowed_pair(self, repo: LayersRepo) -> None:
+        start(repo)
+        repo.write("src/app/sub/__init__.py", "")
+        repo.write("src/app/sub/b.py", "X = 1\n")
+        repo.write("src/app/sub/a/__init__.py", "X = 1\n")
+        repo.write("src/app/sub/a.py", "import json\n")
+        out, data = roundtrip(repo)
+        assert data["violations"] == []
+        assert "app.sub.*" not in rings(out)["domain"]
+
+    def test_empty_reasons_section_says_none(self, repo: LayersRepo) -> None:
+        start(repo)
+        for name in ("kernel", "service", "cli"):
+            repo.edit(name, "from app import a\n")
+        repo.write("src/app/a/__init__.py", "")
+        repo.write("src/app/a.py", "")
+        assert repo.run("--suggest")[1].rstrip().endswith("# Reasons:\n#   none")
+
+
 class TestEvidenceMatchesTheGate:
     """Type-only imports and nested classes do not count."""
 

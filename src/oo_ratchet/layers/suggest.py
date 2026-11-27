@@ -75,7 +75,10 @@ class Suggestion:
         if not unknown:
             lines.append("#   none")
         lines.extend(("", "# Reasons:"))
-        lines.extend(self._reason(n) for n in self._modules if n not in unknown)
+        placed = [n for n in self._modules if n not in unknown]
+        lines.extend(self._reason(n) for n in placed)
+        if not placed:
+            lines.append("#   none")
         return lines
 
     def _reason(self, name: str) -> str:

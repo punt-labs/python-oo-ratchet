@@ -98,37 +98,50 @@ class PackageFacts:
         return self
 
     def all(self) -> list[ModuleFacts]:
-        """Return the facts of each module below the package root, by name."""
+        """Return the facts of each module below the package root, by name.
+
+        The gate names a module by its canonical name, so files that share one
+        (``pkg/a.py`` and ``pkg/a/__init__.py``) are one unclassifiable entry
+        under that name, listing every file; none of them is placed.
+        """
         package = self._index.package_name
         bad = {row.rsplit(":", 1)[0] for row in self._edges.unresolvable()}
+        groups: dict[str, list[Module]] = {}
+        for module in self._index.modules():
+            name = self._names.canonical_name(module)
+            if name != package:
+                groups.setdefault(name, []).append(module)
         rows = [
-            self._of(m, bad)
-            for m in self._index.modules()
-            if self._names.canonical_name(m) != package
+            self._of(name, mods[0], bad)
+            if len(mods) == 1
+            else self._shadowed(name, mods)
+            for name, mods in groups.items()
         ]
         return sorted(rows, key=lambda f: f.name)
 
-    def _of(self, module: Module, bad: set[str]) -> ModuleFacts:
-        name = self._names.name(module)
-        canonical = self._names.canonical_name(module)
+    def _shadowed(self, name: str, mods: list[Module]) -> ModuleFacts:
+        files = ", ".join(
+            sorted(self._index.layout.relative_path(m.path).as_posix() for m in mods)
+        )
+        why = f"shadowed: {len(mods)} files are module {name}: {files}"
+        return ModuleFacts(name, (), (), (), (), why)
+
+    def _of(self, name: str, module: Module, bad: set[str]) -> ModuleFacts:
         io = IoSites(module, self._index.package_name).names()
-        imports = {t for _, _, t in self._edges.targets(module)} - {canonical}
+        imports = {t for _, _, t in self._edges.targets(module)} - {name}
+        unresolvable = (
+            "unresolvable relative import climbs above the package root"
+            if str(module.path) in bad
+            else None
+        )
         return ModuleFacts(
             name,
             tuple(sorted(io)),
-            self._entry(canonical, module),
+            self._entry(name, module),
             self._protocols(module),
             tuple(sorted(imports)),
-            self._forced(name, canonical, unresolvable=str(module.path) in bad),
+            unresolvable,
         )
-
-    @staticmethod
-    def _forced(name: str, canonical: str, *, unresolvable: bool) -> str | None:
-        if name != canonical:
-            return f"shadowed: another file is also module {canonical}"
-        if unresolvable:
-            return "unresolvable relative import climbs above the package root"
-        return None
 
     def _entry(self, name: str, module: Module) -> tuple[str, ...]:
         roots = self._roots(module.tree)

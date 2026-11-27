@@ -22,7 +22,9 @@ quality got worse:
   (entry/adapters/application/domain) is `[tool.oo-ratchet.layers]` in
   `pyproject.toml`; `make check-layers` runs the gate.
 - `design`: advisory; findings exit 0, bad input exits 2. `--shadow-check REF`
-  compares findings against the merge base. No state files.
+  compares findings against the merge base; with `--enforce` an added finding
+  of a gate-capable rule exits 1. `make check-design` runs it on this package.
+  No state files.
 
 All state files live at the repository root.
 
@@ -47,7 +49,7 @@ Always use `make` targets; Python 3.13+, managed by `uv`.
 ```bash
 uv sync
 make check            # lint type test check-oo check-coupling check-suppressions
-                      # check-layers
+                      # check-layers check-design
 make lint             # ruff check + ruff format --check (src tests evals)
 make type             # mypy --strict on src+tests, pyright on tests+evals,
                       # plus a separate mypy run per evals/design/*/{bad,good}
@@ -65,7 +67,7 @@ there is no uncollected test directory.
 
 ## The package ratchets itself
 
-`make check-oo`, `check-coupling`, `check-suppressions` and `check-layers` run this package's
+`make check-oo`, `check-coupling`, `check-suppressions`, `check-layers` and `check-design` run this package's
 own gates over `src/oo_ratchet/` only (not `tests/` or `evals/`). Without
 `--base-ref`, `check-oo` and `check-coupling` compare the working tree against
 the merge base of `origin/main` and `HEAD`, so on a clean `main` they see no
@@ -79,6 +81,7 @@ make check-oo OO_BASE="--base-ref <sha> --require-base"
 make check-coupling COUPLING_BASE="--base-ref <sha> --require-base"
 make check-suppressions SUPPRESSION_BASE="--base-ref <sha> --require-base"
 make check-layers LAYERS_BASE="--base-ref <sha> --require-base"
+make check-design DESIGN_BASE="--shadow-check <sha>"
 ```
 
 Consequences for any change under `src/oo_ratchet/`:
@@ -91,6 +94,12 @@ Consequences for any change under `src/oo_ratchet/`:
   same `--base-ref`) and commit the rewritten baseline and audit files with
   the source change. `--check` requires the in-tree baseline to equal the current
   scores.
+- `check-design` runs `design --shadow-check <base> --enforce` and exits 1 when
+  the change adds a finding of `layer-import`, `unlayered-module`,
+  `thick-entry`, `size-cap` or `stateless-single-method` (the last fires only
+  outside the adapters and entry rings). Existing findings do not fail. The
+  default base is `origin/main`; CI uses the merge base on a PR and `HEAD~1`
+  on main. The shadow scan reads the working tree, so uncommitted files count.
 - `check-layers` fails on a layer-import edge not in `.oo-layers-baseline.json`
   (the four-ring table is `[tool.oo-ratchet.layers]` in `pyproject.toml`; the
   baseline holds 106 edges at adoption). `make update-layers` only drops

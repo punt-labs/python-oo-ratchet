@@ -5,7 +5,6 @@ from __future__ import annotations
 import ast
 import json
 import sys
-from collections import Counter
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -22,7 +21,6 @@ from oo_ratchet.oo.audit import AuditError, AuditLog
 from oo_ratchet.oo.gitio import GitError as OoGitError
 from oo_ratchet.oo.gitio import GitRepo
 from oo_ratchet.oo.gitio import GitRepo as OoGitRepo
-from oo_ratchet.oo.provenance import ExtractionDetector
 from oo_ratchet.oo.scorer import Scorer
 from oo_ratchet.suppression.patterns import FileSuppressions
 from oo_ratchet.suppression.scanner import Scanner
@@ -54,14 +52,6 @@ class TestImportResolution:
     ) -> None:
         assert _imports("from . import x\n", "sub", is_package=True) == {"sub.x"}
         assert _imports("from .x import y\n", "sub", is_package=True) == {"sub.x"}
-
-
-def test_repeated_new_lines_do_not_earn_an_extraction_waiver() -> None:
-    moved = Counter({"def f() -> int:": 1, "return 1": 1})
-    detector = ExtractionDetector({"a.py": moved})
-    padded = moved + Counter({"total = compute(total)": 5})
-    assert detector.origin_of(padded) is None
-    assert detector.origin_of(moved) == "a.py"
 
 
 def test_scanner_honors_a_coding_cookie(tmp_path: Path) -> None:

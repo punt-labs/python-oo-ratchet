@@ -8,18 +8,16 @@ from .baseline import Baseline, BaselineError
 from .bless import FileBless
 from .cli import Cli, Options, main
 from .compare import FileReview, Review, Row
-from .diffmodel import Diff, LineChange
+from .diffmodel import Diff
 from .gitio import GitError, GitRepo
 from .metrics import ModuleMetrics
 from .outcome import Outcome
-from .provenance import SHAPE_METRICS, ExtractionDetector
 from .ratchet import Ratchet
 from .scorer import Scorer
 from .thresholds import Thresholds
 from .writer import BaselineWriter
 
 __all__ = [
-    "SHAPE_METRICS",
     "AuditError",
     "AuditLog",
     "Baseline",
@@ -27,12 +25,10 @@ __all__ = [
     "BaselineWriter",
     "Cli",
     "Diff",
-    "ExtractionDetector",
     "FileBless",
     "FileReview",
     "GitError",
     "GitRepo",
-    "LineChange",
     "ModuleMetrics",
     "Options",
     "Outcome",

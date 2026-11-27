@@ -5,11 +5,10 @@ from __future__ import annotations
 import json
 import logging
 import subprocess
-from collections.abc import Iterable
 from pathlib import Path
 from typing import Self
 
-from .diffmodel import Diff, LineChange
+from .diffmodel import Diff
 
 logger = logging.getLogger(__name__)
 
@@ -120,42 +119,6 @@ class GitRepo:
             msg = f"git diff against {base} failed"
             raise GitError(msg)
         return Diff.from_name_status(out)
-
-    def line_changes(self, base: str, paths: Iterable[str]) -> dict[str, LineChange]:
-        """Return, per touched path, the raw content lines added and removed.
-
-        Powers extraction-provenance detection (``provenance.py``): a new
-        file's added lines can be checked for overlap against a still-present
-        baselined file's removed lines from the *same* diff, so an honest
-        extraction is distinguishable from invented content. ``--unified=0``
-        keeps the patch to changed lines only, so the parse is exact and
-        cheap even on a large touched set.
-        """
-        path_list = list(paths)
-        if not path_list:
-            return {}
-        # Pin every config-dependent part of the output the parser reads: an
-        # external diff driver, custom or suppressed a/ b/ prefixes, and
-        # quoted non-ASCII paths would each silently break attribution.
-        args = [
-            "-c",
-            "core.quotePath=false",
-            "diff",
-            "--no-ext-diff",
-            "--no-color",
-            "--src-prefix=a/",
-            "--dst-prefix=b/",
-            "-M",
-            "--unified=0",
-            base,
-            "--",
-            *path_list,
-        ]
-        out = self._git(args)
-        if out is None:
-            msg = f"git diff (unified=0) against {base} failed"
-            raise GitError(msg)
-        return LineChange.parse_patch(out)
 
     def show_baseline(self, ref: str) -> dict[str, dict[str, float]] | None:
         """Return the baseline JSON committed at ``ref``, or ``None`` if absent.

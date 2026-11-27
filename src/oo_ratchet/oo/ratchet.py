@@ -2,17 +2,14 @@
 
 from __future__ import annotations
 
-from collections import Counter
 from pathlib import Path
 from typing import Self
 
 from .audit import AuditLog
 from .baseline import Baseline
 from .compare import FileReview, Review
-from .diffmodel import LineChange
 from .gitio import GitRepo
 from .outcome import Outcome
-from .provenance import SHAPE_METRICS, ExtractionDetector
 from .scorer import Scorer
 from .thresholds import Thresholds
 
@@ -83,11 +80,8 @@ class Ratchet:
             return Outcome.passed("No Python files touched -- trivial pass")
 
         waivable = self._audit.relaxations_since(self._git.show_audit(base))
-        extraction_waived = self._extraction_waivers(
-            base, touched, current, base_baseline, diff.renames
-        )
         reviews = self._build_reviews(
-            touched, current, base_baseline, diff.renames, waivable, extraction_waived
+            touched, current, base_baseline, diff.renames, waivable
         )
         lock_fail, missing = self._integrity(touched, current)
         return self._verdict(
@@ -96,86 +90,6 @@ class Ratchet:
             missing,
             allow_no_improvement=allow_no_improvement,
         )
-
-    def _extraction_waivers(
-        self,
-        base: str,
-        touched: list[str],
-        current: dict[str, dict[str, float]],
-        base_baseline: dict[str, dict[str, float]],
-        renames: dict[str, str],
-    ) -> dict[str, frozenset[str]]:
-        """Detect new, zero-class files whose content traces to a baselined origin.
-
-        Only these earn the PY-OO-7 shape-metric carve-out (``provenance.py``);
-        every other new-file metric still meets the absolute threshold.
-        """
-        candidates = [
-            path
-            for path in touched
-            if self._is_extraction_candidate(path, base_baseline, renames, current)
-        ]
-        if not candidates:
-            return {}
-        origins = [
-            path
-            for path in touched
-            if path in base_baseline or renames.get(path) in base_baseline
-        ]
-        # A renamed origin's predecessor must be in the pathspec too, or git
-        # cannot pair the rename and reports the whole file as added.
-        predecessors = [renames[path] for path in origins if path in renames]
-        changes = self._git.line_changes(base, [*origins, *predecessors, *candidates])
-        detector = ExtractionDetector(self._removed_by_origin(origins, changes))
-        return self._detect_waivers(candidates, changes, detector)
-
-    @staticmethod
-    def _is_extraction_candidate(
-        path: str,
-        base_baseline: dict[str, dict[str, float]],
-        renames: dict[str, str],
-        current: dict[str, dict[str, float]],
-    ) -> bool:
-        """Return whether ``path`` is eligible for the extraction carve-out.
-
-        Eligible means: not already baselined, not a rename target (S8
-        already carries its predecessor's baseline), and zero classes -- the
-        one shape PY-OO-7's primitives/boundary carve-out ever excuses.
-        """
-        if path in base_baseline or path in renames:
-            return False
-        return current[path].get("classes_per_module", 1) == 0
-
-    @staticmethod
-    def _removed_by_origin(
-        origins: list[str], changes: dict[str, LineChange]
-    ) -> dict[str, Counter[str]]:
-        """Return the substantive lines that actually left each origin.
-
-        Lines the origin re-added (a re-indent, a class wrap) only moved within
-        it, so they are subtracted: only departed code can be extracted.
-        """
-        return {
-            path: ExtractionDetector.substantive_lines(changes[path].removed)
-            - ExtractionDetector.substantive_lines(changes[path].added)
-            for path in origins
-            if path in changes
-        }
-
-    @staticmethod
-    def _detect_waivers(
-        candidates: list[str],
-        changes: dict[str, LineChange],
-        detector: ExtractionDetector,
-    ) -> dict[str, frozenset[str]]:
-        """Return the shape-metric waiver for each candidate proven an extraction."""
-        waived: dict[str, frozenset[str]] = {}
-        for path in candidates:
-            added = changes.get(path, LineChange()).added
-            new_lines = ExtractionDetector.substantive_lines(added)
-            if detector.origin_of(new_lines) is not None:
-                waived[path] = SHAPE_METRICS
-        return waived
 
     def _no_base(self, *, require_base: bool) -> Outcome:
         """Decide the verdict when no comparison base can be resolved.
@@ -269,7 +183,6 @@ class Ratchet:
         base_baseline: dict[str, dict[str, float]],
         renames: dict[str, str],
         waivable: frozenset[tuple[str, str]],
-        extraction_waived: dict[str, frozenset[str]],
     ) -> tuple[FileReview, ...]:
         reviews: list[FileReview] = []
         for path in touched:
@@ -283,7 +196,6 @@ class Ratchet:
                     base_entry,
                     self._baseline.get(path),
                     waivable,
-                    extraction_waived.get(path, frozenset()),
                 )
             )
         return tuple(reviews)

@@ -3,10 +3,7 @@
 from __future__ import annotations
 
 import json
-from collections import defaultdict
 from typing import Self
-
-from oo_ratchet.design.layer_edges import Violation
 
 from .diagram import LayerDiagram
 from .scan import LayerScan
@@ -16,17 +13,17 @@ class LayersReport:
     """The view of a scan: violations grouped by layer pair, unassigned modules."""
 
     _scan: LayerScan
+    _diagram: LayerDiagram
 
     def __new__(cls, scan: LayerScan) -> Self:
         self = super().__new__(cls)
         self._scan = scan
+        self._diagram = LayerDiagram(scan)
         return self
 
     def render(self) -> list[str]:
         """Return the report lines, largest layer pair first."""
-        groups: defaultdict[tuple[str, str], list[Violation]] = defaultdict(list)
-        for found in self._scan.violations:
-            groups[found.source_layer, found.target_layer].append(found)
+        groups = self._diagram.groups()
         total = sum(map(len, groups.values()))
         modules = len(self._scan.modules)
         lines = [f"Layer contract: {modules} modules, {total} violations"]
@@ -55,7 +52,7 @@ class LayersReport:
                     for v in self._scan.violations
                 ],
                 "unassigned": list(self._scan.unassigned),
-                **LayerDiagram(self._scan).as_json(),
+                **self._diagram.as_json(),
             },
             indent=2,
         )

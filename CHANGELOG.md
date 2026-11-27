@@ -22,6 +22,12 @@
   colon are fine; extras are PEP 508 names, and an empty `[]` is allowed). Non-BMP module names are written
   as TOML `\UXXXXXXXX` escapes. The header and README name the package root as
   an exception to the ring rules.
+- `layers --json` adds three keys so a diagram can be drawn from the output
+  alone (PL-1714): `module_rings` (each module's layer name, `null` when no
+  layer claims it), `ring_edges` (violating layer-edge counts per pair of
+  rings) and `marked_violations` (each violation with source and target
+  module, both rings, and `kind` `layer` or `io`). The existing keys
+  `modules`, `violations` and `unassigned` are unchanged.
 
 ### Changed
 

@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
-from collections import Counter
+from collections import Counter, defaultdict
 from typing import Self
+
+from oo_ratchet.design.layer_edges import Violation
 
 from .scan import LayerScan
 
@@ -25,6 +27,13 @@ class LayerDiagram:
         self = super().__new__(cls)
         self._scan = scan
         return self
+
+    def groups(self) -> defaultdict[tuple[str, str], list[Violation]]:
+        """Return the violations grouped by (source ring, target ring)."""
+        found: defaultdict[tuple[str, str], list[Violation]] = defaultdict(list)
+        for violation in self._scan.violations:
+            found[violation.source_layer, violation.target_layer].append(violation)
+        return found
 
     def module_rings(self) -> dict[str, str | None]:
         """Return each module's ring, ``None`` when no layer claims it."""

@@ -26,8 +26,10 @@
   format is unchanged. vox, quarry, lux and z-spec configure the fixed form: a
   domain module that imports IO there shows up as new edges. The adopter runs
   `oo-ratchet layers src/pkg/ --update --allow-config-change --source <ref>`
-  once and commits the baseline; CI runs `layers --check --allow-config-change`
-  in that PR. With the flag, `--update` may add domain-purity edges (layer
+  once and commits the baseline. CI runs `layers --check --allow-config-change`
+  with the merge-base `--base-ref` in that PR, and the post-merge main run of
+  that one merge commit runs `layers --check --base-ref HEAD~1 --require-base
+  --tripwire --allow-config-change`; the flag comes off both afterward. With the flag, `--update` may add domain-purity edges (layer
   class `io`) to the baseline and lists them under `added` in the audit entry,
   and `--check` does not count them as growth over the base. Any other new
   edge is still refused. Without the flag nothing changes. Literal

@@ -64,19 +64,22 @@ class IoSites:
         return found
 
     def _opens(self) -> bool:
-        tree = self._module.tree
-        aliases = {"builtins"} | {
-            a.asname or a.name
-            for n in ast.walk(tree)
-            if isinstance(n, ast.Import)
-            for a in n.names
-            if a.name == "builtins"
-        }
+        aliases = self._aliases()
         return any(
             id(n) not in self._type_only
             and (self._from_open(n) or self._qualified_open(n, aliases))
-            for n in ast.walk(tree)
+            for n in ast.walk(self._module.tree)
         )
+
+    def _aliases(self) -> set[str]:
+        """Return the names a runtime ``import builtins [as b]`` binds."""
+        return {"builtins"} | {
+            a.asname or a.name
+            for n in ast.walk(self._module.tree)
+            if isinstance(n, ast.Import) and id(n) not in self._type_only
+            for a in n.names
+            if a.name == "builtins"
+        }
 
     @staticmethod
     def _from_open(node: ast.AST) -> bool:

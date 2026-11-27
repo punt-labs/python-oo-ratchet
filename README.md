@@ -45,7 +45,8 @@ On PRs, pass the merge-base SHA: `--base-ref "$(git merge-base origin/main HEAD)
 --require-base` (an explicit ref is compared as given, so `origin/main` itself
 would pull in later main changes). On the post-merge `push: [main]` run, pass
 `--base-ref HEAD~1 --require-base --tripwire` to every gate so the one-time
-adoption merge bootstrap-passes. `oo-ratchet <gate> --help` lists each gate's
+adoption merge bootstrap-passes. The `layers` gate's one-time domain-purity
+adoption merge also needs `--allow-config-change` on that run (see "Layers gate"). `oo-ratchet <gate> --help` lists each gate's
 flags. Baseline and audit files (`.oo-baseline.json`, `.oo-audit.jsonl`,
 `.oo-coupling-baseline.json`, ...) keep the same names as the embedded copies,
 so a repo switches over without rebaselining.
@@ -132,7 +133,7 @@ Each layer needs a non-empty `prefixes` list. A `*` may only end a prefix, and a
 
 With the fixed four-layer form, the gate also baselines domain purity: each IO module a `domain` module imports (the `domain-io` list in the design check, `TYPE_CHECKING`-only imports excepted) is an edge from that module to the IO module, for example `pkg.domain.model -> subprocess`, and a bare unbound `open(...)` call or a `builtins.open(...)` call (also through `import builtins as b`) or `from builtins import open` is an edge to `builtins.open`. A literal `importlib.import_module("subprocess")` or `__import__("socket")` is an edge to that IO module too; none of these count under `if TYPE_CHECKING:`, and a name inside the scanned package is never IO even when the package is called `rich` or `json`. A failure that lists a purity edge names the way out: a port in the application layer implemented in an adapter, or the one-time `--allow-config-change` update below. A new one fails `--check`; a removed one is a stale baseline entry that `--update` drops. Declared layers have no domain and no purity edges.
 
-An adopter whose domain modules already import IO adopts these edges once: run `oo-ratchet layers src/pkg/ --update --allow-config-change --source <ref>` and commit the baseline; CI runs `--check --allow-config-change` in that PR. With the flag, `--update` may add edges whose layer class is `io` (the audit entry lists them under `added` next to `config_change`), and `--check` does not count them as baseline growth over the base or as violations under the base config. Any other new edge is still refused with the flag. Without the flag nothing changes: such an update is refused and such a check fails.
+An adopter whose domain modules already import IO adopts these edges once: run `oo-ratchet layers src/pkg/ --update --allow-config-change --source <ref>` and commit the baseline. CI runs `--check --allow-config-change` with the merge-base `--base-ref` in that PR, and the post-merge `push: [main]` run of that one merge commit also passes `--allow-config-change` (`--check --base-ref HEAD~1 --require-base --tripwire --allow-config-change`), because `HEAD~1` lacks the edges; drop the flag from both once it has merged. With the flag, `--update` may add edges whose layer class is `io` (the audit entry lists them under `added` next to `config_change`), and `--check` does not count them as baseline growth over the base or as violations under the base config. Any other new edge is still refused with the flag. Without the flag nothing changes: such an update is refused and such a check fails.
 
 The gate over-approximates: it must never pass a forbidden import, and a rare false positive is fixed by restructuring. Edges counted: imports anywhere in a module (functions included) and `TYPE_CHECKING` imports (as in the design check).
 

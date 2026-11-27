@@ -39,6 +39,10 @@ def _commands(guide: str) -> list[list[str]]:
     return commands
 
 
+def _known_flags(help_text: str) -> set[str]:
+    return set(re.findall(r"(?<![\w-])--?[A-Za-z][\w-]*", help_text))
+
+
 def _help(gate: str, capsys: pytest.CaptureFixture[str]) -> str:
     with pytest.raises(SystemExit):
         GATES[gate](["--help"])
@@ -88,7 +92,7 @@ def test_every_guide_command_uses_real_gates_and_flags(
     for words in _commands(_guide()):
         gate = words[0]
         assert gate in GATES, words
-        known = _help(gate, capsys)
+        known = _known_flags(_help(gate, capsys))
         for word in words[1:]:
             if word.startswith("-") and word not in PLACEHOLDER_FLAGS:
                 assert word in known, f"{gate}: unknown flag {word} in {words}"

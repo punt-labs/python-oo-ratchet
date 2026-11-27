@@ -398,7 +398,8 @@ and no IO module.
 uv run oo-ratchet layers src/shop/ --suggest
 ```
 
-The command writes nothing and always exits 0. It prints a starter
+The command writes nothing and exits 0 (1 when a `[tool.oo-ratchet.suggest]`
+table is invalid, for example `domain = "logic"` instead of a list). It prints a starter
 `[tool.oo-ratchet.layers]` table, then four comment lists, each line with its
 reason:
 
@@ -522,11 +523,13 @@ Wrote .oo-layers-baseline.json
 ```
 
 Commit the table, both files and the code in one change. On a branch, `--check`
-compares against the merge base, so it needs that base to exist locally
-(`git fetch origin main`):
+compares against a base commit, so it needs that base to exist locally
+(`git fetch origin main`). Pass the merge base, as this repository's CI does:
+`--base-ref origin/main` would compare against the tip of `main`, which can have
+moved on since you branched, so a local run could disagree with CI.
 
 ```bash
-uv run oo-ratchet layers src/shop/ --check --base-ref origin/main --require-base
+uv run oo-ratchet layers src/shop/ --check --base-ref "$(git merge-base origin/main HEAD)" --require-base
 ```
 
 ```text
@@ -540,7 +543,7 @@ instead of importing the store). `--check` now says the baseline is stale, and
 `--update` drops the entry. It never adds a violation:
 
 ```bash
-uv run oo-ratchet layers src/shop/ --check --base-ref origin/main --require-base
+uv run oo-ratchet layers src/shop/ --check --base-ref "$(git merge-base origin/main HEAD)" --require-base
 ```
 
 ```text
@@ -575,12 +578,16 @@ Wrote .oo-layers-baseline.json
   violations: 2 (0 removed)
 ```
 
-The audit row records `"config_change":true`. A later `--check` against a
-base that lacks the edge fails the same way until you pass
-`--allow-config-change` to it as well, in that one change:
+The audit row records `"config_change":true`. This applies to a change made
+after the adoption change has merged, so the base contains the baseline. Then
+`--check` against a base that lacks the edge fails the same way until you pass
+`--allow-config-change` to it as well, in that one change. (While the base has
+no baseline at all, as in the adoption PR itself, the whole baseline is the
+first one and a purity edge passes without the flag. If `main` gained the
+baseline after you branched, merge `main` first so the comparison runs.)
 
 ```bash
-uv run oo-ratchet layers src/shop/ --check --base-ref origin/main --require-base --allow-config-change
+uv run oo-ratchet layers src/shop/ --check --base-ref "$(git merge-base origin/main HEAD)" --require-base --allow-config-change
 ```
 
 ```text
@@ -626,9 +633,26 @@ tier2 deltas:
 ```
 
 (The per-file OO metric rows that follow are left out.) On a branch with no
-added finding it exits 0 and prints `neutral`. Without `--shadow-check`,
+added finding it exits 0. It prints `neutral` only when nothing regressed
+either: a change that adds no gate-capable finding but adds an advisory one
+(or regresses an OO metric) prints `would-fail: tier1` (or `tier2`) and still
+exits 0, because `--enforce` blocks only added findings of gate-capable rules.
+Without `--shadow-check`,
 `--enforce` exits 2 (`--enforce needs --shadow-check`), and a `REF` with no
 merge base with `HEAD` exits 2 too.
+
+The adoption change is the one exception. `design` reports layer findings
+only where a layer table exists, and the base commit has none, so every
+forbidden import the table leaves in the first baseline counts as added.
+On the `shop` adoption branch (table plus two baselined violations),
+`design src/shop/ --shadow-check origin/main --enforce` exited 1 with
+`(domain-io, shop.domain.export, json)` and
+`(layer-import, shop.domain.ledger, load_prices)` as added, and the same
+command with `HEAD~1` after merge exited 1 as well. So in the adoption change
+and its `main` run, run the design step without `--enforce` (it exits 0 and
+only reports), and add `--enforce` in the next change. From then on the base
+has the table: a branch that touched `helpers.py` only exited 0 and printed
+`neutral`.
 
 Only the rules measured right at least 90% of the time on vox, quarry, lux and
 z-spec gate. The method and the raw labels are in
@@ -657,8 +681,12 @@ Add two targets to the `Makefile`, as this repository does:
 check-layers:
 	uv run oo-ratchet layers src/shop/ --check $(LAYERS_BASE)
 check-design:
-	uv run oo-ratchet design src/shop/ $(DESIGN_BASE) --enforce
+	uv run oo-ratchet design src/shop/ $(DESIGN_BASE) $(DESIGN_ENFORCE)
 ```
+
+Define `DESIGN_ENFORCE ?= --enforce` next to `DESIGN_BASE`. The adoption change
+and its `main` run pass `DESIGN_ENFORCE=` (empty), for the reason given in
+step 5.
 
 `make check-layers LAYERS_BASE="--base-ref origin/main --require-base"` and
 `make check-design DESIGN_BASE="--shadow-check origin/main"` ran on `shop` and

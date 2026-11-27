@@ -2,7 +2,7 @@
 
 > Quality gates for Python code that fail when a change makes it worse.
 
-[![License](https://img.shields.io/github/license/punt-labs/python-oo-ratchet)](LICENSE)
+[![License](https://img.shields.io/github/license/punt-labs/python-oo-ratchet)](https://github.com/punt-labs/python-oo-ratchet/blob/main/LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/punt-labs/python-oo-ratchet/ci.yml?label=CI)](https://github.com/punt-labs/python-oo-ratchet/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/punt-oo-ratchet)](https://pypi.org/project/punt-oo-ratchet/)
 [![Python](https://img.shields.io/pypi/pyversions/punt-oo-ratchet)](https://pypi.org/project/punt-oo-ratchet/)
@@ -148,21 +148,21 @@ working tree, then reports which findings were added or removed.
 ## Setup
 
 To use the tool in a repository, follow
-[Configuring a Repo](docs/CONFIGURING.md). It covers which gates to turn on
+[Configuring a Repo](https://github.com/punt-labs/python-oo-ratchet/blob/main/docs/CONFIGURING.md). It covers which gates to turn on
 and in what order, the `[tool.oo-ratchet]` settings in `pyproject.toml`, a
 walk-through for adding layer rules, `Makefile` targets, a CI workflow, and
 which files to commit.
 
 ## Documentation
 
-[Configuring a Repo](docs/CONFIGURING.md) |
-[Reference](docs/REFERENCE.md) |
-[Layers Gate](docs/LAYERS.md) |
-[Design Check](docs/DESIGN.md) |
-[Formal Model](docs/ratchet.tex) |
+[Configuring a Repo](https://github.com/punt-labs/python-oo-ratchet/blob/main/docs/CONFIGURING.md) |
+[Reference](https://github.com/punt-labs/python-oo-ratchet/blob/main/docs/REFERENCE.md) |
+[Layers Gate](https://github.com/punt-labs/python-oo-ratchet/blob/main/docs/LAYERS.md) |
+[Design Check](https://github.com/punt-labs/python-oo-ratchet/blob/main/docs/DESIGN.md) |
+[Formal Model](https://github.com/punt-labs/python-oo-ratchet/blob/main/docs/ratchet.tex) |
 [Policy](https://github.com/punt-labs/punt-kit/blob/main/lang-rules/python/python-oo-adoption.md) |
-[Contributing](CONTRIBUTING.md) |
-[Changelog](CHANGELOG.md)
+[Contributing](https://github.com/punt-labs/python-oo-ratchet/blob/main/CONTRIBUTING.md) |
+[Changelog](https://github.com/punt-labs/python-oo-ratchet/blob/main/CHANGELOG.md)
 
 ## License
 

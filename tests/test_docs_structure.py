@@ -25,6 +25,8 @@ SMALL_WORDS = frozenset(
     | {"with"}
 )
 LINK = re.compile(r"(?<!!)\[[^\]]*\]\(([^)\s]+)\)")
+ANY_LINK = re.compile(r"\]\(([^)\s]+)\)")
+BLOB = "https://github.com/punt-labs/python-oo-ratchet/blob/main/"
 FENCE = re.compile(r"```\w*\n(.*?)```", re.DOTALL)
 
 
@@ -100,8 +102,8 @@ def test_quick_start_blocks_are_one_line() -> None:
 def test_readme_links_the_docs() -> None:
     text = README.read_text(encoding="utf-8")
     for target in ("docs/CONFIGURING.md", "docs/REFERENCE.md", "CONTRIBUTING.md"):
-        assert f"]({target})" in text, target
-    assert "](CONTRIBUTING.md)" in _section(README, "Documentation")
+        assert f"]({BLOB}{target})" in text, target
+    assert f"]({BLOB}CONTRIBUTING.md)" in _section(README, "Documentation")
 
 
 def test_contributing_has_one_line_blocks() -> None:
@@ -118,6 +120,59 @@ def test_docs_have_a_table_of_contents() -> None:
         assert "Contents" in head, name
 
 
+def _repo_file(path: Path, target: str) -> tuple[Path, str] | None:
+    """The repo file and anchor a link names, or None for an external link."""
+    if target.startswith(BLOB):
+        target = target[len(BLOB) :]
+        base = ROOT
+    elif re.match(r"[a-z]+:", target):
+        return None
+    else:
+        base = path.parent
+    file_part, _, anchor = target.partition("#")
+    return ((base / file_part).resolve() if file_part else path), anchor
+
+
+def _check_link(path: Path, target: str) -> None:
+    found = _repo_file(path, target)
+    if found is None:
+        return
+    dest, anchor = found
+    assert dest.exists(), f"{path.name}: {target}"
+    if anchor and dest.suffix == ".md":
+        assert anchor in _anchors(dest), f"{path.name}: {target}"
+
+
+def test_readme_links_to_repo_files_are_absolute() -> None:
+    """PyPI renders README.md as the long description; relative links break."""
+    for target in ANY_LINK.findall(README.read_text(encoding="utf-8")):
+        assert re.match(r"https://", target), f"README.md: relative link {target}"
+        _check_link(README, target)
+
+
+@pytest.mark.parametrize(
+    "target",
+    [
+        BLOB + "docs/nope.md",
+        BLOB + "docs/CONFIGURING.md#no-such-heading",
+    ],
+)
+def test_broken_absolute_links_fail(target: str) -> None:
+    with pytest.raises(AssertionError):
+        _check_link(README, target)
+
+
+@pytest.mark.parametrize(
+    "target",
+    [
+        BLOB + "docs/CONFIGURING.md",
+        BLOB + "docs/REFERENCE.md#baseline-and-audit-formats",
+    ],
+)
+def test_good_absolute_links_pass(target: str) -> None:
+    _check_link(README, target)
+
+
 @pytest.mark.parametrize("path", [README, *DOCS], ids=lambda p: p.name)
 def test_relative_links_resolve(path: Path) -> None:
     in_fence = False
@@ -127,10 +182,4 @@ def test_relative_links_resolve(path: Path) -> None:
         if in_fence:
             continue
         for target in LINK.findall(line):
-            if re.match(r"[a-z]+:", target):
-                continue
-            file_part, _, anchor = target.partition("#")
-            dest = (path.parent / file_part).resolve() if file_part else path
-            assert dest.exists(), f"{path.name}: {target}"
-            if anchor and dest.suffix == ".md":
-                assert anchor in _anchors(dest), f"{path.name}: {target}"
+            _check_link(path, target)

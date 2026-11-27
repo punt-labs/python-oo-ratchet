@@ -537,6 +537,12 @@ may still write accepted rows/backfills when another file refuses; they return
 nonzero and suppress the success-only backfill output. See
 [`tests/test_update_backfill.py`](tests/test_update_backfill.py).
 
+Both scoped `--update` runs also drop the baseline row of any file that no
+longer exists in the tree, whether or not the diff names it, and report it under
+`removed` (in the printed summary and the audit entry). A rename source keeps its
+row until the rename target is written, and a row of an existing file that fails
+to parse is kept.
+
 Coupling is regression-only (no must-improve condition) and supports its own
 relax/bless flow. Suppression `--update` refuses a static-total increase;
 `--rebaseline --reason` may raise that snapshot, but does not waive a live

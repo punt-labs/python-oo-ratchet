@@ -1026,3 +1026,161 @@ class TestBootstrap:
         fx.commit("pre-adoption")
         outcome = fx.ratchet().check(fx.scorer(), base_ref="0" * 40, require_base=False)
         assert outcome.exit_code == 0
+
+
+class TestMergeBaseRange:
+    """Merge-base range semantics for a multi-commit PR and a push to main."""
+
+    def test_merge_base_catches_regression_in_earlier_pr_commit(
+        self, fx: GitFixture
+    ) -> None:
+        """A multi-commit PR is diffed as a whole range, not its last commit.
+
+        Companion to ``TestMultiCommitPrBaseRef`` in
+        ``tests/oo_coupling/test_push_base_ref.py`` (the Copilot finding on
+        PR #467, round 2, that motivated computing this same merge-base for
+        check-coupling's PR trigger). Unlike check-coupling, check-oo never
+        had a ``HEAD~1``-only default to fall into -- ``GitRepo.resolve_base``
+        always resolves ``base_ref=None`` to merge-base(origin/main, HEAD),
+        so a regression in the FIRST commit of a PR, never re-touched by the
+        LAST commit, is still inside that range and still caught. This test
+        proves the negative directly: there is no HEAD~1-shaped hole here to
+        fix.
+        """
+        fx.write("sub/w.py", GOOD)
+        fx.snapshot("sub")
+        fork = fx.commit("origin/main tip -- the PR's fork point")
+        fx.set_origin_main(fork)
+
+        fx.checkout_new("feature")
+        fx.write("sub/w.py", WORSE)  # regression: first commit of the PR
+        fx.commit("regress w.py (first commit of the PR)")
+        fx.write("sub/unrelated.py", GOOD.replace("Widget", "Other"))
+        fx.commit("touch an unrelated file (last commit of the PR)")
+
+        # A HEAD~1-only view would see just the "touch unrelated file" commit
+        # and never notice w.py regressed two commits back.
+        outcome = fx.ratchet().check(fx.scorer(), base_ref=None, require_base=True)
+        assert outcome.exit_code == 1
+        assert any("regression" in line for line in outcome.lines)
+
+    def test_merge_base_default_is_vacuous_immediately_after_a_push(
+        self, fx: GitFixture
+    ) -> None:
+        fx.write("sub/w.py", GOOD)
+        fx.snapshot("sub")
+        before = fx.commit("pre-push tip of main")
+
+        fx.write("sub/w.py", WORSE)
+        fx.snapshot("sub")  # in-tree baseline is locked to the regressed value
+        after = fx.commit("the pushed commit")
+
+        # Simulate the push-job checkout: origin/main now points at the same
+        # commit the local HEAD is on (fetched after the push landed).
+        fx.set_origin_main(after)
+
+        # Old buggy behavior: base_ref=None resolves merge-base(origin/main,
+        # HEAD) == HEAD == after -- an empty diff against the work tree, so
+        # the regression that just landed is never scored.
+        vacuous = fx.ratchet().check(fx.scorer(), base_ref=None, require_base=True)
+        assert vacuous.exit_code == 0
+        assert any("trivial pass" in line for line in vacuous.lines)
+
+        # Fixed behavior: base_ref=<pre-push tip> (what BASE_REF carries
+        # from github.event.before) diffs before..HEAD and catches it.
+        caught = fx.ratchet().check(fx.scorer(), base_ref=before, require_base=True)
+        assert caught.exit_code == 1
+        assert any("regression" in line for line in caught.lines)
+
+
+class TestBaselineRowRemoval:
+    """Update and rebaseline drop rows of files no longer scored, and audit them."""
+
+    def test_update_prunes_row_for_file_born_and_deleted_in_branch(
+        self, fx: GitFixture
+    ) -> None:
+        # A file created and deleted inside the branch never appears in the
+        # merge-base diff, yet its baseline row must leave with it.
+        fx.write("sub/w.py", GOOD)
+        fx.snapshot("sub")
+        fx.commit("base")
+        rows = json.loads((fx.root / ".oo-baseline.json").read_text())
+        rows["sub/gone.py"] = dict(rows["sub/w.py"])
+        fx.write_baseline(rows)
+        outcome = fx.writer().update(
+            fx.scorer(),
+            base_ref="HEAD",
+            require_base=False,
+            allow_ci_write=True,
+            source=None,
+        )
+        assert outcome.exit_code == 0
+        assert Baseline(fx.root).get("sub/gone.py") is None
+        assert "  files removed:  1" in outcome.lines
+        last = (fx.root / ".oo-audit.jsonl").read_text().splitlines()[-1]
+        assert json.loads(last)["removed"] == ["sub/gone.py"]
+
+    def test_rebaseline_audit_names_the_rows_it_removes(self, fx: GitFixture) -> None:
+        # A rebaseline replaces the whole baseline, dropping the row of every
+        # file no longer scored; the audit line must name them, not claim [].
+        fx.write("sub/w.py", GOOD)
+        fx.snapshot("sub")
+        fx.commit("base")
+        rows = json.loads((fx.root / ".oo-baseline.json").read_text())
+        rows["sub/gone.py"] = dict(rows["sub/w.py"])
+        fx.write_baseline(rows)
+        outcome = fx.writer().rebaseline(fx.scorer(), allow_ci_write=True, source=None)
+        assert outcome.exit_code == 0
+        assert Baseline(fx.root).get("sub/gone.py") is None
+        last = (fx.root / ".oo-audit.jsonl").read_text().splitlines()[-1]
+        entry = json.loads(last)
+        assert entry["verdict"] == "rebaseline"
+        assert entry["removed"] == ["sub/gone.py"]
+
+
+class TestRebaselineFilesGuards:
+    """Input guards of --rebaseline-files."""
+
+    def test_missing_reason_errors_before_scoring(
+        self, fx: GitFixture, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Regression guard for the ordering contract: --reason must be
+        # checked before Scorer is even constructed, mirroring the coupling
+        # ratchet's guard. Stubbing Scorer to raise proves the ordering: the
+        # reason check fails first, so the stub is never invoked.
+        fx.write("sub/w.py", GOOD)
+        fx.snapshot("sub")
+        fx.commit("base")
+
+        def _must_not_construct(*_args: object, **_kwargs: object) -> None:
+            raise AssertionError("Scorer must not be constructed before --reason")
+
+        import oo_ratchet.oo.cli as cli_module
+
+        monkeypatch.setattr(cli_module, "Scorer", _must_not_construct)
+        monkeypatch.chdir(fx.root)
+        exit_code = main(["sub", "--rebaseline-files", "sub/w.py"])
+        assert exit_code == 1
+
+    def test_absolute_request_path_lands_on_existing_relative_key(
+        self, fx: GitFixture
+    ) -> None:
+        fx.write("sub/w.py", GOOD)
+        fx.snapshot("sub")
+        fx.commit("base")
+
+        fx.write("sub/w.py", WORSE)
+        absolute_request = str(fx.root / "sub" / "w.py")
+
+        outcome = fx.writer().rebaseline_files(
+            fx.scorer(),
+            [absolute_request],
+            reason="x",
+            allow_ci_write=True,
+            source=None,
+        )
+
+        assert outcome.exit_code == 0
+        entries = Baseline(fx.root).entries
+        assert entries["sub/w.py"]["max_complexity"] == 3.0  # existing relative key
+        assert absolute_request not in entries  # no duplicate absolute key

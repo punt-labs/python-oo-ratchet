@@ -13,10 +13,10 @@ from oo_ratchet.coupling.bless import CouplingBless
 from oo_ratchet.coupling.gitio import GitRepo
 from oo_ratchet.oo.audit import AuditLog
 
-from .lux.lux_test_oo_ratchet import GitFixture as OoFixture
 from .test_coupling_config import _HEADER, _frozen, _hub, _max_lcom
 from .test_coupling_ratchet import GitFixture
 from .test_oo_ratchet import GOOD, WORSE
+from .test_oo_ratchet import GitFixture as OoFixture
 
 pytestmark = pytest.mark.slow
 

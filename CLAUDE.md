@@ -58,8 +58,8 @@ uv run pytest tests/test_design_evals.py  # design eval harness
 Tests marked `slow` (module-level `pytestmark`) drive real throwaway git
 repositories through `GitSandbox` in `tests/conftest.py`. An autouse fixture
 points `HOME` at a scratch directory so the CLI's log and telemetry never touch
-the real home directory. Files under `tests/lux/` are named `lux_test_*.py` and
-are not collected by pytest.
+the real home directory. Every test file under `tests/` is collected by pytest;
+there is no uncollected test directory.
 
 ## The package ratchets itself
 

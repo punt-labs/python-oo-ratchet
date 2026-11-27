@@ -23,3 +23,17 @@ class Declaration:
     def finding(self, rule: str, detail: str) -> Finding:
         """Attach a rule result to this declaration."""
         return self.module.finding(rule, self.node.lineno, self.symbol, detail)
+
+    def enclosing_class(
+        self, classes: dict[tuple[str, str], Declaration]
+    ) -> Declaration | None:
+        """Return the nearest class declaration that holds this function, if any."""
+        if self.kind == "class":
+            return None
+        prefix = self.symbol.rpartition(".")[0]
+        while prefix:
+            parent = classes.get((self.module.key, prefix))
+            if parent is not None:
+                return parent
+            prefix = prefix.rpartition(".")[0]
+        return None

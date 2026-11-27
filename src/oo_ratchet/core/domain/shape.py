@@ -100,6 +100,12 @@ class ClassShape:
         """Return the names of every method the class body defines."""
         return [m.name for m in self._methods]
 
+    def stateless_methods(self) -> list[str]:
+        """Return the public methods of a stateless base-free class, else none."""
+        if self.is_subclass or self.has_state:
+            return []
+        return self.public_methods()
+
     def public_methods(self) -> list[str]:
         """Return public method names (``__call__`` counts; properties do not)."""
         return [

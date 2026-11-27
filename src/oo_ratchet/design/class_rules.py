@@ -46,8 +46,8 @@ class ClassRules:
         return out
 
     def _stateless(self, shape: ClassShape) -> tuple[str, str]:
-        methods = shape.public_methods()
-        if not methods or shape.is_subclass or shape.has_state:
+        methods = shape.stateless_methods()
+        if not methods:
             return "", ""
         if any(iface.issuperset(methods) for iface in self._interfaces):
             return "", ""

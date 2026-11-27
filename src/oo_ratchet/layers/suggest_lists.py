@@ -27,16 +27,30 @@ HEADER = (
 )
 
 
-class RingLists:
-    """Render verdicts as the header, then rings, conflicts and unclassified."""
+class SuggestHeader:
+    """The comment header of a suggestion, with the package name escaped."""
 
-    _verdicts: dict[str, Verdict]
     _package: str
 
-    def __new__(cls, verdicts: dict[str, Verdict], package: str) -> Self:
+    def __new__(cls, package: str) -> Self:
+        self = super().__new__(cls)
+        self._package = package
+        return self
+
+    def lines(self) -> tuple[str, ...]:
+        """Return the header lines."""
+        safe = SafeText(self._package).comment()
+        return tuple(line.format(package=safe) for line in HEADER)
+
+
+class RingLists:
+    """Render verdicts as rings, conflicts and unclassified."""
+
+    _verdicts: dict[str, Verdict]
+
+    def __new__(cls, verdicts: dict[str, Verdict]) -> Self:
         self = super().__new__(cls)
         self._verdicts = verdicts
-        self._package = package
         return self
 
     @property
@@ -47,11 +61,6 @@ class RingLists:
     def rings(self) -> dict[str, str]:
         """Return the ring of each module that has one."""
         return {n: v.ring for n, v in self._verdicts.items() if v.ring}
-
-    def header(self) -> tuple[str, ...]:
-        """Return the comment header, with the package name escaped."""
-        safe = SafeText.comment(self._package)
-        return tuple(line.format(package=safe) for line in HEADER)
 
     def notes(self) -> list[str]:
         ringed = [n for n in self.modules if self._verdicts[n].ring]
@@ -70,8 +79,8 @@ class RingLists:
         if not names:
             return ["#   none"]
         return [
-            f"#   {SafeText.comment(n)}: {label or self._verdicts[n].ring} "
-            f"({SafeText.comment(self._verdicts[n].why)})"
+            f"#   {SafeText(n).comment()}: {label or self._verdicts[n].ring} "
+            f"({SafeText(self._verdicts[n].why).comment()})"
             for n in names
         ]
 

@@ -114,19 +114,6 @@ class LayerScan:
         other = {v.edge for v in self._violations if v.target_layer != "io"}
         return frozenset(v.edge for v in self._violations if v.edge not in other)
 
-    @staticmethod
-    def purity_help(shown: Iterable[str], purity: frozenset[Edge]) -> tuple[str, ...]:
-        """Return a guidance line if any ``shown`` edge text is a purity edge."""
-        texts = {str(e) for e in purity}
-        if not any(row.split("  (")[0] in texts for row in shown):
-            return ()
-        text = (
-            "  domain purity: move the IO behind a port in the application layer, "
-            "implemented in an adapter; or accept the edge once with "
-            "`oo-ratchet layers --update --allow-config-change --source <ref>`"
-        )
-        return (text,)
-
     @property
     def unassigned(self) -> tuple[str, ...]:
         """Return the non-root modules that match no layer."""

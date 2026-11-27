@@ -31,6 +31,17 @@ class MetricRow:
             f"{self.current:>10} {self.delta:>8} {self.status:>10}"
         )
 
+    def as_delta(self) -> dict[str, str]:
+        """Return the row as the mapping a JSON delta list holds."""
+        return {
+            "file": self.path,
+            "metric": self.metric,
+            "baseline": self.baseline,
+            "current": self.current,
+            "delta": self.delta,
+            "status": self.status,
+        }
+
 
 @dataclass(frozen=True, slots=True)
 class FileReview:

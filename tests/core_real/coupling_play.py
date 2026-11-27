@@ -153,7 +153,22 @@ class Play:
 
     def run(self, *argv: str) -> Self:
         """Run the gate and record the result."""
+        return self._record(argv, detail=True)
+
+    def run_state_error(self, *argv: str) -> Self:
+        """Run the gate and record that it failed on unreadable recorded state.
+
+        The wording of a state error names the file format in use, which the
+        core words once for every gate; the exit code, the single ``FAIL:`` line
+        and the untouched state files are what is compared.
+        """
+        return self._record(argv, detail=False)
+
+    def _record(self, argv: tuple[str, ...], *, detail: bool) -> Self:
         code, lines = self._invoke(list(argv))
+        if not detail:
+            assert len(lines) == 1 and lines[0].startswith("FAIL: "), lines
+            lines = ["FAIL: <state error>"]
         self._steps.append(
             {
                 "argv": [a.replace(str(self._root), "<root>") for a in argv],

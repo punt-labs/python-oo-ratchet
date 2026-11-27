@@ -60,7 +60,8 @@ class Update(Operation):
     def _scoped(self, base: str, measured: Measurement) -> UpdatePlan:
         current = measured.metrics()
         diff = self._history.changes_since(base)
-        base_rows = self._history.baseline_at(base)
+        in_tree_only = self._policy.in_tree_only
+        base_rows = None if in_tree_only else self._history.baseline_at(base)
         scored = current.keys() | measured.parse_errors
         stored = self._store.rows()
         touched = (
@@ -191,6 +192,8 @@ class PlanApplier(Operation):
 
     def _improved(self, plan: UpdatePlan, stored: Rows, deltas: Deltas) -> int:
         """Count improved files among those with a prior row; a new file has none."""
+        if self._policy.in_tree_only:
+            return len(deltas)
         prior = stored.keys() | (plan.base_rows or {}).keys()
         return self._policy.improved_count(
             {p: d for p, d in deltas.items() if {p, plan.renames.get(p)} & prior}

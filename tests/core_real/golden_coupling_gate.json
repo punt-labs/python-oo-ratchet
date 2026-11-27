@@ -1,0 +1,2485 @@
+{
+ "argument_errors": [
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--update"
+   ],
+   "code": "exit 2",
+   "out": [],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--nonsense"
+   ],
+   "code": "exit 2",
+   "out": [],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "bless_a_renamed_file_drops_the_old_row": [
+  {
+   "argv": [
+    "pkg",
+    "--rebaseline-files",
+    "pkg/wiring.py",
+    "--reason",
+    "r",
+    "--base-ref",
+    "base",
+    "--allow-ci-write"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "Baseline blessed for 1 file(s) (reason: r):",
+    "  files:",
+    "    pkg/wiring.py"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":15,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/__init__.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,0.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/hub.py\":{\"efferent_coupling\":[0.0,11.0],\"public_names\":[0.0,0.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m0.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m1.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m10.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m11.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m12.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m2.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m3.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m4.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m5.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m6.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m7.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m8.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m9.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":1,\"verdict\":\"rebaseline-files\",\"reason\":\"r\",\"deltas\":{\"pkg/wiring.py\":{\"efferent_coupling\":[11.0,12.0]}},\"improved\":{}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/__init__.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 0.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m0.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m1.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m10.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m11.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m12.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m2.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m3.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m4.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m5.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m6.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m7.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m8.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m9.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/wiring.py\": {\n    \"efferent_coupling\": 12.0,\n    \"public_names\": 0.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base",
+    "--require-base"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "File                                     Metric                       Baseline    Current    Delta     Status",
+    "------------------------------------------------------------------------------------------------------------",
+    "pkg/wiring.py                            efferent_coupling              11.000     12.000   +1.000    RELAXED",
+    "",
+    "PASS: no regressions"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":15,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/__init__.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,0.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/hub.py\":{\"efferent_coupling\":[0.0,11.0],\"public_names\":[0.0,0.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m0.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m1.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m10.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m11.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m12.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m2.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m3.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m4.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m5.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m6.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m7.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m8.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m9.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":1,\"verdict\":\"rebaseline-files\",\"reason\":\"r\",\"deltas\":{\"pkg/wiring.py\":{\"efferent_coupling\":[11.0,12.0]}},\"improved\":{}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/__init__.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 0.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m0.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m1.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m10.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m11.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m12.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m2.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m3.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m4.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m5.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m6.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m7.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m8.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m9.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/wiring.py\": {\n    \"efferent_coupling\": 12.0,\n    \"public_names\": 0.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "bless_an_unregressed_over_cap_file": [
+  {
+   "argv": [
+    "pkg",
+    "--rebaseline-files",
+    "pkg/hub.py",
+    "--reason",
+    "r",
+    "--base-ref",
+    "base",
+    "--allow-ci-write"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "Baseline blessed for 1 file(s) (reason: r):",
+    "  files:",
+    "    pkg/hub.py"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":15,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/__init__.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,0.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/hub.py\":{\"efferent_coupling\":[0.0,11.0],\"public_names\":[0.0,0.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m0.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m1.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m10.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m11.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m12.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m2.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m3.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m4.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m5.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m6.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m7.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m8.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m9.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline-files\",\"reason\":\"r\",\"deltas\":{},\"improved\":{}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/__init__.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 0.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/hub.py\": {\n    \"efferent_coupling\": 11.0,\n    \"public_names\": 0.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m0.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m1.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m10.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m11.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m12.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m2.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m3.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m4.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m5.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m6.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m7.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m8.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m9.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "bless_argument_errors": [
+  {
+   "argv": [
+    "pkg",
+    "--rebaseline-files",
+    ",",
+    "--reason",
+    "r",
+    "--allow-ci-write"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: --rebaseline-files requires at least one path"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--rebaseline-files",
+    "pkg/a.py",
+    "--reason",
+    " ",
+    "--allow-ci-write"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: --rebaseline-files requires --reason <text>"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--rebaseline-files",
+    "pkg/a.py",
+    "--allow-ci-write"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: --rebaseline-files requires --reason <text>"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--rebaseline-files",
+    "pkg/missing.py",
+    "--reason",
+    "r",
+    "--allow-ci-write"
+   ],
+   "code": 1,
+   "out": [
+    "",
+    "Baseline blessed for 0 file(s) (reason: r):",
+    "  (none)",
+    "  REFUSED (1 file(s), nothing written):",
+    "    pkg/missing.py: not found in scored tree"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--rebaseline-files",
+    "pkg/a.py",
+    "--reason",
+    "r",
+    "--base-ref",
+    "nope",
+    "--allow-ci-write"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: cannot resolve --base-ref nope"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--rebaseline-files",
+    "pkg/a.py",
+    "--reason",
+    "r",
+    "--require-base",
+    "--base-ref",
+    "nope",
+    "--allow-ci-write"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: cannot resolve --base-ref nope"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--rebaseline-files",
+    "pkg/a.py",
+    "--reason",
+    "r"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: refusing to write coupling baseline under GITHUB_ACTIONS without --allow-ci-write"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "bless_from_a_subdirectory": [
+  {
+   "argv": [
+    "../pkg",
+    "--rebaseline-files",
+    "a.py",
+    "--reason",
+    "r",
+    "--base-ref",
+    "base",
+    "--allow-ci-write"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "Baseline blessed for 1 file(s) (reason: r):",
+    "  files:",
+    "    pkg/a.py"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,2.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":1,\"files_regressed\":0,\"verdict\":\"rebaseline-files\",\"reason\":\"r\",\"deltas\":{},\"improved\":{\"pkg/a.py\":{\"public_names\":[2.0,1.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "../pkg",
+    "--rebaseline-files",
+    "<root>/pkg/a.py",
+    "--reason",
+    "r",
+    "--allow-ci-write"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "Baseline blessed for 1 file(s) (reason: r):",
+    "  files:",
+    "    pkg/a.py"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,2.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":1,\"files_regressed\":0,\"verdict\":\"rebaseline-files\",\"reason\":\"r\",\"deltas\":{},\"improved\":{\"pkg/a.py\":{\"public_names\":[2.0,1.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline-files\",\"reason\":\"r\",\"deltas\":{},\"improved\":{}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "bless_judges_against_the_base_row_not_the_in_tree_row": [
+  {
+   "argv": [
+    "pkg",
+    "--rebaseline-files",
+    "pkg/hub.py",
+    "--reason",
+    "r",
+    "--base-ref",
+    "base",
+    "--allow-ci-write"
+   ],
+   "code": 1,
+   "out": [
+    "",
+    "Baseline blessed for 0 file(s) (reason: r):",
+    "  (none)",
+    "  REFUSED (1 file(s), nothing written):",
+    "    pkg/hub.py: efferent_coupling=12 fails <= 10 (over cap and regressed)"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":15,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/__init__.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,0.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/hub.py\":{\"efferent_coupling\":[0.0,11.0],\"public_names\":[0.0,0.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m0.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m1.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m10.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m11.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m12.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m2.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m3.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m4.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m5.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m6.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m7.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m8.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m9.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":15,\"files_improved\":0,\"files_regressed\":1,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/hub.py\":{\"efferent_coupling\":[11.0,12.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/__init__.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 0.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/hub.py\": {\n    \"efferent_coupling\": 12.0,\n    \"public_names\": 0.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m0.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m1.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m10.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m11.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m12.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m2.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m3.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m4.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m5.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m6.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m7.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m8.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m9.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--rebaseline-files",
+    "pkg/hub.py",
+    "--reason",
+    "r",
+    "--allow-ci-write"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "Baseline blessed for 1 file(s) (reason: r):",
+    "  files:",
+    "    pkg/hub.py"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":15,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/__init__.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,0.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/hub.py\":{\"efferent_coupling\":[0.0,11.0],\"public_names\":[0.0,0.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m0.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m1.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m10.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m11.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m12.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m2.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m3.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m4.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m5.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m6.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m7.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m8.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m9.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":15,\"files_improved\":0,\"files_regressed\":1,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/hub.py\":{\"efferent_coupling\":[11.0,12.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline-files\",\"reason\":\"r\",\"deltas\":{},\"improved\":{}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/__init__.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 0.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/hub.py\": {\n    \"efferent_coupling\": 12.0,\n    \"public_names\": 0.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m0.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m1.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m10.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m11.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m12.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m2.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m3.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m4.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m5.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m6.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m7.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m8.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m9.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "bless_needs_a_base_baseline_under_require_base": [
+  {
+   "argv": [
+    "pkg",
+    "--rebaseline-files",
+    "pkg/a.py",
+    "--reason",
+    "r",
+    "--base-ref",
+    "base",
+    "--require-base",
+    "--allow-ci-write"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: no coupling baseline at the base and --require-base is set"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--rebaseline-files",
+    "pkg/a.py",
+    "--reason",
+    "r",
+    "--base-ref",
+    "base",
+    "--allow-ci-write"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "Baseline blessed for 1 file(s) (reason: r):",
+    "  files:",
+    "    pkg/a.py"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline-files\",\"reason\":\"r\",\"deltas\":{},\"improved\":{}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "bless_over_default_cap_is_refused": [
+  {
+   "argv": [
+    "pkg",
+    "--rebaseline-files",
+    "pkg/hub.py",
+    "--reason",
+    "r",
+    "--base-ref",
+    "base",
+    "--allow-ci-write"
+   ],
+   "code": 1,
+   "out": [
+    "",
+    "Baseline blessed for 0 file(s) (reason: r):",
+    "  (none)",
+    "  REFUSED (1 file(s), nothing written):",
+    "    pkg/hub.py: efferent_coupling=12 fails <= 10 (over cap and regressed)"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":15,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/__init__.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,0.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/hub.py\":{\"efferent_coupling\":[0.0,11.0],\"public_names\":[0.0,0.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m0.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m1.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m10.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m11.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m12.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m2.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m3.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m4.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m5.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m6.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m7.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m8.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m9.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/__init__.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 0.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/hub.py\": {\n    \"efferent_coupling\": 11.0,\n    \"public_names\": 0.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m0.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m1.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m10.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m11.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m12.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m2.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m3.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m4.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m5.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m6.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m7.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m8.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m9.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--rebaseline-files",
+    "pkg/hub.py",
+    "--reason",
+    "r",
+    "--allow-ci-write"
+   ],
+   "code": 1,
+   "out": [
+    "",
+    "Baseline blessed for 0 file(s) (reason: r):",
+    "  (none)",
+    "  REFUSED (1 file(s), nothing written):",
+    "    pkg/hub.py: efferent_coupling=12 fails <= 10 (over cap and regressed)"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":15,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/__init__.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,0.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/hub.py\":{\"efferent_coupling\":[0.0,11.0],\"public_names\":[0.0,0.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m0.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m1.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m10.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m11.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m12.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m2.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m3.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m4.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m5.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m6.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m7.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m8.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m9.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/__init__.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 0.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/hub.py\": {\n    \"efferent_coupling\": 11.0,\n    \"public_names\": 0.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m0.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m1.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m10.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m11.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m12.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m2.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m3.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m4.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m5.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m6.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m7.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m8.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m9.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "bless_over_the_path_cap_is_refused": [
+  {
+   "argv": [
+    "pkg",
+    "--rebaseline-files",
+    "pkg/hub.py",
+    "--reason",
+    "r",
+    "--base-ref",
+    "base",
+    "--allow-ci-write"
+   ],
+   "code": 1,
+   "out": [
+    "",
+    "Baseline blessed for 0 file(s) (reason: r):",
+    "  (none)",
+    "  REFUSED (1 file(s), nothing written):",
+    "    pkg/hub.py: efferent_coupling=13 fails <= 12 (over cap and regressed)"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":15,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/__init__.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,0.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/hub.py\":{\"efferent_coupling\":[0.0,11.0],\"public_names\":[0.0,0.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m0.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m1.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m10.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m11.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m12.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m2.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m3.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m4.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m5.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m6.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m7.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m8.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m9.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/__init__.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 0.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/hub.py\": {\n    \"efferent_coupling\": 11.0,\n    \"public_names\": 0.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m0.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m1.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m10.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m11.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m12.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m2.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m3.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m4.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m5.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m6.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m7.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m8.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m9.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "bless_records_gains_and_waivers": [
+  {
+   "argv": [
+    "pkg",
+    "--rebaseline-files",
+    "pkg/a.py,pkg/b.py",
+    "--reason",
+    "mixed",
+    "--base-ref",
+    "base",
+    "--allow-ci-write"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "Baseline blessed for 2 file(s) (reason: mixed):",
+    "  files:",
+    "    pkg/a.py",
+    "    pkg/b.py"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":2,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/b.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,2.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":2,\"files_improved\":1,\"files_regressed\":1,\"verdict\":\"rebaseline-files\",\"reason\":\"mixed\",\"deltas\":{\"pkg/a.py\":{\"public_names\":[1.0,2.0]}},\"improved\":{\"pkg/b.py\":{\"public_names\":[2.0,1.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 2.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/b.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "bless_spellings_and_duplicates": [
+  {
+   "argv": [
+    "pkg",
+    "--rebaseline-files",
+    "./pkg/a.py,pkg/a.py,pkg//a.py",
+    "--reason",
+    "r",
+    "--base-ref",
+    "base",
+    "--allow-ci-write"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "Baseline blessed for 1 file(s) (reason: r):",
+    "  files:",
+    "    pkg/a.py"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,2.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":1,\"files_regressed\":0,\"verdict\":\"rebaseline-files\",\"reason\":\"r\",\"deltas\":{},\"improved\":{\"pkg/a.py\":{\"public_names\":[2.0,1.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "bless_within_cap": [
+  {
+   "argv": [
+    "pkg",
+    "--rebaseline-files",
+    "pkg/hub.py",
+    "--reason",
+    "hub grows",
+    "--base-ref",
+    "base",
+    "--allow-ci-write"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "Baseline blessed for 1 file(s) (reason: hub grows):",
+    "  files:",
+    "    pkg/hub.py"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":15,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/__init__.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,0.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/hub.py\":{\"efferent_coupling\":[0.0,11.0],\"public_names\":[0.0,0.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m0.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m1.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m10.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m11.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m12.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m2.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m3.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m4.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m5.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m6.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m7.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m8.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m9.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":1,\"verdict\":\"rebaseline-files\",\"reason\":\"hub grows\",\"deltas\":{\"pkg/hub.py\":{\"efferent_coupling\":[11.0,12.0]}},\"improved\":{}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/__init__.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 0.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/hub.py\": {\n    \"efferent_coupling\": 12.0,\n    \"public_names\": 0.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m0.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m1.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m10.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m11.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m12.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m2.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m3.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m4.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m5.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m6.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m7.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m8.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m9.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base",
+    "--require-base"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "File                                     Metric                       Baseline    Current    Delta     Status",
+    "------------------------------------------------------------------------------------------------------------",
+    "pkg/hub.py                               efferent_coupling              11.000     12.000   +1.000    RELAXED",
+    "",
+    "PASS: no regressions"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":15,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/__init__.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,0.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/hub.py\":{\"efferent_coupling\":[0.0,11.0],\"public_names\":[0.0,0.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m0.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m1.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m10.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m11.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m12.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m2.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m3.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m4.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m5.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m6.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m7.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m8.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m9.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":1,\"verdict\":\"rebaseline-files\",\"reason\":\"hub grows\",\"deltas\":{\"pkg/hub.py\":{\"efferent_coupling\":[11.0,12.0]}},\"improved\":{}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/__init__.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 0.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/hub.py\": {\n    \"efferent_coupling\": 12.0,\n    \"public_names\": 0.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m0.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m1.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m10.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m11.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m12.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m2.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m3.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m4.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m5.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m6.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m7.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m8.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m9.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "check_base_unresolvable": [
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "nope",
+    "--require-base"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: base ref unresolvable and --require-base is set"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "nope"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: cannot resolve merge-base (origin/main unfetched or stale) with an in-tree baseline present; fetch origin/main or pass --base-ref"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "check_base_without_baseline": [
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: base has no baseline and origin/main is unresolvable with an in-tree baseline present; fetch origin/main"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: base commit predates baseline adoption; rebase onto current main"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base",
+    "--tripwire"
+   ],
+   "code": 0,
+   "out": [
+    "Base predates baseline adoption on push tripwire -- one-time bootstrap pass"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "check_base_without_baseline_and_tip": [
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base"
+   ],
+   "code": 0,
+   "out": [
+    "No baseline at base or origin/main tip -- first-adoption bootstrap pass"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "check_ci_env_is_irrelevant": [
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base",
+    "--require-base"
+   ],
+   "code": 1,
+   "out": [
+    "",
+    "File                                     Metric                       Baseline    Current    Delta     Status",
+    "------------------------------------------------------------------------------------------------------------",
+    "pkg/a.py                                 public_names                    1.000      2.000   +1.000  REGRESSED",
+    "",
+    "FAIL: regression detected",
+    "  pkg/a.py: public_names"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "check_corrupt_base_baseline": [
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base",
+    "--require-base"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: <state error>"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": null,
+    ".oo-coupling-baseline.json": "{oops"
+   }
+  }
+ ],
+ "check_corrupt_in_tree_baseline": [
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base",
+    "--require-base"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: <state error>"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{not json"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--json"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: <state error>"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{not json"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base",
+    "--require-base"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: <state error>"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\"pkg/a.py\": []}"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base",
+    "--require-base"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: <state error>"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\"pkg/a.py\": {\"public_names\": true}}"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--update",
+    "--allow-ci-write"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: <state error>"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "[]"
+   }
+  }
+ ],
+ "check_empty_base_baseline": [
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base",
+    "--require-base"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: base coupling baseline is empty (truncated write or bad merge) and --require-base is set"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": null,
+    ".oo-coupling-baseline.json": "{}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "File                                     Metric                       Baseline    Current    Delta     Status",
+    "------------------------------------------------------------------------------------------------------------",
+    "pkg/a.py                                 efferent_coupling                 NEW      0.000       --       INFO",
+    "pkg/a.py                                 public_names                      NEW      2.000       --       INFO",
+    "pkg/a.py                                 circular_imports                  NEW      0.000       --       INFO",
+    "pkg/a.py                                 max_lcom                          NEW      0.000       --       INFO",
+    "pkg/a.py                                 avg_lcom                          NEW      0.000       --       INFO",
+    "",
+    "PASS: no regressions"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": null,
+    ".oo-coupling-baseline.json": "{}\n"
+   }
+  }
+ ],
+ "check_empty_base_baseline_parse": [
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: touched file(s) failed to parse:",
+    "  pkg/a.py"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": null,
+    ".oo-coupling-baseline.json": "{}\n"
+   }
+  }
+ ],
+ "check_first_adoption": [
+  {
+   "argv": [
+    "pkg",
+    "--check"
+   ],
+   "code": 0,
+   "out": [
+    "No base and no in-tree baseline -- first-adoption bootstrap pass"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": null,
+    ".oo-coupling-baseline.json": null
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--require-base"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: base ref unresolvable and --require-base is set"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": null,
+    ".oo-coupling-baseline.json": null
+   }
+  }
+ ],
+ "check_improvement": [
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base",
+    "--require-base"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "File                                     Metric                       Baseline    Current    Delta     Status",
+    "------------------------------------------------------------------------------------------------------------",
+    "pkg/a.py                                 public_names                    2.000      1.000   -1.000   IMPROVED",
+    "",
+    "PASS: no regressions"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,2.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 2.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "check_laundered_in_tree_baseline": [
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base",
+    "--require-base"
+   ],
+   "code": 1,
+   "out": [
+    "",
+    "File                                     Metric                       Baseline    Current    Delta     Status",
+    "------------------------------------------------------------------------------------------------------------",
+    "pkg/a.py                                 public_names                    1.000      2.000   +1.000  REGRESSED",
+    "",
+    "FAIL: regression detected",
+    "  pkg/a.py: public_names"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":1,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"public_names\":[1.0,2.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 2.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "check_malformed_audit": [
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base",
+    "--require-base"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: <state error>"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "not json"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "check_metric_missing_from_base_row": [
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base",
+    "--require-base"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "File                                     Metric                       Baseline    Current    Delta     Status",
+    "------------------------------------------------------------------------------------------------------------",
+    "  (all metrics unchanged)",
+    "",
+    "PASS: no regressions"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": null,
+    ".oo-coupling-baseline.json": "{\"pkg/a.py\": {\"public_names\": 2}}\n"
+   }
+  }
+ ],
+ "check_new_file_is_info": [
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base",
+    "--require-base"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "File                                     Metric                       Baseline    Current    Delta     Status",
+    "------------------------------------------------------------------------------------------------------------",
+    "pkg/new.py                               efferent_coupling                 NEW      0.000       --       INFO",
+    "pkg/new.py                               public_names                      NEW      3.000       --       INFO",
+    "pkg/new.py                               circular_imports                  NEW      0.000       --       INFO",
+    "pkg/new.py                               max_lcom                          NEW      0.000       --       INFO",
+    "pkg/new.py                               avg_lcom                          NEW      0.000       --       INFO",
+    "",
+    "PASS: no regressions"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "check_no_origin_main": [
+  {
+   "argv": [
+    "pkg",
+    "--check"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: cannot resolve merge-base (origin/main unfetched or stale) with an in-tree baseline present; fetch origin/main or pass --base-ref"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--require-base"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: base ref unresolvable and --require-base is set"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "check_no_python_touched": [
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base",
+    "--require-base"
+   ],
+   "code": 0,
+   "out": [
+    "No scored Python files touched"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "check_not_found_target": [
+  {
+   "argv": [
+    "nope",
+    "--check"
+   ],
+   "code": 1,
+   "out": [
+    "Not found: nope"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "check_parse_error": [
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base",
+    "--require-base"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: touched file(s) failed to parse:",
+    "  pkg/a.py"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "check_regression": [
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base",
+    "--require-base"
+   ],
+   "code": 1,
+   "out": [
+    "",
+    "File                                     Metric                       Baseline    Current    Delta     Status",
+    "------------------------------------------------------------------------------------------------------------",
+    "pkg/a.py                                 public_names                    1.000      2.000   +1.000  REGRESSED",
+    "",
+    "FAIL: regression detected",
+    "  pkg/a.py: public_names"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "check_regression_in_earlier_commit": [
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base",
+    "--require-base"
+   ],
+   "code": 1,
+   "out": [
+    "",
+    "File                                     Metric                       Baseline    Current    Delta     Status",
+    "------------------------------------------------------------------------------------------------------------",
+    "pkg/a.py                                 public_names                    1.000      2.000   +1.000  REGRESSED",
+    "",
+    "FAIL: regression detected",
+    "  pkg/a.py: public_names"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":2,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/b.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/b.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "check_relax_does_not_waive_other_metric": [
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base",
+    "--require-base"
+   ],
+   "code": 1,
+   "out": [
+    "",
+    "File                                     Metric                       Baseline    Current    Delta     Status",
+    "------------------------------------------------------------------------------------------------------------",
+    "pkg/hub.py                               efferent_coupling               9.000     12.000   +3.000    RELAXED",
+    "pkg/hub.py                               public_names                    0.000     20.000  +20.000  REGRESSED",
+    "",
+    "FAIL: regression detected",
+    "  pkg/hub.py: public_names"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":15,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/__init__.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,0.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/hub.py\":{\"efferent_coupling\":[0.0,9.0],\"public_names\":[0.0,0.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m0.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m1.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m10.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m11.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m12.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m2.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m3.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m4.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m5.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m6.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m7.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m8.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/m9.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":15,\"files_improved\":0,\"files_regressed\":1,\"verdict\":\"relaxed\",\"reason\":\"j\",\"deltas\":{\"pkg/hub.py\":{\"efferent_coupling\":[9.0,12.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/__init__.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 0.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/hub.py\": {\n    \"efferent_coupling\": 12.0,\n    \"public_names\": 0.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m0.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m1.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m10.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m11.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m12.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m2.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m3.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m4.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m5.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m6.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m7.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m8.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/m9.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "check_relaxed_regression_in_base_log_is_history": [
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "mid",
+    "--require-base"
+   ],
+   "code": 1,
+   "out": [
+    "",
+    "File                                     Metric                       Baseline    Current    Delta     Status",
+    "------------------------------------------------------------------------------------------------------------",
+    "pkg/a.py                                 public_names                    2.000      3.000   +1.000  REGRESSED",
+    "",
+    "FAIL: regression detected",
+    "  pkg/a.py: public_names"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":1,\"verdict\":\"relaxed\",\"reason\":\"debt\",\"deltas\":{\"pkg/a.py\":{\"public_names\":[1.0,2.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":1,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"public_names\":[2.0,3.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 3.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "check_relaxed_regression_is_waived": [
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base",
+    "--require-base"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "File                                     Metric                       Baseline    Current    Delta     Status",
+    "------------------------------------------------------------------------------------------------------------",
+    "pkg/a.py                                 public_names                    1.000      2.000   +1.000    RELAXED",
+    "",
+    "PASS: no regressions"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":1,\"verdict\":\"relaxed\",\"reason\":\"debt\",\"deltas\":{\"pkg/a.py\":{\"public_names\":[1.0,2.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 2.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "check_rename_carries_regression": [
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base",
+    "--require-base"
+   ],
+   "code": 1,
+   "out": [
+    "",
+    "File                                     Metric                       Baseline    Current    Delta     Status",
+    "------------------------------------------------------------------------------------------------------------",
+    "pkg/b.py                                 public_names                    1.000      2.000   +1.000  REGRESSED",
+    "",
+    "FAIL: regression detected",
+    "  pkg/b.py: public_names"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "check_rename_unchanged": [
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base",
+    "--require-base"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "File                                     Metric                       Baseline    Current    Delta     Status",
+    "------------------------------------------------------------------------------------------------------------",
+    "  (all metrics unchanged)",
+    "",
+    "PASS: no regressions"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "check_tripwire_without_baseline": [
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base",
+    "--tripwire"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: --tripwire with no baseline on main; only the adoption commit that adds the baseline may bootstrap"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": null,
+    ".oo-coupling-baseline.json": null
+   }
+  }
+ ],
+ "check_unchanged": [
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base",
+    "--require-base"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "File                                     Metric                       Baseline    Current    Delta     Status",
+    "------------------------------------------------------------------------------------------------------------",
+    "  (all metrics unchanged)",
+    "",
+    "PASS: no regressions"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "config_errors": [
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base",
+    "--require-base"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: unknown [tool.oo-ratchet.coupling] keys: ['bogus']"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--check",
+    "--base-ref",
+    "base",
+    "--require-base"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: cannot read <root>/pyproject.toml: Invalid value (at line 1, column 8)"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "log_views": [
+  {
+   "argv": [
+    "pkg",
+    "--log"
+   ],
+   "code": 0,
+   "out": [
+    "No audit log found"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": null,
+    ".oo-coupling-baseline.json": null
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--log"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "Timestamp              Commit      Scored  Improved  Regressed      Verdict",
+    "--------------------------------------------------------------------------",
+    "<ts>   ?                1         0          0   rebaseline"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--log"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: corrupt coupling audit log <root>/.oo-coupling-audit.jsonl: entry is not an object"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"verdict\":\"x\",\"ts\":\"<ts>\"}",
+     "",
+     "[1]"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--log"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: corrupt coupling audit log <root>/.oo-coupling-audit.jsonl: Expecting value: line 1 column 1 (char 0)"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "garbage"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "main_module_has_relaxed_targets": [
+  {
+   "argv": [
+    "pkg",
+    "--rebaseline-files",
+    "pkg/__main__.py",
+    "--reason",
+    "r",
+    "--base-ref",
+    "base",
+    "--allow-ci-write"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "Baseline blessed for 1 file(s) (reason: r):",
+    "  files:",
+    "    pkg/__main__.py"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/__main__.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,90.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":1,\"verdict\":\"rebaseline-files\",\"reason\":\"r\",\"deltas\":{\"pkg/__main__.py\":{\"public_names\":[90.0,99.0]}},\"improved\":{}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/__main__.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 99.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--rebaseline-files",
+    "pkg/__main__.py",
+    "--reason",
+    "r",
+    "--base-ref",
+    "base",
+    "--allow-ci-write"
+   ],
+   "code": 1,
+   "out": [
+    "",
+    "Baseline blessed for 0 file(s) (reason: r):",
+    "  (none)",
+    "  REFUSED (1 file(s), nothing written):",
+    "    pkg/__main__.py: public_names=101 fails <= 100 (over cap and regressed)"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/__main__.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,90.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":1,\"verdict\":\"rebaseline-files\",\"reason\":\"r\",\"deltas\":{\"pkg/__main__.py\":{\"public_names\":[90.0,99.0]}},\"improved\":{}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/__main__.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 99.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "rebaseline_records_changes": [
+  {
+   "argv": [
+    "pkg",
+    "--rebaseline",
+    "--allow-ci-write",
+    "--reason",
+    " why ",
+    "--source",
+    "PL-2"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "Baseline reset: <root>/.oo-coupling-baseline.json",
+    "  files scored: 3"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":3,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/b.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,2.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/c.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":\"PL-2\",\"files_scored\":3,\"files_improved\":1,\"files_regressed\":1,\"verdict\":\"rebaseline\",\"reason\":\"why\",\"deltas\":{\"pkg/a.py\":{\"public_names\":[1.0,2.0]},\"pkg/b.py\":{\"public_names\":[2.0,1.0]},\"pkg/d.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}},\"removed\":[\"pkg/c.py\"]}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 2.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/b.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/d.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--rebaseline",
+    "--allow-ci-write"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "Baseline reset: <root>/.oo-coupling-baseline.json",
+    "  files scored: 3"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":3,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/b.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,2.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/c.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":\"PL-2\",\"files_scored\":3,\"files_improved\":1,\"files_regressed\":1,\"verdict\":\"rebaseline\",\"reason\":\"why\",\"deltas\":{\"pkg/a.py\":{\"public_names\":[1.0,2.0]},\"pkg/b.py\":{\"public_names\":[2.0,1.0]},\"pkg/d.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}},\"removed\":[\"pkg/c.py\"]}",
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":3,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":null,\"deltas\":{}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 2.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/b.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/d.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "rebaseline_refused_under_ci": [
+  {
+   "argv": [
+    "pkg",
+    "--rebaseline"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: refusing to write coupling baseline under GITHUB_ACTIONS without --allow-ci-write"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": null,
+    ".oo-coupling-baseline.json": null
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--rebaseline",
+    "--allow-ci-write",
+    "--reason",
+    "r"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "Baseline reset: <root>/.oo-coupling-baseline.json",
+    "  files scored: 1"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"r\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "relax_refusals": [
+  {
+   "argv": [
+    "pkg",
+    "--relax",
+    "pkg/a.py",
+    "--justify",
+    " ",
+    "--allow-ci-write"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: --relax requires a non-empty --justify"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--relax",
+    "pkg/zzz.py",
+    "--justify",
+    "j",
+    "--allow-ci-write"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: not a scored file: pkg/zzz.py"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--relax",
+    "pkg/a.py",
+    "--justify",
+    "j",
+    "--allow-ci-write"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: nothing to relax for pkg/a.py (no metric is worse than its baseline)"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--relax",
+    "pkg/new.py",
+    "--justify",
+    "j",
+    "--allow-ci-write"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: pkg/new.py has no baseline entry to relax; use --update or --rebaseline to add a new file"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--relax",
+    "pkg/a.py",
+    "--justify",
+    "j"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: nothing to relax for pkg/a.py (no metric is worse than its baseline)"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--relax",
+    "pkg/a.py",
+    "--justify",
+    "j"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: refusing to write coupling baseline under GITHUB_ACTIONS without --allow-ci-write"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "relax_succeeds_and_records_only_the_loosened_metric": [
+  {
+   "argv": [
+    "pkg",
+    "--relax",
+    "pkg/a.py",
+    "--justify",
+    "debt",
+    "--source",
+    "PL-9",
+    "--allow-ci-write"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "Relaxed pkg/a.py (reason: debt)",
+    "  baseline: <root>/.oo-coupling-baseline.json"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":\"PL-9\",\"files_scored\":1,\"files_improved\":0,\"files_regressed\":1,\"verdict\":\"relaxed\",\"reason\":\"debt\",\"deltas\":{\"pkg/a.py\":{\"public_names\":[1.0,2.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 2.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "update_backfills_a_missing_row": [
+  {
+   "argv": [
+    "pkg",
+    "--update",
+    "--base-ref",
+    "base",
+    "--allow-ci-write"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "Baseline updated: <root>/.oo-coupling-baseline.json",
+    "  files improved: 0",
+    "  files removed:  0",
+    "  backfilled: pkg/b.py"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":2,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/b.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":2,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"pass\",\"reason\":null,\"deltas\":{},\"backfilled\":[\"pkg/b.py\"]}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/b.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "update_carries_a_rename": [
+  {
+   "argv": [
+    "pkg",
+    "--update",
+    "--base-ref",
+    "base",
+    "--allow-ci-write"
+   ],
+   "code": 1,
+   "out": [
+    "",
+    "Baseline updated: <root>/.oo-coupling-baseline.json",
+    "  files improved: 0",
+    "  files removed:  0",
+    "  REFUSED (1 files):",
+    "    pkg/b.py: public_names regressed"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":1,\"verdict\":\"fail\",\"reason\":null,\"deltas\":{}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--update",
+    "--base-ref",
+    "base",
+    "--allow-ci-write"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "Baseline updated: <root>/.oo-coupling-baseline.json",
+    "  files improved: 0",
+    "  files removed:  1"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":1,\"verdict\":\"fail\",\"reason\":null,\"deltas\":{}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"pass\",\"reason\":null,\"deltas\":{},\"removed\":[\"pkg/a.py\"]}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/b.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "update_drops_a_deleted_file": [
+  {
+   "argv": [
+    "pkg",
+    "--update",
+    "--base-ref",
+    "base",
+    "--allow-ci-write"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "Baseline updated: <root>/.oo-coupling-baseline.json",
+    "  files improved: 0",
+    "  files removed:  1"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":2,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/b.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"pass\",\"reason\":null,\"deltas\":{},\"removed\":[\"pkg/b.py\"]}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "update_drops_a_file_created_and_deleted_in_the_branch": [
+  {
+   "argv": [
+    "pkg",
+    "--update",
+    "--base-ref",
+    "base",
+    "--allow-ci-write"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "Baseline updated: <root>/.oo-coupling-baseline.json",
+    "  files improved: 0",
+    "  files removed:  1"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":2,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/gone.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"pass\",\"reason\":null,\"deltas\":{},\"removed\":[\"pkg/gone.py\"]}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "update_first_adoption_sweeps_the_tree": [
+  {
+   "argv": [
+    "pkg",
+    "--update",
+    "--base-ref",
+    "nope",
+    "--allow-ci-write"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "Baseline updated: <root>/.oo-coupling-baseline.json",
+    "  files improved: 2",
+    "  files removed:  0"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":2,\"files_improved\":2,\"files_regressed\":0,\"verdict\":\"pass\",\"reason\":null,\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/b.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,2.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/b.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 2.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "update_first_adoption_with_a_parse_error": [
+  {
+   "argv": [
+    "pkg",
+    "--update",
+    "--base-ref",
+    "nope",
+    "--allow-ci-write"
+   ],
+   "code": 1,
+   "out": [
+    "",
+    "Baseline updated: <root>/.oo-coupling-baseline.json",
+    "  files improved: 1",
+    "  files removed:  0",
+    "  REFUSED (1 unparseable, baseline kept):",
+    "    pkg/b.py: parse error"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":1,\"files_regressed\":1,\"verdict\":\"fail\",\"reason\":null,\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "update_ignores_row_rewritten_outside_the_diff": [
+  {
+   "argv": [
+    "pkg",
+    "--update",
+    "--base-ref",
+    "base",
+    "--allow-ci-write"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "Baseline updated: <root>/.oo-coupling-baseline.json",
+    "  files improved: 0",
+    "  files removed:  0"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":2,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]},\"pkg/b.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":2,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"pass\",\"reason\":null,\"deltas\":{}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"public_names\": 5\n  },\n  \"pkg/b.py\": {\n    \"public_names\": 1\n  }\n}\n"
+   }
+  }
+ ],
+ "update_keeps_a_row_when_a_file_does_not_parse": [
+  {
+   "argv": [
+    "pkg",
+    "--update",
+    "--base-ref",
+    "base",
+    "--allow-ci-write"
+   ],
+   "code": 1,
+   "out": [
+    "",
+    "Baseline updated: <root>/.oo-coupling-baseline.json",
+    "  files improved: 0",
+    "  files removed:  0",
+    "  REFUSED (1 unparseable, baseline kept):",
+    "    pkg/a.py: parse error"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":0,\"files_improved\":0,\"files_regressed\":1,\"verdict\":\"fail\",\"reason\":null,\"deltas\":{}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "update_metric_missing_from_in_tree_row": [
+  {
+   "argv": [
+    "pkg",
+    "--update",
+    "--base-ref",
+    "base",
+    "--allow-ci-write"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "Baseline updated: <root>/.oo-coupling-baseline.json",
+    "  files improved: 0",
+    "  files removed:  0"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"pass\",\"reason\":null,\"deltas\":{}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 3.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "update_new_file_counts_as_improved": [
+  {
+   "argv": [
+    "pkg",
+    "--update",
+    "--base-ref",
+    "base",
+    "--allow-ci-write"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "Baseline updated: <root>/.oo-coupling-baseline.json",
+    "  files improved: 1",
+    "  files removed:  0"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":2,\"files_improved\":1,\"files_regressed\":0,\"verdict\":\"pass\",\"reason\":null,\"deltas\":{\"pkg/new.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,2.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  },\n  \"pkg/new.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 2.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "update_refused_under_ci": [
+  {
+   "argv": [
+    "pkg",
+    "--update",
+    "--base-ref",
+    "base"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: refusing to write coupling baseline under GITHUB_ACTIONS without --allow-ci-write"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--update",
+    "--base-ref",
+    "base",
+    "--allow-ci-write"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "Baseline updated: <root>/.oo-coupling-baseline.json",
+    "  files improved: 0",
+    "  files removed:  0"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"pass\",\"reason\":null,\"deltas\":{}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "update_refuses_in_tree_loosening_that_beats_base": [
+  {
+   "argv": [
+    "pkg",
+    "--update",
+    "--base-ref",
+    "base",
+    "--allow-ci-write"
+   ],
+   "code": 1,
+   "out": [
+    "",
+    "Baseline updated: <root>/.oo-coupling-baseline.json",
+    "  files improved: 0",
+    "  files removed:  0",
+    "  REFUSED (1 files):",
+    "    pkg/a.py: public_names regressed"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,3.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":1,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"public_names\":[3.0,1.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":1,\"verdict\":\"fail\",\"reason\":null,\"deltas\":{}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "update_refuses_regression": [
+  {
+   "argv": [
+    "pkg",
+    "--update",
+    "--base-ref",
+    "base",
+    "--allow-ci-write"
+   ],
+   "code": 1,
+   "out": [
+    "",
+    "Baseline updated: <root>/.oo-coupling-baseline.json",
+    "  files improved: 0",
+    "  files removed:  0",
+    "  REFUSED (1 files):",
+    "    pkg/a.py: public_names regressed"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":1,\"verdict\":\"fail\",\"reason\":null,\"deltas\":{}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "update_rename_improves": [
+  {
+   "argv": [
+    "pkg",
+    "--update",
+    "--base-ref",
+    "base",
+    "--allow-ci-write"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "Baseline updated: <root>/.oo-coupling-baseline.json",
+    "  files improved: 1",
+    "  files removed:  1"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,2.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":null,\"files_scored\":1,\"files_improved\":1,\"files_regressed\":0,\"verdict\":\"pass\",\"reason\":null,\"deltas\":{\"pkg/b.py\":{\"public_names\":[2.0,1.0]}},\"removed\":[\"pkg/a.py\"]}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/b.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "update_unresolvable_base": [
+  {
+   "argv": [
+    "pkg",
+    "--update",
+    "--base-ref",
+    "nope",
+    "--allow-ci-write"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: cannot resolve base (origin/main unfetched or stale) with a coupling baseline present; fetch origin/main, pass --base-ref, or use --rebaseline for an intentional whole-tree reset"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--update",
+    "--base-ref",
+    "nope",
+    "--require-base",
+    "--allow-ci-write"
+   ],
+   "code": 1,
+   "out": [
+    "FAIL: base ref unresolvable and --require-base is set"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "update_writes_improvement": [
+  {
+   "argv": [
+    "pkg",
+    "--update",
+    "--base-ref",
+    "base",
+    "--allow-ci-write",
+    "--source",
+    "PL-1"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "Baseline updated: <root>/.oo-coupling-baseline.json",
+    "  files improved: 1",
+    "  files removed:  0"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,2.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}",
+     "{\"ts\":\"<ts>\",\"commit\":\"<commit>\",\"source\":\"PL-1\",\"files_scored\":1,\"files_improved\":1,\"files_regressed\":0,\"verdict\":\"pass\",\"reason\":null,\"deltas\":{\"pkg/a.py\":{\"public_names\":[2.0,1.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ],
+ "views": [
+  {
+   "argv": [
+    "pkg"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "Metric                          Value     Target  Grade",
+    "--------------------------------------------------------",
+    "efferent_coupling                0.00 <= 10       PASS  ",
+    "public_names                     2.00 <= 15       PASS  ",
+    "circular_imports                 0.00 == 0        PASS  ",
+    "max_lcom                         0.00 <= 0.8      PASS  ",
+    "avg_lcom                         0.00 <= 0.5      PASS  "
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--threshold"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "Metric                          Value     Target  Grade",
+    "--------------------------------------------------------",
+    "efferent_coupling                0.00 <= 10       PASS  ",
+    "public_names                     2.00 <= 15       PASS  ",
+    "circular_imports                 0.00 == 0        PASS  ",
+    "max_lcom                         0.00 <= 0.8      PASS  ",
+    "avg_lcom                         0.00 <= 0.5      PASS  ",
+    "",
+    "--- Per-file breakdown ---",
+    "",
+    "  pkg/a.py",
+    "    efferent_coupling                 0 PASS",
+    "    public_names                      1 PASS",
+    "    circular_imports                  0 PASS",
+    "    max_lcom                        0.0 PASS",
+    "    avg_lcom                        0.0 PASS",
+    "",
+    "  pkg/b.py",
+    "    efferent_coupling                 0 PASS",
+    "    public_names                      2 PASS",
+    "    circular_imports                  0 PASS",
+    "    max_lcom                        0.0 PASS",
+    "    avg_lcom                        0.0 PASS"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--json"
+   ],
+   "code": 0,
+   "out": [
+    "{",
+    "  \"per_file\": [",
+    "    {",
+    "      \"file\": \"pkg/a.py\",",
+    "      \"efferent_coupling\": 0,",
+    "      \"public_names\": 1,",
+    "      \"circular_imports\": 0,",
+    "      \"max_lcom\": 0.0,",
+    "      \"avg_lcom\": 0.0",
+    "    },",
+    "    {",
+    "      \"file\": \"pkg/b.py\",",
+    "      \"efferent_coupling\": 0,",
+    "      \"public_names\": 2,",
+    "      \"circular_imports\": 0,",
+    "      \"max_lcom\": 0.0,",
+    "      \"avg_lcom\": 0.0",
+    "    }",
+    "  ],",
+    "  \"packages\": [],",
+    "  \"aggregate\": {",
+    "    \"efferent_coupling\": 0.0,",
+    "    \"public_names\": 2.0,",
+    "    \"circular_imports\": 0.0,",
+    "    \"max_lcom\": 0.0,",
+    "    \"avg_lcom\": 0.0",
+    "  },",
+    "  \"grades\": {",
+    "    \"efferent_coupling\": \"PASS\",",
+    "    \"public_names\": \"PASS\",",
+    "    \"circular_imports\": \"PASS\",",
+    "    \"max_lcom\": \"PASS\",",
+    "    \"avg_lcom\": \"PASS\"",
+    "  },",
+    "  \"thresholds\": {",
+    "    \"efferent_coupling\": \"<= 10\",",
+    "    \"public_names\": \"<= 15\",",
+    "    \"circular_imports\": \"== 0\",",
+    "    \"max_lcom\": \"<= 0.8\",",
+    "    \"avg_lcom\": \"<= 0.5\"",
+    "  }",
+    "}"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--log"
+   ],
+   "code": 0,
+   "out": [
+    "",
+    "Timestamp              Commit      Scored  Improved  Regressed      Verdict",
+    "--------------------------------------------------------------------------",
+    "<ts>   ?                1         0          0   rebaseline"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  },
+  {
+   "argv": [
+    "pkg",
+    "--json"
+   ],
+   "code": 0,
+   "out": [
+    "{",
+    "  \"per_file\": [",
+    "    {",
+    "      \"file\": \"pkg/a.py\",",
+    "      \"efferent_coupling\": 0,",
+    "      \"public_names\": 1,",
+    "      \"circular_imports\": 0,",
+    "      \"max_lcom\": 0.0,",
+    "      \"avg_lcom\": 0.0",
+    "    },",
+    "    {",
+    "      \"file\": \"pkg/b.py\",",
+    "      \"efferent_coupling\": 0,",
+    "      \"public_names\": 2,",
+    "      \"circular_imports\": 0,",
+    "      \"max_lcom\": 0.0,",
+    "      \"avg_lcom\": 0.0",
+    "    },",
+    "    {",
+    "      \"file\": \"pkg/c.py\",",
+    "      \"error\": \"invalid syntax (c.py, line 1)\"",
+    "    }",
+    "  ],",
+    "  \"packages\": [],",
+    "  \"aggregate\": {",
+    "    \"efferent_coupling\": 0.0,",
+    "    \"public_names\": 2.0,",
+    "    \"circular_imports\": 0.0,",
+    "    \"max_lcom\": 0.0,",
+    "    \"avg_lcom\": 0.0",
+    "  },",
+    "  \"grades\": {",
+    "    \"efferent_coupling\": \"PASS\",",
+    "    \"public_names\": \"PASS\",",
+    "    \"circular_imports\": \"PASS\",",
+    "    \"max_lcom\": \"PASS\",",
+    "    \"avg_lcom\": \"PASS\"",
+    "  },",
+    "  \"thresholds\": {",
+    "    \"efferent_coupling\": \"<= 10\",",
+    "    \"public_names\": \"<= 15\",",
+    "    \"circular_imports\": \"== 0\",",
+    "    \"max_lcom\": \"<= 0.8\",",
+    "    \"avg_lcom\": \"<= 0.5\"",
+    "  }",
+    "}"
+   ],
+   "state": {
+    ".oo-coupling-audit.jsonl": [
+     "{\"ts\":\"<ts>\",\"commit\":null,\"source\":null,\"files_scored\":1,\"files_improved\":0,\"files_regressed\":0,\"verdict\":\"rebaseline\",\"reason\":\"seed\",\"deltas\":{\"pkg/a.py\":{\"efferent_coupling\":[0.0,0.0],\"public_names\":[0.0,1.0],\"circular_imports\":[0.0,0.0],\"max_lcom\":[0.0,0.0],\"avg_lcom\":[0.0,0.0]}}}"
+    ],
+    ".oo-coupling-baseline.json": "{\n  \"pkg/a.py\": {\n    \"efferent_coupling\": 0.0,\n    \"public_names\": 1.0,\n    \"circular_imports\": 0.0,\n    \"max_lcom\": 0.0,\n    \"avg_lcom\": 0.0\n  }\n}\n"
+   }
+  }
+ ]
+}

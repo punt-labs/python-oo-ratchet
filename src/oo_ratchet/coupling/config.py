@@ -22,6 +22,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Self
 
+from oo_ratchet.core.application.pathtargets import PathTargets
+from oo_ratchet.core.application.policy import GatePolicy
+from oo_ratchet.core.domain.metrics import Metric
+
 from .thresholds import CouplingThresholds
 
 STATELESS_MODES = frozenset({"dataclass", "any"})
@@ -37,6 +41,34 @@ class CouplingConfig:
 
     caps: dict[str, dict[str, float]] = field(default_factory=dict)
     stateless_values: str = "dataclass"
+
+    def policy(self) -> GatePolicy:
+        """Return the gate policy these settings give the coupling gate.
+
+        Regression-only, judged against the in-tree rows; ``__main__.py``
+        and each capped path are judged by their own targets.
+        """
+        table = CouplingThresholds.TABLE
+        main = tuple(
+            Metric(name, table[name][0], target)
+            for name, (_, target) in CouplingThresholds.MAIN_TABLE.items()
+        )
+        exact = {
+            path: tuple(
+                Metric(name, "<=" if table[name][0] == "==" else table[name][0], cap)
+                for name, cap in caps.items()
+            )
+            for path, caps in self.caps.items()
+        }
+        return GatePolicy(
+            tuple(Metric(name, op, target) for name, (op, target) in table.items()),
+            must_improve=False,
+            absolute_targets=False,
+            lock_rows=False,
+            in_tree_only=True,
+            detailed_refusals=True,
+            targets=PathTargets((("__main__.py", main),), exact),
+        )
 
     @classmethod
     def load(cls, root: Path) -> Self:

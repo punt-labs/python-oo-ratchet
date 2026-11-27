@@ -194,28 +194,28 @@ def check_relax_does_not_waive_other_metric(p: Play) -> None:
 def check_corrupt_in_tree_baseline(p: Play) -> None:
     _base(p)
     p.write(".oo-coupling-baseline.json", "{not json")
-    p.run(*CHECK)
-    p.run("pkg", "--json")
+    p.run_state_error(*CHECK)
+    p.run_state_error("pkg", "--json")
     p.write(".oo-coupling-baseline.json", '{"pkg/a.py": []}')
-    p.run(*CHECK)
+    p.run_state_error(*CHECK)
     p.write(".oo-coupling-baseline.json", '{"pkg/a.py": {"public_names": true}}')
-    p.run(*CHECK)
+    p.run_state_error(*CHECK)
     p.write(".oo-coupling-baseline.json", "[]")
-    p.run("pkg", "--update", "--allow-ci-write")
+    p.run_state_error("pkg", "--update", "--allow-ci-write")
 
 
 def check_corrupt_base_baseline(p: Play) -> None:
     p.write("pkg/a.py", LOW).write(".oo-coupling-baseline.json", "{oops")
     p.commit("base").tag("base")
     p.seed().write("pkg/a.py", HIGH).commit("fix")
-    p.run(*CHECK)
+    p.run_state_error(*CHECK)
 
 
 def check_malformed_audit(p: Play) -> None:
     _base(p)
     p.write("pkg/a.py", HIGH).commit("regress")
     p.write(".oo-coupling-audit.jsonl", "not json\n")
-    p.run(*CHECK)
+    p.run_state_error(*CHECK)
 
 
 def check_not_found_target(p: Play) -> None:

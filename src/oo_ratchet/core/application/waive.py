@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from oo_ratchet.core.domain.records import AuditRecord
 from oo_ratchet.core.domain.scores import Rows
 from oo_ratchet.core.domain.verdicts import Failure, Verdict
 
+from .blessbase import BlessBase
 from .operation import Operation
 
 Deltas = dict[str, dict[str, list[float]]]
@@ -61,21 +63,58 @@ class Relax(Operation):
 class Rebaseline(Operation):
     """Reset the baseline unconditionally to the current scores."""
 
-    def run(self, *, source: str | None) -> Verdict:
-        """Replace every row; the audit names the rows that left."""
+    def run(
+        self, *, source: str | None, reason: str = "", detail: bool = False
+    ) -> Verdict:
+        """Replace every row; the audit names the rows that left.
+
+        With ``detail`` the audit also carries each changed metric as
+        ``[old, new]``, the files that gained and the files that lost, and the
+        stripped ``reason``.
+        """
         current = self._source.measure().metrics()
-        removed = self._store.rows().keys() - current.keys()
+        stored = self._store.rows()
+        removed = stored.keys() - current.keys()
+        deltas, improved, regressed = self._changes(stored, current, detail=detail)
         self._store.save(current)
         self._audit.append(
             AuditRecord(
                 verdict="rebaseline",
+                deltas=deltas,
                 files_scored=len(current),
+                files_improved=improved,
+                files_regressed=regressed,
                 removed=tuple(sorted(removed)),
+                reason=reason.strip() or None,
                 source=source,
                 commit=self._history.head(),
             )
         )
         return Verdict.ok("baseline reset", written=tuple(sorted(current)))
+
+    def _changes(
+        self, stored: Rows, current: Rows, *, detail: bool
+    ) -> tuple[Deltas, int, int]:
+        """Return the changed metrics, and how many files gained and lost."""
+        if not detail:
+            return {}, 0, 0
+        deltas: Deltas = {}
+        for path, entry in current.items():
+            old = stored.get(path, {})
+            diff = {
+                m: [old.get(m, 0.0), v] for m, v in entry.items() if old.get(m) != v
+            }
+            if diff:
+                deltas[path] = diff
+        kept = deltas.keys() & stored.keys()
+        worse = {path for path in kept if self._loosens(deltas[path])}
+        return deltas, len(kept - worse), len(worse)
+
+    def _loosens(self, diff: dict[str, list[float]]) -> bool:
+        return any(
+            not self._policy.metric(m).better_or_equal(new, old)
+            for m, (old, new) in diff.items()
+        )
 
 
 class RebaselineFiles(Operation):
@@ -86,36 +125,50 @@ class RebaselineFiles(Operation):
     every other named file that clears its gate is.
     """
 
-    def run(self, paths: list[str], *, reason: str, source: str | None) -> Verdict:
-        """Bless ``paths`` against the current scores."""
+    def run(
+        self,
+        paths: list[str],
+        *,
+        reason: str,
+        source: str | None,
+        base: BlessBase | None = None,
+    ) -> Verdict:
+        """Bless ``paths`` against the current scores.
+
+        A file is judged against its in-tree row. With ``base`` it is judged
+        against its row at the comparison base, and a renamed file's old row
+        is dropped.
+        """
         if not reason.strip():
             return Verdict.refused("blank-reason")
         current = self._source.measure().metrics()
         stored = self._store.rows()
-        accepted, refused = self._partition(paths, current, stored)
+        reference = base.row if base is not None else stored.get
+        accepted, refused = self._partition(paths, current, reference)
         if accepted:
-            self._write(accepted, current, stored, (reason, source))
+            self._write(accepted, current, (stored, base), (reason, source))
         failures = (Failure("refused", tuple(refused)),) if refused else ()
         return Verdict(failures=failures, written=tuple(accepted))
 
     def _partition(
-        self, paths: list[str], current: Rows, stored: Rows
+        self,
+        paths: list[str],
+        current: Rows,
+        reference: Callable[[str], dict[str, float] | None],
     ) -> tuple[list[str], list[str]]:
         """Split ``paths`` into those that clear the gate and refusal messages."""
         accepted: list[str] = []
         refused: list[str] = []
         for requested in paths:
             path = self._source.key(requested)
-            gated = self._policy.over_cap_and_regressed(
-                current.get(path, {}), stored.get(path)
-            )
+            entry = current.get(path, {})
+            policy = self._policy.for_path(path)
+            gated = policy.over_cap_and_regressed(entry, reference(path))
             if path not in current:
                 refused.append(f"{requested}: not found in scored tree")
             elif gated:
-                refused.append(
-                    f"{requested}: {', '.join(gated)} over cap and regressed"
-                )
-            else:
+                refused.append(f"{requested}: {policy.refusal(entry, gated)}")
+            elif path not in accepted:
                 accepted.append(path)
         return accepted, refused
 
@@ -123,15 +176,19 @@ class RebaselineFiles(Operation):
         self,
         accepted: list[str],
         current: Rows,
-        stored: Rows,
+        recorded: tuple[Rows, BlessBase | None],
         meta: tuple[str, str | None],
     ) -> None:
+        stored, base = recorded
         rows = dict(stored)
         bless = Bless()
         for path in accepted:
-            entry, old = current[path], stored.get(path)
+            entry = current[path]
+            old = base.row(path) if base is not None else stored.get(path)
             if old is not None:
                 self._classify(path, entry, old, bless)
+            if base is not None and (renamed := base.predecessor(path)) is not None:
+                rows.pop(renamed, None)
             rows[path] = entry
         reason, source = meta
         self._audit.append(

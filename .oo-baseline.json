@@ -928,6 +928,16 @@
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
   },
+  "src/oo_ratchet/coupling/components.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 1.2,
+    "max_complexity": 7.0,
+    "avg_complexity": 3.4,
+    "module_size": 57.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
   "src/oo_ratchet/coupling/config.py": {
     "encapsulation_ratio": 1.0,
     "avg_params": 1.33,
@@ -950,10 +960,10 @@
   },
   "src/oo_ratchet/coupling/graph.py": {
     "encapsulation_ratio": 1.0,
-    "avg_params": 1.5,
-    "max_complexity": 9.0,
-    "avg_complexity": 3.12,
-    "module_size": 89.0,
+    "avg_params": 0.8,
+    "max_complexity": 4.0,
+    "avg_complexity": 2.0,
+    "module_size": 41.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0

@@ -497,7 +497,10 @@ never against an intermediate commit on the branch, follows renames, rejects
 regressions, and normally requires at least one improvement across existing
 touched files. A gated metric missing from a file's base row is judged by its
 target and never counts as an improvement. If all files are new, passing
-their targets suffices. No touched scored Python files is a trivial pass.
+their targets suffices. With no touched scored Python files, `--check`
+passes once every row the branch rewrote matches the code: a file improved
+and then reverted to its base contents leaves its row out of date until
+`--update` refreshes it.
 `--allow-no-improvement` waives only the improvement requirement, not
 regressions, parse failures or baseline integrity.
 

@@ -11,13 +11,16 @@ metrics are not gated.
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import ClassVar
 
 import pytest
 
-from oo_ratchet.oo.apply import PlanApplier
+from oo_ratchet.oo.apply import PlanApplier, UpdatePlan
+from oo_ratchet.oo.audit import AuditLog
 from oo_ratchet.oo.baseline import Baseline
 from oo_ratchet.oo.compare import FileReview
+from oo_ratchet.oo.gitio import GitRepo
 from oo_ratchet.oo.thresholds import Thresholds
 from tests.test_oo_ratchet import GOOD, WORSE, GitFixture
 
@@ -122,6 +125,18 @@ class TestUpdateRecords:
         rows = [{"max_complexity": 1.0}, {"max_complexity": 3.0}]
         assert PlanApplier.refusals(entry, rows) == []
         assert PlanApplier.refusals(entry, []) == []
+
+    def test_a_renamed_file_already_moved_keeps_its_credit(
+        self, tmp_path: Path
+    ) -> None:
+        # A prior run already moved the row to the new path and dropped the old.
+        (tmp_path / ".oo-baseline.json").write_text(
+            json.dumps({"sub/new.py": {"avg_params": 3.0}})
+        )
+        applier = PlanApplier(Baseline(tmp_path), AuditLog(tmp_path), GitRepo(tmp_path))
+        plan = UpdatePlan({}, frozenset(), renames={"sub/new.py": "sub/old.py"})
+        deltas = {"sub/new.py": {"avg_params": [3.0, 2.0]}}
+        assert applier._improved_files(plan, deltas) == 1
 
     def test_a_real_improvement_is_counted(self) -> None:
         deltas = {"sub/w.py": {"module_size": [9.0, 10.0], "avg_params": [3.0, 2.0]}}

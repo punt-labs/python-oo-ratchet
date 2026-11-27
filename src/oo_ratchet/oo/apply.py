@@ -182,7 +182,7 @@ class PlanApplier:
         """Count improved files among those with a prior row; a new file has none."""
         prior = self._baseline.entries.keys() | (plan.base_baseline or {}).keys()
         return self.improved_count(
-            {p: d for p, d in deltas.items() if plan.renames.get(p, p) in prior}
+            {p: d for p, d in deltas.items() if {p, plan.renames.get(p)} & prior}
         )
 
     @staticmethod

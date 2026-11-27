@@ -19,8 +19,8 @@ Four rings. Imports point only inward, and the domain imports no IO.
 |------|-------|------------|
 | `domain` | metric values, rules, baseline rows, reviews and verdicts, design findings, audit records | nothing outside the domain; no `subprocess`, `os`, `pathlib`, `json`, sockets |
 | `application` | the operations (`Check`, `Update`, `Relax`, `RebaselineFiles`, `Rebaseline`), written once for every gate; the ports as `Protocol`s (`History`, `BaselineStore`, `AuditSink`, `SourceReader`); `GatePolicy` | `domain` |
-| `adapters` | `GitRepo` (implements `History`), the JSON baseline and audit files, config readers, the CLI and report rendering | `application`, `domain` |
-| `entry` | `__main__`, wiring each gate's adapters to its operations | everything |
+| `adapters` | `GitRepo` (implements `History`), the JSON baseline and audit files, config readers, report rendering | `application`, `domain` |
+| `entry` | `__main__`, each gate's CLI, wiring each gate's adapters to its operations | everything |
 
 Each gate is a vertical slice through the rings:
 
@@ -79,7 +79,71 @@ Measured with this repo's own tool:
   hollow classes (8 function bags, 5 single-method classes), 10 `size-cap`,
   and 10 others.
 
-A0 (PL-1718) replaces this section with the ring-based counts.
+### Ring counts
+
+The four-ring table for `src/oo_ratchet` is `architecture/four-rings.toml`.
+Modules are placed by role; the file lists every pattern and module it names.
+The main ones: `*.gitio`, `*.baseline`, `*.audit`, `*.report`, `*.outcome`,
+config readers such as `coupling/config` and the `source_*` modules are
+adapters; `*.ratchet`, `*.compare`, `*.bless`, `*.relax`, `*.writer`, `*.rescan`,
+`*.apply`, `*.scan`, the `shadow*` modules, `backfill` are application; `__main__`, `gates`, `usage`,
+`logging_config` and `*.cli` are entry; every module the file does not name is
+domain. Measured with
+`oo-ratchet design src/oo_ratchet/ --layers docs/architecture/four-rings.toml
+--json`, run from the repository root (137 files scanned, 243 findings):
+
+| Rule | Count |
+|------|-------|
+| `layer-import` | 130 |
+| `concrete-cross-package-import` | 40 |
+| `size-cap` | 10 |
+| `domain-io` | 9 |
+| `primitive-params` | 9 |
+| `stateless-function-bag` | 8 |
+| `feature-envy` | 7 |
+| `stateless-single-method` | 5 |
+| `getter-heavy` | 3 |
+| `split-cohesion` | 3 |
+| `middle-man` | 2 |
+| `envied-data` | 1 |
+| `thick-entry` | 9 |
+| `data-clump` | 6 |
+| `tag-switch` | 1 |
+| `unlayered-module`, `misplaced-function` | 0 |
+
+The 130 `layer-import` violations by importing ring and the ring imported:
+
+| From | Imports | Count |
+|------|---------|-------|
+| domain | adapters | 42 |
+| domain | entry | 12 |
+| domain | application | 21 |
+| application | adapters | 55 |
+
+Entry and adapters import nothing outward. 54 of the 130 are in the four package
+`__init__.py` files (`oo`, `coupling`, `layers`, `suppression`), which are
+domain by the table and import the modules they export, most of them in the
+outer rings. The most
+imported outer modules are `source_set` (17), `coupling/outcome` (7),
+`oo/baseline` (7), `coupling/gitio` (6), `oo/compare` (6), `oo/audit` (6) and
+`oo/gitio` (6).
+
+The 9 `thick-entry` findings are methods of the four CLI modules (`oo`, `coupling`,
+`suppression`, `layers`) whose complexity exceeds 4 (`oo/cli.py` `Cli._run_action` is 10). The 9 `domain-io`
+findings are in 8 modules: 6 import `pathlib`
+(`coupling/packages`, `coupling/scorer`, `design/layer_table`,
+`design/modules`, `oo/scorer`, `suppression/scanner`), 2 import `io`
+(`oo/code_lines`, `suppression/patterns`) and `oo/scorer` also imports `json`.
+
+With layers configured, `primitive-params` applies only to domain modules
+(9, against 43 without layers), `feature-envy` is 7 (13 without) and
+`data-clump` is 6 (24 without), because entry and adapter modules are
+excluded.
+
+`adopter_shape.py src/oo_ratchet` reports, without layers: 131 modules
+(excluding `__init__`), module size median 62 (p25 38, p75 98, max 256), 36
+modules of at most 40 code lines, 0 over the 400-line ceiling, and classes per
+module of 0 (10 modules), 1 (116) and 2 (5).
 
 An intermediate target, gates above one shared core, came before the ring
 form. It is kept for comparison:

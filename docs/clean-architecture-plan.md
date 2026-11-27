@@ -226,6 +226,18 @@ named after an existing ring pattern (`audit`, `baseline`, `report`, `cli`).
   audit and baseline formats, `PyprojectConfig` reading each gate's own table,
   and the `LayerModel` move out of `design` (`LayerConfig`, `Edge`,
   `Violation`, `ModuleIndex`), which touches 38 imports from `layers`.
+- **Differences from the live gates, to pin as A3 equivalence cases.** No gate
+  runs on the core yet; each A3 unit ports one gate behind a test that runs the
+  old gate and the core on the same repository. The cases known now:
+  a malformed in-tree baseline at the adoption merge (the old OO gate fails,
+  `Bases.undocumented` passes); a coupling update that beats the merge base but
+  loosens a tighter in-tree row (the coupling writer refuses, `PlanApplier`
+  accepts); `RebaselineFiles` over-cap tests use in-tree rows, coupling bless
+  uses the committed predecessor's row; bless paths given relative to the
+  working directory, not the repository root; `PyprojectConfig.table` on a
+  scalar parent key returns nothing where a direct query raises. The
+  equivalence tests build the core's ports from the legacy adapter; A3 points
+  them at `core/adapters/gitrepo.py`.
 - **Tests.** `tests/core/` runs the operations against in-memory ports in
   under a second. `tests/core_real/` holds the real-git `GitRepo` tests and
   the equivalence tests: each scenario runs the existing OO gate through

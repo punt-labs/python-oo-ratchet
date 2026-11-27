@@ -79,7 +79,62 @@ Measured with this repo's own tool:
   hollow classes (8 function bags, 5 single-method classes), 10 `size-cap`,
   and 10 others.
 
-A0 (PL-1718) replaces this section with the ring-based counts.
+### Ring counts
+
+The four-ring table for `src/oo_ratchet` is `architecture/four-rings.toml`.
+Each module is placed by its role: `*.cli`, `*.gitio`, `*.baseline`,
+`*.audit`, `*.writer`, `*.report`, `*.outcome` and the `source_*` modules are
+adapters; `*.ratchet`, `*.compare`, `*.bless`, `*.relax`, `*.rescan`, `*.apply`,
+`*.scan`, `backfill` are application; `__main__`, `gates`, `usage` and
+`logging_config` are entry; every other module is domain. Measured with
+`oo-ratchet design src/oo_ratchet/ --layers architecture/four-rings.toml
+--json` (137 files scanned, 215 findings):
+
+| Rule | Count |
+|------|-------|
+| `layer-import` | 117 |
+| `concrete-cross-package-import` | 40 |
+| `size-cap` | 10 |
+| `domain-io` | 9 |
+| `primitive-params` | 9 |
+| `stateless-function-bag` | 8 |
+| `feature-envy` | 7 |
+| `stateless-single-method` | 5 |
+| `getter-heavy` | 3 |
+| `split-cohesion` | 3 |
+| `middle-man` | 2 |
+| `envied-data` | 1 |
+| `tag-switch` | 1 |
+| `unlayered-module`, `thick-entry`, `data-clump`, `misplaced-function` | 0 |
+
+The 117 `layer-import` violations by importing ring and the ring imported:
+
+| From | Imports | Count |
+|------|---------|-------|
+| domain | adapters | 57 |
+| domain | application | 18 |
+| application | adapters | 42 |
+
+Entry and adapters have none. 54 of the 117 are in the four package
+`__init__.py` files (`oo`, `coupling`, `layers`, `suppression`), which are
+domain by the table and re-export every module of their package. The most
+imported outer modules are `source_set` (17), `oo/compare` (6), `oo/baseline`
+(6), `coupling/gitio` (5), `coupling/layout` (5) and `coupling/outcome` (5).
+
+The 9 `domain-io` findings are in 8 modules: 6 import `pathlib`
+(`coupling/packages`, `coupling/scorer`, `design/layer_table`,
+`design/modules`, `oo/scorer`, `suppression/scanner`), 2 import `io`
+(`oo/code_lines`, `suppression/patterns`) and `oo/scorer` also imports `json`.
+
+With layers configured, `primitive-params` applies only to domain modules
+(9, against 43 without layers), `feature-envy` is 7 (13 without) and
+`data-clump` is 0 (24 without), because entry and adapter modules are
+excluded.
+
+`adopter_shape.py src/oo_ratchet` reports, without layers: 131 modules
+(excluding `__init__`), module size median 62 (p25 38, p75 98, max 256), 36
+modules of at most 40 code lines, 0 over the 400-line ceiling, and classes per
+module of 0 (10 modules), 1 (116) and 2 (5).
 
 An intermediate target, gates above one shared core, came before the ring
 form. It is kept for comparison:

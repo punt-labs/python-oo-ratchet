@@ -71,6 +71,7 @@ and `layers`.
 - **OO metrics** --- scores each file on encapsulation, parameter counts,
   complexity, module size and a few conventions, and fails when any score
   gets worse on a touched file or when no score improves anywhere in the change
+  (a change that only adds files meeting the targets passes)
 - **Coupling and cohesion** --- counts imports between modules, import
   cycles and how little the methods of a class share their fields, and fails
   on any regression

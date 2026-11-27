@@ -486,7 +486,9 @@ the `layers` gate on imports. The two gates are meant to run together.
 
 ### 6. Wire Both Into CI
 
-Add two targets to the `Makefile`, as this repository does:
+Add two targets to the `Makefile`, as this repository does. The design target
+has a `DESIGN_ENFORCE` variable for the adoption change; this repository has
+already adopted, so its own target always enforces:
 
 ```make
 check-layers:
@@ -588,7 +590,9 @@ make check-oo OO_BASE="--base-ref $(git merge-base origin/main HEAD) --require-b
 The checkout needs full history, because the gates read the baseline at the
 merge base. On a pull request, pass the merge-base SHA. After the merge, on
 `main`, compare with the previous commit and add `--tripwire`. This step list
-is the one this repository runs:
+is modelled on this repository's own workflow (`.github/workflows/ci.yml`),
+which also runs `make lint type test` and lets `release/*` branches pass the OO
+gate without an improvement by adding `--allow-no-improvement`:
 
 ```yaml
       - uses: actions/checkout@v4

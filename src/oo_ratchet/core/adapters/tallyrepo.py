@@ -10,7 +10,8 @@ from typing import Self
 from oo_ratchet.core.domain.errors import GitError
 from oo_ratchet.core.domain.ledgers import Ledger
 from oo_ratchet.core.domain.tallies import Tally
-from oo_ratchet.source_set import Source, SourceSet
+from oo_ratchet.source_archive import SourceArchive
+from oo_ratchet.source_set import Source, SourceSelection
 
 from .gitrepo import GitRepo
 from .tallyformats import LedgerFormat
@@ -74,9 +75,8 @@ class TallyRepo:
 
         ``None`` when the target did not exist at ``ref``.
         """
-        return SourceSet(self._target).rescan(
-            ref, self._git, self._single, self._scan, Tally.rebased
-        )
+        archive = SourceArchive(self._git, self._scan, Tally.rebased)
+        return archive.rescan(ref, self._target, self._single)
 
     def _single(self, ref: str, target: Path) -> Tally | None:
         target_rel = self._relpath(target)
@@ -113,7 +113,7 @@ class TallyRepo:
         git_root = self._git.root
         if git_root is None:
             raise GitError("not inside a git repository")
-        resolved = SourceSet.path(path).resolve()
+        resolved = SourceSelection.path(path).resolve()
         try:
             rel = resolved.relative_to(git_root.resolve())
         except ValueError as exc:

@@ -9,7 +9,7 @@ from typing import Self
 from oo_ratchet.core.domain.edges import EdgeBook
 from oo_ratchet.core.domain.layer_config import LayerConfig, LayerConfigError
 from oo_ratchet.core.domain.layer_table import LayerTable
-from oo_ratchet.source_set import Source, SourceSet
+from oo_ratchet.source_set import Source, SourceSelection
 
 from .edgeformats import EdgeFormat
 from .edgemodules import BaseModules
@@ -64,7 +64,9 @@ class EdgeRepo:
         package at the repository root).
         """
         tree = BaseTree(ref, self._root)
-        real = SourceSet.path(self._src).resolve().relative_to(self._root.resolve())
+        real = (
+            SourceSelection.path(self._src).resolve().relative_to(self._root.resolve())
+        )
         return tree.package_at(package) or tree.path_at(real.as_posix())
 
     def policy_at(

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from .cli import LayersCommand, LayersOptions, main
+from .cli import main
 from .scan import LayerScan, LayersScanError
 
-__all__ = ["LayerScan", "LayersCommand", "LayersOptions", "LayersScanError", "main"]
+__all__ = ["LayerScan", "LayersScanError", "main"]

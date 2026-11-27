@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Self
 
-from oo_ratchet.source_set import Source, SourceSet
+from oo_ratchet.source_set import Source, SourceSelection
 
 from .legacy_shadow import LegacyShadow
 from .namespace_shadow import NamespaceShadow
@@ -19,12 +19,11 @@ class ShadowCheck:
 
     def __new__(cls, source: Source, layers: Path | None, ref: str) -> Self:
         self = super().__new__(cls)
-        self._report = SourceSet(source).shadow(
-            layers,
-            ref,
-            lambda source, layers, ref: LegacyShadow(source, layers, ref).report,
-            lambda source, layers, ref: NamespaceShadow(source, layers, ref).report,
-        )
+        selection = SourceSelection(source)
+        if selection.namespace is None:
+            self._report = LegacyShadow(selection.anchor, layers, ref).report
+        else:
+            self._report = NamespaceShadow(selection, layers, ref).report
         return self
 
     @property

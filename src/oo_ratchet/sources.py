@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import keyword
 import os.path
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -76,6 +77,69 @@ class Sources:
                     p for p in root.rglob("*.py") if not p.name.startswith(".")
                 )
         return sorted(files)
+
+    @classmethod
+    def select(cls, roots: list[str], namespace: str | None) -> Path | Sources:
+        """Resolve command-line or configured roots to a legacy Path or Sources."""
+        if len(roots) == 1 and namespace is None:
+            return Path(roots[0])
+        config, base = cls._config()
+        selected = namespace if namespace is not None else config.get("namespace")
+        if not roots:
+            roots = cls._configured(config, base)
+        if not roots:
+            raise ValueError("the following arguments are required: src")
+        if not isinstance(selected, str):
+            raise ValueError("multiple roots need --namespace or configured namespace")
+        paths = cls._paths(roots)
+        return cls(
+            tuple(sorted(paths)),
+            selected,
+            cls._project(base, paths),
+            tuple(Path(root).resolve() for root in roots),
+        )
+
+    @staticmethod
+    def _project(base: Path, paths: set[Path]) -> Path | None:
+        if not (base / "pyproject.toml").is_file():
+            return None
+        return base if all(p.is_relative_to(base) for p in paths) else None
+
+    @staticmethod
+    def _configured(config: dict[str, object], base: Path) -> list[str]:
+        configured = config.get("roots", [])
+        if not isinstance(configured, list) or not all(
+            isinstance(p, str) and p for p in configured
+        ):
+            raise ValueError("roots must be a list of nonempty path/glob strings")
+        return [str(base / p) for p in configured]
+
+    @staticmethod
+    def _paths(roots: list[str]) -> set[Path]:
+        paths: set[Path] = set()
+        for pattern in roots:
+            path = Path(pattern).absolute()
+            matches = list(Path(path.anchor).glob(str(path.relative_to(path.anchor))))
+            if not matches:
+                raise ValueError(f"source root matches nothing: {pattern}")
+            paths.update(p.resolve() for p in matches)
+        return paths
+
+    @staticmethod
+    def _config() -> tuple[dict[str, object], Path]:
+        for parent in (Path.cwd(), *Path.cwd().parents):
+            if (file := parent / "pyproject.toml").is_file():
+                table = tomllib.loads(file.read_text(encoding="utf-8"))
+                tool = table.get("tool", {})
+                if not isinstance(tool, dict):
+                    raise ValueError("[tool] must be a table")
+                config = tool.get("oo-ratchet", {})
+                if not isinstance(config, dict):
+                    raise ValueError("[tool.oo-ratchet] must be a table")
+                return config, parent
+            if (parent / ".git").exists():
+                break
+        return {}, Path.cwd()
 
     def __str__(self) -> str:
         return ", ".join(str(root) for root in self.roots)

@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Self
 
 from oo_ratchet.core.adapters.shadowtree import ShadowTree
+from oo_ratchet.source_history import SourceHistory
 
 from .comparison import ShadowMetrics
 from .shadow_keys import KeyChanges
@@ -13,7 +14,7 @@ from .shadow_report import ShadowReport
 from .shadow_scan import ShadowScan
 
 if TYPE_CHECKING:
-    from oo_ratchet.source_set import SourceSet
+    from oo_ratchet.source_set import SourceSelection
 
 
 class NamespaceShadow:
@@ -21,7 +22,7 @@ class NamespaceShadow:
 
     _report: ShadowReport
 
-    def __new__(cls, source: SourceSet, layers: Path | None, ref: str) -> Self:
+    def __new__(cls, source: SourceSelection, layers: Path | None, ref: str) -> Self:
         self = super().__new__(cls)
         git = ShadowTree(source.anchor)
         root = git.root_over(
@@ -33,7 +34,7 @@ class NamespaceShadow:
         override = layers.resolve() if layers is not None else None
         with git.checkout(base) as tree:
             before = ShadowScan(
-                source.at_base(root, tree, renames),
+                SourceHistory(source).at_base(root, tree, renames),
                 tree,
                 override,
                 package_name=source.package_name,
@@ -41,7 +42,9 @@ class NamespaceShadow:
         after = ShadowScan(source, root, override, package_name=source.package_name)
         self._report = ShadowReport(
             KeyChanges(before.keys, after.keys),
-            ShadowMetrics(source.remap_metrics(before.metrics, renames), after.metrics),
+            ShadowMetrics(
+                SourceHistory.metrics(before.metrics, renames), after.metrics
+            ),
             base,
         )
         return self

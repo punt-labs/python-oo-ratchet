@@ -38,6 +38,8 @@ def own_findings() -> frozenset[tuple[str, str]]:
         (Rules.STATELESS_SINGLE, "_ExitStatus"),
         (Rules.MIDDLE_MAN, "BaseTree"),
         (Rules.MIDDLE_MAN, "PackageLayout"),
+        (Rules.SPLIT_COHESION, "DataInventory"),
+        (Rules.SPLIT_COHESION, "StrictViolations"),
     ],
 )
 def test_hollow_class_is_not_reported(rule: str, symbol: str) -> None:

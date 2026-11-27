@@ -9,21 +9,24 @@ from oo_ratchet.core.domain.findings import Finding, Rules
 from .clump_owners import ClumpOwners
 from .clump_sets import ClumpSets
 from .data_inventory import DataInventory
+from .eligible_modules import EligibleModules
 
 
 class ClumpRules:
     """Report each owner of a maximal shared name set, with no type inference."""
 
     _inventory: DataInventory
+    _eligible: EligibleModules
 
-    def __new__(cls, inventory: DataInventory) -> Self:
+    def __new__(cls, inventory: DataInventory, eligible: EligibleModules) -> Self:
         self = super().__new__(cls)
         self._inventory = inventory
+        self._eligible = eligible
         return self
 
     def findings(self) -> list[Finding]:
         """Attach sorted shared names to each of their eligible owners."""
-        entries = ClumpOwners(self._inventory).entries()
+        entries = ClumpOwners(self._inventory, self._eligible).entries()
         indices: dict[tuple[str, str], int] = {}
         families = []
         for _, _, key in entries:

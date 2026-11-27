@@ -6,27 +6,17 @@ import ast
 from typing import Self
 
 from oo_ratchet.core.domain.declaration import Declaration
-from oo_ratchet.core.domain.layer_config import LayerConfig
-from oo_ratchet.core.domain.layer_imports import LayerImports
 from oo_ratchet.core.domain.modules import Module, ModuleIndex
 
 
 class DataInventory:
-    """Keep all project declarations and the modules eligible for data rules."""
+    """Keep all project declarations, in source order."""
 
     _declarations: list[Declaration]
-    _eligible: set[str]
 
-    def __new__(cls, index: ModuleIndex, config: LayerConfig | None) -> Self:
+    def __new__(cls, index: ModuleIndex) -> Self:
         self = super().__new__(cls)
         self._declarations = []
-        names = LayerImports(index)
-        self._eligible = {
-            m.key
-            for m in index.modules()
-            if config is None
-            or config.layer(names.canonical_name(m)) not in {"entry", "adapters"}
-        }
         for module in index.modules():
             self._walk(module, module.tree, ("", "module"))
         return self
@@ -34,10 +24,6 @@ class DataInventory:
     def declarations(self) -> list[Declaration]:
         """Return classes and functions in source order, including nested defs."""
         return list(self._declarations)
-
-    def eligible(self, owner: Declaration) -> bool:
-        """Return whether this declaration is outside explicitly mapped edges."""
-        return owner.module.key in self._eligible
 
     def _walk(self, module: Module, node: ast.AST, context: tuple[str, str]) -> None:
         prefix, parent = context

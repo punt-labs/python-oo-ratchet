@@ -11,6 +11,7 @@ from oo_ratchet.core.domain.project_types import ProjectTypes
 
 from .data_fields import DataFields
 from .data_inventory import DataInventory
+from .eligible_modules import EligibleModules
 from .receiver_types import ReceiverTypes
 
 
@@ -18,11 +19,18 @@ class EnvyRules:
     """Apply D1 and D2 to explicitly typed receivers, never inferred aliases."""
 
     _inventory: DataInventory
+    _eligible: EligibleModules
     _types: ProjectTypes
 
-    def __new__(cls, inventory: DataInventory, types: ProjectTypes) -> Self:
+    def __new__(
+        cls,
+        inventory: DataInventory,
+        eligible: EligibleModules,
+        types: ProjectTypes,
+    ) -> Self:
         self = super().__new__(cls)
         self._inventory = inventory
+        self._eligible = eligible
         self._types = types
         return self
 
@@ -31,7 +39,7 @@ class EnvyRules:
         envied: dict[tuple[str, str], Finding] = {}
         out: list[Finding] = []
         for owner in self._inventory.declarations():
-            if owner.kind == "class" or not self._inventory.eligible(owner):
+            if owner.kind == "class" or not self._eligible.holds(owner):
                 continue
             known = ReceiverTypes(owner, self._types).known()
             for target in self._envied(owner, known):
@@ -49,7 +57,7 @@ class EnvyRules:
             target
             for name, target in known.items()
             if target.module.key != owner.module.key
-            and self._inventory.eligible(target)
+            and self._eligible.holds(target)
             and DataFields(target).data_only()
             and len(reads.get(name, set()) & DataFields(target).names()) >= 2
         ]

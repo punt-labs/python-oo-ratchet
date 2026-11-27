@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Self
+from typing import Self
+
+from oo_ratchet.core.application.ports import ArchiveRepo
 
 from .source_history import SourceHistory
 from .sources import Sources
-
-if TYPE_CHECKING:
-    from .source_rescan import ArchiveRepo
 
 
 class SourceArchive:

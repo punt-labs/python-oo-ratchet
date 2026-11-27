@@ -6,6 +6,8 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Self
 
+Rows = dict[str, dict[str, float]]
+
 
 @dataclass(frozen=True, slots=True)
 class Score:

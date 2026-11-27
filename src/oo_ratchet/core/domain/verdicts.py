@@ -14,10 +14,23 @@ class Waiver(NamedTuple):
 
 
 @dataclass(frozen=True, slots=True)
+class MetricRow:
+    """One metric comparison line of a check report."""
+
+    path: str
+    metric: str
+    baseline: str
+    current: str
+    delta: str
+    status: str
+
+
+@dataclass(frozen=True, slots=True)
 class FileReview:
     """One touched file judged against its base row."""
 
     path: str
+    rows: tuple[MetricRow, ...] = ()
     regressed: tuple[str, ...] = ()
     waived: tuple[str, ...] = ()
     improved: bool = False
@@ -77,7 +90,9 @@ class Verdict:
     failures: tuple[Failure, ...] = ()
     note: str = ""
     review: Review | None = None
-    changed: tuple[str, ...] = ()
+    improved: int = 0
+    removed: tuple[str, ...] = ()
+    written: tuple[str, ...] = ()
 
     @property
     def passed(self) -> bool:
@@ -85,9 +100,9 @@ class Verdict:
         return not self.failures
 
     @classmethod
-    def ok(cls, note: str = "") -> Self:
-        """Return a passing verdict carrying ``note``."""
-        return cls(note=note)
+    def ok(cls, note: str = "", *, written: tuple[str, ...] = ()) -> Self:
+        """Return a passing verdict carrying ``note`` and the rows written."""
+        return cls(note=note, written=written)
 
     @classmethod
     def refused(cls, kind: str, *subjects: str) -> Self:

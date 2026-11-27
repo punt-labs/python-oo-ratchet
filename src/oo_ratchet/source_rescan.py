@@ -3,23 +3,13 @@
 from __future__ import annotations
 
 import tempfile
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 from pathlib import Path
-from typing import Protocol, Self
+from typing import Self
 
+from oo_ratchet.core.application.ports import ArchiveRepo
 from oo_ratchet.source_archive import SourceArchive
 from oo_ratchet.sources import Sources
-
-
-class ArchiveRepo(Protocol):
-    """The Git operations needed to materialize a historical source selection."""
-
-    @property
-    def root(self) -> Path | None: ...
-
-    def archive_paths(self, ref: str, paths: Sequence[str], dest: Path) -> None: ...
-
-    def _git(self, args: list[str]) -> str | None: ...
 
 
 class NamespaceRescan[T]:

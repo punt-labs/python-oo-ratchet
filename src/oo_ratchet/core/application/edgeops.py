@@ -6,7 +6,6 @@ from typing import Self
 
 from oo_ratchet.core.domain.edges import EdgeBook, EdgeRecord, EdgeReview, EdgeVerdict
 from oo_ratchet.core.domain.layer_edges import Edge
-from oo_ratchet.core.domain.policies import PolicyWidening
 from oo_ratchet.core.domain.verdicts import Failure, Verdict
 
 from .bases import Bases
@@ -94,10 +93,10 @@ class EdgeCheck(EdgeOperation):
         if config is not None:
             shared = history.shared_at(base, scan.modules, scan.package)
             if base_edges is not None:
-                held = scan.under(config).edges - base_edges - accepted
-                under_base = sorted(e for e in held if e.source in set(shared))
+                exclude = base_edges | accepted
+                under_base = scan.held_edges(config, shared, exclude)
             if not allow_config_change:
-                widened = PolicyWidening.found(scan.config, config, sorted(set(shared)))
+                widened = scan.widened_over(config, shared)
         review = EdgeReview(
             scan.violations,
             self._ports.store.book().scoped(scan.package),

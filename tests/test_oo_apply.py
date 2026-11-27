@@ -2,34 +2,32 @@
 
 from __future__ import annotations
 
-from oo_ratchet.oo.cli import OoCommand
+from oo_ratchet.oo.cli import POLICY
 
 
 class TestRegressed:
     """`regressed` reports metrics worse than the base, direction-aware."""
 
     def test_new_file_has_no_regressions(self) -> None:
-        assert OoCommand.POLICY.regressed({"max_complexity": 40.0}, None) == []
+        assert POLICY.regressed({"max_complexity": 40.0}, None) == []
 
     def test_worse_metric_is_regressed(self) -> None:
         base = {"max_complexity": 1.0}
         worse = {"max_complexity": 3.0}
-        assert OoCommand.POLICY.regressed(worse, base) == ["max_complexity"]
+        assert POLICY.regressed(worse, base) == ["max_complexity"]
 
     def test_better_or_equal_metric_is_not_regressed(self) -> None:
         base = {"max_complexity": 3.0}
-        assert OoCommand.POLICY.regressed({"max_complexity": 1.0}, base) == []
+        assert POLICY.regressed({"max_complexity": 1.0}, base) == []
 
 
 class TestDeltas:
     """`deltas` records the changed metrics as old->new pairs."""
 
     def test_new_file_records_all_metrics_from_zero(self) -> None:
-        assert OoCommand.POLICY.deltas({"module_size": 5.0}, None) == {
-            "module_size": [0.0, 5.0]
-        }
+        assert POLICY.deltas({"module_size": 5.0}, None) == {"module_size": [0.0, 5.0]}
 
     def test_only_changed_metrics_recorded(self) -> None:
         base = {"module_size": 5.0, "max_complexity": 2.0}
         entry = {"module_size": 7.0, "max_complexity": 2.0}
-        assert OoCommand.POLICY.deltas(entry, base) == {"module_size": [5.0, 7.0]}
+        assert POLICY.deltas(entry, base) == {"module_size": [5.0, 7.0]}

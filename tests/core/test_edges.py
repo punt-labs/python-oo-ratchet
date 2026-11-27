@@ -31,7 +31,6 @@ class Scan:
     io_edges: frozenset[Edge] = frozenset()
     unassigned: tuple[str, ...] = ()
     problems: tuple[str, ...] = ()
-    config: LayerConfig = field(default_factory=lambda: LayerConfig({}))
     config_path: Path | None = None
 
     @property
@@ -42,8 +41,13 @@ class Scan:
     def edges(self) -> frozenset[Edge]:
         return frozenset(self.found)
 
-    def under(self, config: LayerConfig) -> Scan:
-        return self
+    def held_edges(
+        self, config: LayerConfig, shared: Iterable[str], exclude: Iterable[Edge]
+    ) -> list[Edge]:
+        return []
+
+    def widened_over(self, base: LayerConfig, shared: Iterable[str]) -> list[str]:
+        return []
 
 
 @dataclass

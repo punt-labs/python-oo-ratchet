@@ -51,17 +51,18 @@ class Survey(Protocol):
         ...
 
     @property
-    def config(self) -> LayerConfig:
-        """Return the layer config the scan ran under."""
-        ...
-
-    @property
     def config_path(self) -> Path | None:
         """Return the pyproject the config was read from, if one was found."""
         ...
 
-    def under(self, config: LayerConfig) -> Survey:
-        """Return the same package scanned under another layer config."""
+    def held_edges(
+        self, config: LayerConfig, shared: Iterable[str], exclude: Iterable[Edge]
+    ) -> list[Edge]:
+        """Return the sorted edges the package would violate under ``config``."""
+        ...
+
+    def widened_over(self, base: LayerConfig, shared: Iterable[str]) -> list[str]:
+        """Return how the scan's layer config allows more than ``base``'s."""
         ...
 
 

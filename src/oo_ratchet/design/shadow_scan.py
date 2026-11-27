@@ -7,7 +7,7 @@ from typing import Self
 
 from oo_ratchet.core.domain.layer_config import LayerConfigError
 from oo_ratchet.oo.scorer import Scorer
-from oo_ratchet.source_set import Source, SourceSet
+from oo_ratchet.source_set import Source, SourceSelection
 
 from .scanner import DesignScanner
 from .shadow_keys import DesignKey
@@ -45,7 +45,7 @@ class ShadowScan:
                 f.rule,
                 cls._module(
                     scanner.module_key(Path(f.path)),
-                    package_name or SourceSet(source).name,
+                    package_name or SourceSelection(source).name,
                 ),
                 f.symbol,
             )

@@ -7,7 +7,7 @@ from pathlib import Path, PurePosixPath
 from typing import Self
 
 from oo_ratchet.layers.scan import LayersScanError
-from oo_ratchet.source_set import Source, SourceSet
+from oo_ratchet.source_set import Source, SourceSelection
 
 from . import nullisting
 
@@ -18,7 +18,7 @@ class BaseModules:
     Tracked ``.py`` files are listed whatever ``export-ignore`` says, and no
     scan or validation runs on them, so a base that held only an initializer,
     or no initializer at all, is fine. Paths become names by the working
-    tree's own rule (``SourceSet.parts_to_key``). A package with no tracked
+    tree's own rule (``SourceSelection.parts_to_key``). A package with no tracked
     Python at its current directory is looked up by import name among the
     top-level packages: one match is the relocated package, several are
     refused. A namespace selection is not reconstructed: every current module
@@ -36,7 +36,7 @@ class BaseModules:
 
     def shared(self, modules: Iterable[str], base: str, package: str) -> list[str]:
         """Return the ``modules`` that also existed at ``base``."""
-        if SourceSet(self._src).namespace is not None:
+        if SourceSelection(self._src).namespace is not None:
             return list(modules)
         files = self._tracked_python(base)
         known = self._names(files, self._prefix(files, package), package)
@@ -60,7 +60,7 @@ class BaseModules:
             for f in files
             if f.is_relative_to(prefix)
         )
-        keys = map(SourceSet.parts_to_key, parts)
+        keys = map(SourceSelection.parts_to_key, parts)
         return {BaseModules._name(key, package) for key in keys}
 
     @staticmethod
@@ -69,7 +69,7 @@ class BaseModules:
 
     def _prefix(self, files: list[PurePosixPath], package: str) -> PurePosixPath | None:
         here = PurePosixPath(
-            SourceSet.path(self._src).resolve().relative_to(self._root.resolve())
+            SourceSelection.path(self._src).resolve().relative_to(self._root.resolve())
         )
         if any(f.is_relative_to(here) for f in files):
             return here

@@ -6,7 +6,7 @@ from functools import cached_property
 from pathlib import Path
 from typing import Self
 
-from oo_ratchet.source_set import Source, SourceSet
+from oo_ratchet.source_set import Source, SourceSelection
 
 from .graph import ImportGraph
 from .packages import PackageMetrics, PackageScorer
@@ -15,15 +15,15 @@ from .packages import PackageMetrics, PackageScorer
 class CouplingTree:
     """Own discovery and the complete graph before per-file metrics are scored."""
 
-    _source: SourceSet
+    _source: SourceSelection
     _graph: ImportGraph
     _file: Path | None
 
     def __new__(cls, target: Source) -> Self:
         self = super().__new__(cls)
-        source = SourceSet(target)
+        source = SourceSelection(target)
         self._file = source.file
-        self._source = SourceSet(self._file.parent if self._file else source)
+        self._source = SourceSelection(self._file.parent if self._file else source)
         self._graph = (
             ImportGraph({})
             if self._file
@@ -32,7 +32,7 @@ class CouplingTree:
         return self
 
     @property
-    def source(self) -> SourceSet:
+    def source(self) -> SourceSelection:
         """Return the namespace-wide source selection."""
         return self._source
 

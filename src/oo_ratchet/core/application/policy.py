@@ -216,7 +216,7 @@ class GatePolicy:
             cur = current[m.name]
             locked = intree is not None and intree.get(m.name) == cur
             waived = locked and Waiver(path, m.name) in waivers
-            status = self._classify(m, cur, base, waived=waived)
+            status = m.classify(cur, base.get(m.name), waived=waived)
             by_status.setdefault(status, []).append(m.name)
             base_val = base.get(m.name, cur)
             delta = cur - base_val
@@ -239,18 +239,6 @@ class GatePolicy:
             improved=bool(by_status.get("IMPROVED")),
             base_present=True,
         )
-
-    @staticmethod
-    def _classify(m: Metric, cur: float, base: Row, *, waived: bool) -> str:
-        if m.name not in base:
-            # Judged by its target: a hand-edited row cannot hide a regression
-            # or earn must-improve credit.
-            return "PASS" if m.meets(cur) else "REGRESSED"
-        if m.strictly_better(cur, base[m.name]):
-            return "IMPROVED"
-        if m.better_or_equal(cur, base[m.name]):
-            return "PASS"
-        return "RELAXED" if waived else "REGRESSED"
 
     def _worse(self, name: str, value: float, base: Row) -> bool:
         m = self.metric(name)

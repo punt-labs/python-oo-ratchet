@@ -9,8 +9,9 @@ from typing import Self
 from oo_ratchet.core.domain.layer_config import LayerConfig, LayerConfigError
 from oo_ratchet.core.domain.layer_edges import Edge, Violation
 from oo_ratchet.core.domain.layer_table import LayerTable
+from oo_ratchet.core.domain.layer_widening import LayerWidening
 from oo_ratchet.core.domain.modules import ModuleIndex
-from oo_ratchet.source_set import Source, SourceSet
+from oo_ratchet.source_set import Source, SourceSelection
 
 from .package_edges import PackageEdges
 
@@ -35,7 +36,7 @@ class LayerScan:
     layer claims, or a layer that claims no module.
     """
 
-    _src: SourceSet
+    _src: SourceSelection
     _config: LayerConfig
     _modules: tuple[str, ...]
     _violations: tuple[Violation, ...]
@@ -46,7 +47,7 @@ class LayerScan:
 
     def __new__(cls, src: Source, config: LayerConfig | None = None) -> Self:
         self = super().__new__(cls)
-        self._src = SourceSet(src)
+        self._src = SourceSelection(src)
         self._config = config or cls._load(src)
         self._src.require_package(LayersScanError)
         index = ModuleIndex(self._src)
@@ -66,9 +67,25 @@ class LayerScan:
         self._package = index.package_name
         return self
 
-    def under(self, config: LayerConfig) -> Self:
-        """Return the same package scanned under another layer config."""
-        return type(self)(self._src, config)
+    def held_edges(
+        self, config: LayerConfig, shared: Iterable[str], exclude: Iterable[Edge]
+    ) -> list[Edge]:
+        """Return the sorted edges this package would violate under ``config``.
+
+        Only edges whose source is in ``shared`` and that are not in
+        ``exclude`` count.
+        """
+        found = type(self)(self._src, config).edges - frozenset(exclude)
+        sources = set(shared)
+        return sorted(e for e in found if e.source in sources)
+
+    def widened_over(self, base: LayerConfig, shared: Iterable[str]) -> list[str]:
+        """Return how this scan's layer config allows more than ``base``'s."""
+        return LayerWidening(self._config, base).lines(sorted(set(shared)))
+
+    def rings(self) -> dict[str, str | None]:
+        """Return each scanned module's layer, ``None`` when none claims it."""
+        return {m: self._config.layer(m) for m in self._modules}
 
     @property
     def modules(self) -> tuple[str, ...]:
@@ -118,7 +135,7 @@ class LayerScan:
     @property
     def src(self) -> Path:
         """Return the scanned package directory."""
-        return SourceSet.path(self._src)
+        return SourceSelection.path(self._src)
 
     @property
     def package(self) -> str:
@@ -151,7 +168,7 @@ class LayerScan:
 
     @staticmethod
     def _load(src: Source) -> LayerConfig:
-        config = LayerTable.read(SourceSet(src).config_anchor).config()
+        config = LayerTable.read(SourceSelection(src).config_anchor).config()
         if config is None:
             msg = f"no [tool.oo-ratchet.layers] table above {src}"
             raise LayerConfigError(msg)

@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 import ast
+import importlib.util
 from collections.abc import Container
 from typing import Self
-
-from .import_args import ImportArgs
 
 _HELPER = "import_module"
 _BUILTIN = "__import__"
@@ -71,6 +70,30 @@ class DynamicImports:
         kind = self._names.get(self._final(call.func) or "")
         if kind is None:
             return
-        name = ImportArgs.helper(call) if kind == _HELPER else ImportArgs.builtin(call)
+        name = self._helper(call) if kind == _HELPER else self._literal(call, 0, "name")
         if name is not None and name in self._known:
             self._found.append((call, name, name))
+
+    @classmethod
+    def _helper(cls, call: ast.Call) -> str | None:
+        """Return the absolute name given to ``import_module``, if literal."""
+        name = cls._literal(call, 0, "name")
+        if name is None or not name.startswith("."):
+            return name
+        package = cls._literal(call, 1, "package")
+        if package is None:
+            return None
+        try:
+            return importlib.util.resolve_name(name, package)
+        except (ImportError, ValueError):
+            return None
+
+    @staticmethod
+    def _literal(call: ast.Call, index: int, keyword: str) -> str | None:
+        if len(call.args) > index:
+            node: ast.expr | None = call.args[index]
+        else:
+            node = next((k.value for k in call.keywords if k.arg == keyword), None)
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            return node.value
+        return None

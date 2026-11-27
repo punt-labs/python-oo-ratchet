@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from oo_ratchet.core.application.policy import GatePolicy
 from oo_ratchet.core.domain.verdicts import FileReview, Review, Waiver
-from oo_ratchet.oo.thresholds import Thresholds
+from oo_ratchet.oo.thresholds import OO_METRICS
 
-POLICY = GatePolicy.from_table(Thresholds.TABLE, Thresholds.CEILINGS)
+POLICY = GatePolicy(OO_METRICS.items)
 _NONE: frozenset[Waiver] = frozenset()
 _WAIVE_W = frozenset({Waiver("sub/w.py", "max_complexity")})
 _WAIVE_A = frozenset({Waiver("sub/a.py", "max_complexity")})
@@ -16,38 +16,38 @@ class TestThresholds:
     """Direction-aware comparison for <=, >=, and == metrics."""
 
     def test_le_metric_lower_is_better(self) -> None:
-        assert Thresholds.strictly_better("max_complexity", 1.0, 3.0)
-        assert not Thresholds.strictly_better("max_complexity", 3.0, 1.0)
+        assert OO_METRICS.metric("max_complexity").strictly_better(1.0, 3.0)
+        assert not OO_METRICS.metric("max_complexity").strictly_better(3.0, 1.0)
 
     def test_ge_metric_higher_is_better(self) -> None:
-        assert Thresholds.strictly_better("encapsulation_ratio", 0.9, 0.8)
-        assert Thresholds.better_or_equal("encapsulation_ratio", 0.8, 0.8)
+        assert OO_METRICS.metric("encapsulation_ratio").strictly_better(0.9, 0.8)
+        assert OO_METRICS.metric("encapsulation_ratio").better_or_equal(0.8, 0.8)
 
     def test_eq_metric_closer_to_target_is_better(self) -> None:
         # target is 1 for future_annotations; 1 is better than 0.
-        assert Thresholds.strictly_better("future_annotations", 1.0, 0.0)
-        assert not Thresholds.strictly_better("future_annotations", 0.0, 1.0)
+        assert OO_METRICS.metric("future_annotations").strictly_better(1.0, 0.0)
+        assert not OO_METRICS.metric("future_annotations").strictly_better(0.0, 1.0)
 
     def test_meets_absolute_threshold(self) -> None:
-        assert Thresholds.meets("module_size", 400.0)
-        assert not Thresholds.meets("module_size", 401.0)
+        assert OO_METRICS.metric("module_size").meets(400.0)
+        assert not OO_METRICS.metric("module_size").meets(401.0)
 
     def test_avg_complexity_under_target_is_a_ceiling(self) -> None:
         # Deleting a trivial function raises the mean (2.0 -> 3.0) while it
         # stays under the 5.0 target: not a regression, not an improvement.
-        assert Thresholds.better_or_equal("avg_complexity", 3.0, 2.0)
-        assert not Thresholds.strictly_better("avg_complexity", 2.0, 3.0)
-        assert not Thresholds.strictly_better("avg_complexity", 3.0, 2.0)
+        assert OO_METRICS.metric("avg_complexity").better_or_equal(3.0, 2.0)
+        assert not OO_METRICS.metric("avg_complexity").strictly_better(2.0, 3.0)
+        assert not OO_METRICS.metric("avg_complexity").strictly_better(3.0, 2.0)
 
     def test_avg_complexity_over_target_still_ratchets(self) -> None:
-        assert not Thresholds.better_or_equal("avg_complexity", 6.5, 6.0)
-        assert Thresholds.strictly_better("avg_complexity", 5.5, 6.0)
-        assert not Thresholds.better_or_equal("avg_complexity", 5.5, 4.0)
+        assert not OO_METRICS.metric("avg_complexity").better_or_equal(6.5, 6.0)
+        assert OO_METRICS.metric("avg_complexity").strictly_better(5.5, 6.0)
+        assert not OO_METRICS.metric("avg_complexity").better_or_equal(5.5, 4.0)
 
     def test_avg_params_under_target_is_a_ceiling(self) -> None:
-        assert Thresholds.better_or_equal("avg_params", 3.5, 1.0)
-        assert not Thresholds.strictly_better("avg_params", 1.0, 3.5)
-        assert not Thresholds.better_or_equal("avg_params", 4.5, 4.2)
+        assert OO_METRICS.metric("avg_params").better_or_equal(3.5, 1.0)
+        assert not OO_METRICS.metric("avg_params").strictly_better(1.0, 3.5)
+        assert not OO_METRICS.metric("avg_params").better_or_equal(4.5, 4.2)
 
 
 class TestFileReviewTracked:

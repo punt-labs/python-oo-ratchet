@@ -16,8 +16,8 @@ from typing import ClassVar
 import pytest
 
 from oo_ratchet.core.application.update import PlanApplier, UpdatePlan
-from oo_ratchet.oo.cli import OoCommand
-from oo_ratchet.oo.thresholds import Thresholds
+from oo_ratchet.oo.cli import POLICY
+from oo_ratchet.oo.thresholds import OO_METRICS
 from tests.core.doubles import World
 from tests.test_oo_ratchet import GOOD, WORSE, GitFixture
 
@@ -76,58 +76,56 @@ class TestThresholdTable:
         "metric", ["classes_per_module", "method_ratio", "class_to_func_ratio"]
     )
     def test_shape_metric_is_not_gated(self, metric: str) -> None:
-        assert metric not in Thresholds.names()
+        assert metric not in OO_METRICS.names
 
     def test_module_size_ceiling_is_400(self) -> None:
-        assert Thresholds.meets("module_size", 400)
-        assert not Thresholds.meets("module_size", 401)
+        assert OO_METRICS.metric("module_size").meets(400)
+        assert not OO_METRICS.metric("module_size").meets(401)
 
     def test_growth_under_ceiling_is_not_a_regression(self) -> None:
         # The lux case: a 29-line composition root grew to 39 lines.
-        assert Thresholds.better_or_equal("module_size", 39, 29)
-        assert not Thresholds.strictly_better("module_size", 29, 39)
+        assert OO_METRICS.metric("module_size").better_or_equal(39, 29)
+        assert not OO_METRICS.metric("module_size").strictly_better(29, 39)
 
     def test_growth_over_ceiling_is_a_regression(self) -> None:
-        assert not Thresholds.better_or_equal("module_size", 451, 450)
-        assert not Thresholds.better_or_equal("module_size", 401, 380)
+        assert not OO_METRICS.metric("module_size").better_or_equal(451, 450)
+        assert not OO_METRICS.metric("module_size").better_or_equal(401, 380)
 
     def test_shrinking_an_over_ceiling_module_is_an_improvement(self) -> None:
-        assert Thresholds.strictly_better("module_size", 420, 450)
-        assert Thresholds.strictly_better("module_size", 390, 450)
+        assert OO_METRICS.metric("module_size").strictly_better(420, 450)
+        assert OO_METRICS.metric("module_size").strictly_better(390, 450)
 
     def test_ceiling_boundary(self) -> None:
-        assert Thresholds.better_or_equal("module_size", 400, 300)
-        assert not Thresholds.strictly_better("module_size", 400, 300)
-        assert Thresholds.strictly_better("module_size", 400, 401)
-        assert not Thresholds.better_or_equal("module_size", 401, 400)
+        assert OO_METRICS.metric("module_size").better_or_equal(400, 300)
+        assert not OO_METRICS.metric("module_size").strictly_better(400, 300)
+        assert OO_METRICS.metric("module_size").strictly_better(400, 401)
+        assert not OO_METRICS.metric("module_size").better_or_equal(401, 400)
 
 
 class TestUpdateRecords:
     def test_growth_under_ceiling_is_not_counted_as_an_improvement(self) -> None:
         deltas = {"sub/w.py": {"module_size": [9.0, 10.0]}}
-        assert OoCommand.POLICY.improved_count(deltas) == 0
+        assert POLICY.improved_count(deltas) == 0
 
     def test_metric_missing_from_base_row_is_judged_by_target(self) -> None:
         entry = {"module_size": 5000.0, "avg_params": 1.0}
-        assert OoCommand.POLICY.regressed(entry, {"avg_params": 2.0}) == ["module_size"]
+        assert POLICY.regressed(entry, {"avg_params": 2.0}) == ["module_size"]
         small = {"module_size": 50.0, "avg_params": 1.0}
-        assert OoCommand.POLICY.regressed(small, {"avg_params": 2.0}) == []
+        assert POLICY.regressed(small, {"avg_params": 2.0}) == []
 
     def test_refused_only_when_worse_than_every_comparison_row(self) -> None:
         entry = {"max_complexity": 2.0}
-        assert OoCommand.POLICY.refusals(entry, [{"max_complexity": 1.0}]) == [
-            "max_complexity"
-        ]
+        assert POLICY.refusals(entry, [{"max_complexity": 1.0}]) == ["max_complexity"]
         # Worse than the merge base but no worse than the in-tree (relaxed) row.
         rows = [{"max_complexity": 1.0}, {"max_complexity": 3.0}]
-        assert OoCommand.POLICY.refusals(entry, rows) == []
-        assert OoCommand.POLICY.refusals(entry, []) == []
+        assert POLICY.refusals(entry, rows) == []
+        assert POLICY.refusals(entry, []) == []
 
     def test_a_renamed_file_already_moved_keeps_its_credit(self) -> None:
         # A prior run already moved the row to the new path and dropped the old.
         world = World()
         world.store.data = {"sub/new.py": {"max_complexity": 3.0}}
-        applier = PlanApplier(*world.args(OoCommand.POLICY))
+        applier = PlanApplier(*world.args(POLICY))
         plan = UpdatePlan({}, frozenset(), renames={"sub/new.py": "sub/old.py"})
         deltas = {"sub/new.py": {"max_complexity": [3.0, 2.0]}}
         assert applier._improved(plan, world.store.rows(), deltas) == 1
@@ -136,7 +134,7 @@ class TestUpdateRecords:
         deltas = {
             "sub/w.py": {"module_size": [9.0, 10.0], "max_complexity": [3.0, 2.0]}
         }
-        assert OoCommand.POLICY.improved_count(deltas) == 1
+        assert POLICY.improved_count(deltas) == 1
 
 
 class TestGateEndToEnd:
@@ -194,15 +192,15 @@ class TestCeilingsAreWellFormed:
     def test_every_ceiling_is_a_le_metric_in_the_table(self) -> None:
         # max(value, target) ranks correctly only for a <= metric; a typo or a
         # >= metric here would silently change the ordering.
-        for metric in Thresholds.CEILINGS:
-            assert Thresholds.TABLE[metric][0] == "<="
+        for metric in OO_METRICS.ceilings:
+            assert OO_METRICS.metric(metric).op == "<="
 
 
 class TestMissingBaseMetricFailsClosed:
     """A gated metric absent from a file's base row is judged by its target."""
 
     def test_missing_base_metric_over_target_regresses(self) -> None:
-        review = OoCommand.POLICY.review(
+        review = POLICY.review(
             "sub/w.py",
             {"module_size": 5000.0, "avg_params": 1.0},
             {"avg_params": 2.0},
@@ -212,7 +210,7 @@ class TestMissingBaseMetricFailsClosed:
         assert "module_size" in review.regressed
 
     def test_missing_base_metric_within_target_is_no_improvement(self) -> None:
-        review = OoCommand.POLICY.review(
+        review = POLICY.review(
             "sub/w.py",
             {"module_size": 50.0, "avg_params": 2.0},
             {"avg_params": 2.0},

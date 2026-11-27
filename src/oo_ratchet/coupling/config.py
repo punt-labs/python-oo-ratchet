@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Self
 
-from .thresholds import CouplingThresholds
+from .thresholds import COUPLING_METRICS
 
 STATELESS_MODES = frozenset({"dataclass", "any"})
 
@@ -91,7 +91,7 @@ class CouplingConfig:
 
     @staticmethod
     def _cap_value(path: str, metric: str, value: object) -> float:
-        if metric not in CouplingThresholds.TABLE:
+        if metric not in COUPLING_METRICS:
             msg = f"caps for {path!r}: unknown metric {metric!r}"
             raise CouplingConfigError(msg)
         if isinstance(value, bool) or not isinstance(value, int | float):

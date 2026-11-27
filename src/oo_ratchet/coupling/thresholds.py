@@ -1,106 +1,70 @@
-"""Coupling/cohesion thresholds and the direction-aware comparison semantics."""
+"""The coupling gate's metrics and the targets each file is judged by."""
 
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import Self
 
+from oo_ratchet.core.domain.metrics import Metric, MetricSet
 
-class CouplingThresholds:
-    """Coupling/cohesion thresholds plus the ordering semantics each obeys.
-
-    ``__main__.py`` legitimately wires many modules and exposes many command
-    names, so it gets relaxed ``efferent_coupling`` and ``public_names`` targets
-    while every other metric keeps the strict table. ``caps`` (exact
-    repo-relative path -> metric -> cap, from ``CouplingConfig``) override the
-    target for the named files only.
-    """
-
-    TABLE: ClassVar[dict[str, tuple[str, float]]] = {
+COUPLING_METRICS = MetricSet.from_table(
+    {
         "efferent_coupling": ("<=", 10),
         "public_names": ("<=", 15),
         "circular_imports": ("==", 0),
         "max_lcom": ("<=", 0.8),
         "avg_lcom": ("<=", 0.5),
     }
+)
 
-    MAIN_TABLE: ClassVar[dict[str, tuple[str, float]]] = {
-        "public_names": ("<=", 100),
-        "efferent_coupling": ("<=", 15),
-    }
-
-    # Metrics whose aggregate is the worst (max) across files; the rest average.
-    MAX_AGGREGATED: ClassVar[frozenset[str]] = frozenset(
-        {"efferent_coupling", "public_names", "circular_imports", "max_lcom"}
+# ``__main__.py`` legitimately wires many modules and exposes many command
+# names, so it gets relaxed targets; the direction is the strict table's.
+MAIN_METRICS = MetricSet(
+    (
+        Metric("public_names", "<=", 100),
+        Metric("efferent_coupling", "<=", 15),
     )
+)
 
-    @classmethod
-    def names(cls) -> tuple[str, ...]:
-        """Return the tracked metric names in table order."""
-        return tuple(cls.TABLE)
+# Metrics whose aggregate is the worst (max) across files; the rest average.
+MAX_AGGREGATED = frozenset(
+    {"efferent_coupling", "public_names", "circular_imports", "max_lcom"}
+)
 
-    @classmethod
-    def describe(cls, metric: str) -> str:
-        """Return a human-readable ``op target`` label for a metric."""
-        op, target = cls.TABLE[metric]
-        return f"{op} {target}"
 
-    @classmethod
-    def target_for(
-        cls,
-        metric: str,
-        filepath: str = "",
-        caps: dict[str, dict[str, float]] | None = None,
-    ) -> tuple[str, float]:
-        """Return the ``(op, target)`` that ``filepath`` is judged against."""
-        return cls._table_for(filepath, caps)[metric]
+class CouplingTargets:
+    """The target each file is judged against, under its configured caps.
 
-    @classmethod
-    def _table_for(
-        cls, filepath: str, caps: dict[str, dict[str, float]] | None = None
-    ) -> dict[str, tuple[str, float]]:
-        table = dict(cls.TABLE)
-        if filepath.endswith("__main__.py"):
-            table.update(cls.MAIN_TABLE)
-        for metric, cap in (caps or {}).get(filepath, {}).items():
-            op = cls.TABLE[metric][0]
-            table[metric] = ("<=" if op == "==" else op, cap)
-        return table
+    ``caps`` (exact repo-relative path -> metric -> cap, from
+    ``CouplingConfig``) override the target for the named files only; a cap on
+    an ``==`` metric is a ceiling. ``__main__.py`` gets the relaxed targets
+    while every other file keeps the strict table.
+    """
 
-    @classmethod
-    def meets(
-        cls,
-        metric: str,
-        value: float,
-        filepath: str = "",
-        caps: dict[str, dict[str, float]] | None = None,
-    ) -> bool:
-        """Return whether value satisfies the metric's absolute threshold."""
-        table = cls._table_for(filepath, caps)
-        if metric not in table:
-            return True
-        op, target = table[metric]
-        if op == ">=":
-            return value >= target
-        if op == "<=":
-            return value <= target
-        return value == target
+    _caps: dict[str, dict[str, float]]
 
-    @classmethod
-    def better_or_equal(cls, metric: str, current: float, baseline: float) -> bool:
-        """Return whether current is at least as good as baseline."""
-        op, target = cls.TABLE[metric]
-        if op == ">=":
-            return current >= baseline
-        if op == "<=":
-            return current <= baseline
-        return abs(current - target) <= abs(baseline - target)
+    def __new__(cls, caps: dict[str, dict[str, float]] | None = None) -> Self:
+        self = super().__new__(cls)
+        self._caps = caps or {}
+        return self
 
-    @classmethod
-    def strictly_better(cls, metric: str, current: float, baseline: float) -> bool:
-        """Return whether current is strictly better than baseline."""
-        op, target = cls.TABLE[metric]
-        if op == ">=":
-            return current > baseline
-        if op == "<=":
-            return current < baseline
-        return abs(current - target) < abs(baseline - target)
+    def capped(self) -> dict[str, tuple[Metric, ...]]:
+        """Return each configured path's caps as metrics."""
+        return {
+            path: tuple(self._capped(name, cap) for name, cap in caps.items())
+            for path, caps in self._caps.items()
+        }
+
+    def metric(self, name: str, filepath: str = "") -> Metric:
+        """Return the metric as ``filepath`` is judged by it."""
+        strict = COUPLING_METRICS.metric(name)
+        capped = self._caps.get(filepath, {})
+        if name in capped:
+            return self._capped(name, capped[name])
+        if filepath.endswith("__main__.py") and name in MAIN_METRICS:
+            return MAIN_METRICS.metric(name)
+        return strict
+
+    @staticmethod
+    def _capped(name: str, cap: float) -> Metric:
+        op = COUPLING_METRICS.metric(name).op
+        return Metric(name, "<=" if op == "==" else op, cap)

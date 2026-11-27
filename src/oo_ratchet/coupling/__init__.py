@@ -4,6 +4,6 @@ from __future__ import annotations
 
 from .cli import main
 from .scorer import CouplingScorer
-from .thresholds import CouplingThresholds
+from .thresholds import CouplingTargets
 
-__all__ = ["CouplingScorer", "CouplingThresholds", "main"]
+__all__ = ["CouplingScorer", "CouplingTargets", "main"]

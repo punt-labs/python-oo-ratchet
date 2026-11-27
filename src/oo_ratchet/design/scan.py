@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Self
 
 from oo_ratchet.core.domain.layer_table import LayerTable
 from oo_ratchet.core.domain.modules import ModuleIndex
-from oo_ratchet.source_set import SourceSet
+from oo_ratchet.source_set import SourceSelection
 
 from .boundaries import BoundaryCheck
 from .class_rules import ClassRules
@@ -34,7 +34,7 @@ class DesignScanner:
         package_name: str | None = None,
     ) -> Self:
         self = super().__new__(cls)
-        source = SourceSet(root)
+        source = SourceSelection(root)
         index = ModuleIndex(source, package_name=package_name)
         self._index = index
         config = LayerTable.read(source.config_anchor, layers).config()

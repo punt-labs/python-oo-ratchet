@@ -7,6 +7,7 @@ that never writes private state carries no instance cohesion to measure.
 from __future__ import annotations
 
 import ast
+from typing import Self
 
 _MUTATORS = frozenset(
     {
@@ -27,20 +28,37 @@ _MUTATORS = frozenset(
 )
 
 
-class PrivateState:
-    """Static AST queries for private instance-state writes in a class."""
+class ClassState:
+    """The instance-state writes of one class body, read from its AST."""
 
-    @classmethod
-    def stores_none(cls, node: ast.ClassDef) -> bool:
+    _node: ast.ClassDef
+    _nodes: list[ast.AST]
+
+    def __new__(cls, node: ast.ClassDef) -> Self:
+        self = super().__new__(cls)
+        self._node = node
+        self._nodes = self._own_nodes(node)
+        return self
+
+    def stores_none(self) -> bool:
         """Return True when the class never writes a private ``self._*`` attr.
 
         A write through ``object``/``super()``/``type(self)`` ``.__setattr__``
         (the frozen-class idiom) counts as a store too (lux #498).
         """
-        return not any(cls._writes_private_state(n) for n in cls.own_nodes(node))
+        return not any(self._writes_private_state(n) for n in self._nodes)
+
+    def stores_nothing(self) -> bool:
+        """Return True when the class never stores instance state in its own AST.
+
+        Applied only to a marker (``__slots__ = ()``) or a ``@dataclass``, whose
+        fields the generated ``__init__`` sets; either reads as LCOM 1.0 otherwise. A
+        ``object.__setattr__(self, ...)`` call counts as a store (lux #498).
+        """
+        return not any(self._stores_self(sub) for sub in self._nodes)
 
     @staticmethod
-    def own_nodes(node: ast.ClassDef) -> list[ast.AST]:
+    def _own_nodes(node: ast.ClassDef) -> list[ast.AST]:
         """Return the class's AST nodes, not descending into nested classes."""
         out: list[ast.AST] = []
         stack: list[ast.AST] = list(node.body)
@@ -179,16 +197,6 @@ class PrivateState:
             and isinstance(node.func, ast.Name)
             and node.func.id == name
         )
-
-    @classmethod
-    def stores_nothing(cls, node: ast.ClassDef) -> bool:
-        """Return True when the class never stores instance state in its own AST.
-
-        Applied only to a marker (``__slots__ = ()``) or a ``@dataclass``, whose
-        fields the generated ``__init__`` sets; either reads as LCOM 1.0 otherwise. A
-        ``object.__setattr__(self, ...)`` call counts as a store (lux #498).
-        """
-        return not any(cls._stores_self(sub) for sub in cls.own_nodes(node))
 
     @classmethod
     def _stores_self(cls, sub: ast.AST) -> bool:

@@ -36,12 +36,13 @@ class Suggestion:
         self._src = src
         index = cls._index(src)
         anchor = SourceSelection(src).config_anchor
-        nearest = LayerTable.nearest(anchor)
+        read = SourceSelection.layer_table(anchor)
+        nearest = read.path
         scripts = ConsoleScripts(nearest)
         facts = PackageFacts(index, scripts).all()
         if not any("." in fact.name for fact in facts):
             raise LayersScanError(f"no modules to check under {src}")
-        table = LayerTable.ordered(LayerTable.read(anchor).config())
+        table = LayerTable.ordered(read.table.config())
         intent = RingIntent(table, SuggestNames(nearest).table)
         verdicts = RingRules(facts, intent, index.package_name).verdicts()
         self._lists = RingLists(verdicts, index.package_name)

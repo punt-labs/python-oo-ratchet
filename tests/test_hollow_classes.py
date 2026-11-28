@@ -12,6 +12,7 @@ from pathlib import Path
 import pytest
 
 from oo_ratchet.__main__ import main as dispatch
+from oo_ratchet.core.adapters.layertablefile import LayerTableFile
 from oo_ratchet.core.domain.findings import Rules
 from oo_ratchet.core.domain.layer_config import LayerConfig
 from oo_ratchet.core.domain.layer_table import LayerTable
@@ -72,10 +73,10 @@ def test_layer_table_reads_the_nearest_pyproject(tmp_path: Path) -> None:
     )
     inner = tmp_path / "src"
     inner.mkdir()
-    config = LayerTable.read(inner).config()
+    config = LayerTableFile.read(inner).table.config()
     assert config is not None
     assert config.layer("pkg.b") == "domain"
-    assert LayerTable.read(tmp_path / "empty").config() is not None
+    assert LayerTableFile.read(tmp_path / "empty").table.config() is not None
 
 
 def _module(key: str, source: str, name: str = "a.py") -> Module:

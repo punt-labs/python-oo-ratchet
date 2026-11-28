@@ -10,6 +10,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Self
 
+from .core.adapters.layertablefile import LayerRead, LayerTableFile
 from .sources import Sources
 
 type Source = Path | SourceSelection
@@ -45,6 +46,16 @@ class SourceSelection:
         """Apply ``legacy`` to a lone path or ``namespace`` to its portions."""
         target = self._target
         return namespace(target) if isinstance(target, Sources) else legacy(target)
+
+    @staticmethod
+    def layer_table(
+        anchor: Path, override: Path | None = None, *, parse: bool = True
+    ) -> LayerRead:
+        """Read ``override`` or the nearest pyproject above ``anchor``.
+
+        With ``parse=False`` only the file is located; its table is empty.
+        """
+        return LayerTableFile.read(anchor, override, parse=parse)
 
     @property
     def target(self) -> Path | Sources:
@@ -129,6 +140,11 @@ class SourceSelection:
         return any(
             (root / component).is_dir() for root in Sources.portions(self._target)
         )
+
+    @staticmethod
+    def read_source(path: Path) -> str:
+        """Return the UTF-8 text of the Python file ``path``."""
+        return path.read_text(encoding="utf-8")
 
     def package_dirs(self) -> list[Path]:
         """Return non-root regular packages from the selected portions."""

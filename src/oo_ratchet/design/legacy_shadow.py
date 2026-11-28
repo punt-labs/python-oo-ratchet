@@ -11,7 +11,7 @@ from oo_ratchet.core.adapters.shadowtree import ShadowTree
 from .comparison import ShadowMetrics
 from .shadow_keys import KeyChanges
 from .shadow_report import ShadowReport
-from .shadow_scan import ShadowScan
+from .tree import TreeScan
 
 
 class LegacyShadow:
@@ -28,10 +28,8 @@ class LegacyShadow:
         base = git.fork_point(ref)
         override = layers.resolve() if layers is not None else None
         with git.checkout(base) as tree:
-            before = ShadowScan(
-                tree / relative, tree, override, package_name=source.name
-            )
-        after = ShadowScan(source, root, override, package_name=source.name)
+            before = TreeScan(tree / relative, tree, override, package_name=source.name)
+        after = TreeScan(source, root, override, package_name=source.name)
         self._report = ShadowReport(
             KeyChanges(before.keys, after.keys),
             ShadowMetrics(before.metrics, after.metrics),

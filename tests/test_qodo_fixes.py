@@ -18,7 +18,7 @@ from oo_ratchet.core.domain.errors import GitError, StateError
 from oo_ratchet.core.domain.tallies import Tally
 from oo_ratchet.coupling.imports import ImportResolver
 from oo_ratchet.oo.cli import main as oo_main
-from oo_ratchet.oo.scorer import Scorer
+from oo_ratchet.oo.tree import Scorer
 from oo_ratchet.source_set import Source
 from oo_ratchet.suppression.patterns import FileSuppressions
 from oo_ratchet.suppression.scanner import Scanner

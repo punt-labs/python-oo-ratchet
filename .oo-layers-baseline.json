@@ -42,11 +42,6 @@
   "oo_ratchet.oo.code_lines": [
     "io"
   ],
-  "oo_ratchet.oo.scorer": [
-    "json",
-    "oo_ratchet.source_set",
-    "pathlib"
-  ],
   "oo_ratchet.suppression": [
     "oo_ratchet.suppression.cli",
     "oo_ratchet.suppression.pyproject",

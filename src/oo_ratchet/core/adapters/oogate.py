@@ -24,7 +24,7 @@ from .oostore import OoBaselineStore
 from .ootree import OoTree
 
 if TYPE_CHECKING:
-    from oo_ratchet.oo.scorer import Scorer
+    from oo_ratchet.oo.tree import Scorer
 
 BASELINE = ".oo-baseline.json"
 AUDIT = ".oo-audit.jsonl"

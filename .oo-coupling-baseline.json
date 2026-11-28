@@ -986,6 +986,13 @@
     "max_lcom": 0.0,
     "avg_lcom": 0.0
   },
+  "src/oo_ratchet/design/tree.py": {
+    "efferent_coupling": 3.0,
+    "public_names": 1.0,
+    "circular_imports": 0.0,
+    "max_lcom": 0.0,
+    "avg_lcom": 0.0
+  },
   "src/oo_ratchet/gate_options.py": {
     "efferent_coupling": 3.0,
     "public_names": 7.0,
@@ -1162,8 +1169,8 @@
     "avg_lcom": 0.0
   },
   "src/oo_ratchet/oo/__init__.py": {
-    "efferent_coupling": 4.0,
-    "public_names": 4.0,
+    "efferent_coupling": 3.0,
+    "public_names": 3.0,
     "circular_imports": 0.0,
     "max_lcom": 0.0,
     "avg_lcom": 0.0
@@ -1196,8 +1203,8 @@
     "max_lcom": 0.45,
     "avg_lcom": 0.45
   },
-  "src/oo_ratchet/oo/scorer.py": {
-    "efferent_coupling": 3.0,
+  "src/oo_ratchet/oo/scoring.py": {
+    "efferent_coupling": 1.0,
     "public_names": 1.0,
     "circular_imports": 0.0,
     "max_lcom": 0.5,
@@ -1209,6 +1216,13 @@
     "circular_imports": 0.0,
     "max_lcom": 0.0,
     "avg_lcom": 0.0
+  },
+  "src/oo_ratchet/oo/tree.py": {
+    "efferent_coupling": 3.0,
+    "public_names": 1.0,
+    "circular_imports": 0.0,
+    "max_lcom": 1.0,
+    "avg_lcom": 1.0
   },
   "src/oo_ratchet/source_archive.py": {
     "efferent_coupling": 2.0,

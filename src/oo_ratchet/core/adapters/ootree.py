@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Self
 from oo_ratchet.core.domain.scores import Measurement, Score
 
 if TYPE_CHECKING:
-    from oo_ratchet.oo.scorer import Scorer
+    from oo_ratchet.oo.tree import Scorer
 
 
 class OoTree:

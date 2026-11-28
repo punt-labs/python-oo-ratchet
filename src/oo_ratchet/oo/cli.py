@@ -6,8 +6,8 @@ from oo_ratchet.core.adapters.oogate import OoGate
 from oo_ratchet.core.application.policy import GatePolicy
 from oo_ratchet.gate_options import Flag, GateCommand, GateOptions, GateSpec, Kind
 
-from .scorer import Scorer
 from .thresholds import OO_METRICS
+from .tree import Scorer
 
 POLICY = GatePolicy(OO_METRICS.items)
 

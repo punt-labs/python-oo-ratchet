@@ -17,7 +17,8 @@ import oo_ratchet.oo
 from oo_ratchet.core.adapters.gitrepo import GitRepo
 from oo_ratchet.core.domain.changes import Diff
 from oo_ratchet.core.domain.errors import StateError
-from oo_ratchet.oo import OO_METRICS, ModuleMetrics, Scorer
+from oo_ratchet.oo import OO_METRICS, ModuleMetrics
+from oo_ratchet.oo.tree import Scorer
 from tests.gate_runs import Ratchet, Scored
 
 if TYPE_CHECKING:

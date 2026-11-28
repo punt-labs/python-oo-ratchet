@@ -12,7 +12,7 @@ from oo_ratchet.source_set import SourceSelection
 from .comparison import ShadowMetrics
 from .shadow_keys import KeyChanges
 from .shadow_report import ShadowReport
-from .shadow_scan import ShadowScan
+from .tree import TreeScan
 
 
 class NamespaceShadow:
@@ -31,7 +31,7 @@ class NamespaceShadow:
         renames = git.renames(base)
         override = layers.resolve() if layers is not None else None
         with git.checkout(base) as tree:
-            before = ShadowScan(
+            before = TreeScan(
                 SourceSelection(
                     SourceHistory(source.target).at_base(root, tree, renames)
                 ),
@@ -39,7 +39,7 @@ class NamespaceShadow:
                 override,
                 package_name=source.package_name,
             )
-        after = ShadowScan(source, root, override, package_name=source.package_name)
+        after = TreeScan(source, root, override, package_name=source.package_name)
         self._report = ShadowReport(
             KeyChanges(before.keys, after.keys),
             ShadowMetrics(

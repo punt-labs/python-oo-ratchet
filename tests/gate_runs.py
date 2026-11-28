@@ -14,7 +14,7 @@ from typing import Self
 
 from oo_ratchet.core.adapters.oogate import OoGate
 from oo_ratchet.oo.cli import POLICY
-from oo_ratchet.oo.scorer import Scorer
+from oo_ratchet.oo.tree import Scorer
 from oo_ratchet.source_set import Source
 
 

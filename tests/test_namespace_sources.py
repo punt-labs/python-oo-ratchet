@@ -15,7 +15,7 @@ from oo_ratchet.coupling.scorer import CouplingScorer
 from oo_ratchet.design.scan import DesignScanner
 from oo_ratchet.gate_options import GateOptions
 from oo_ratchet.layers.scan import LayerScan
-from oo_ratchet.oo.scorer import Scorer
+from oo_ratchet.oo.tree import Scorer
 from oo_ratchet.source_history import SourceHistory
 from oo_ratchet.source_set import SourceSelection
 from oo_ratchet.suppression.scanner import Scanner

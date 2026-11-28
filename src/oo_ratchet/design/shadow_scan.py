@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 from typing import Self
 
 from oo_ratchet.core.domain.layer_config import LayerConfigError
-from oo_ratchet.oo.scorer import Scorer
+from oo_ratchet.oo.scoring import Scoring
 from oo_ratchet.source_set import Source, SourceSelection
 
 from .scanner import DesignScanner
@@ -25,6 +26,7 @@ class ShadowScan:
         repo: Path,
         layers: Path | None,
         *,
+        score: Callable[[Source, Path], Scoring],
         package_name: str | None = None,
     ) -> Self:
         self = super().__new__(cls)
@@ -33,7 +35,7 @@ class ShadowScan:
             report = scanner.report
         except LayerConfigError as exc:
             raise LayerConfigError(str(exc).replace(str(repo), "<repo>")) from exc
-        scorer = Scorer(source, repo)
+        scorer = score(source, repo)
         broken = sorted(
             {p.relative_to(repo).as_posix() for p in report._skipped}
             | scorer.parse_errors

@@ -20,8 +20,8 @@ from oo_ratchet.coupling.imports import ImportResolver
 from oo_ratchet.oo.cli import main as oo_main
 from oo_ratchet.oo.scorer import Scorer
 from oo_ratchet.source_set import Source
+from oo_ratchet.suppression.gateinput import Scanner
 from oo_ratchet.suppression.patterns import FileSuppressions
-from oo_ratchet.suppression.scanner import Scanner
 
 if TYPE_CHECKING:
     from tests.conftest import GitSandbox

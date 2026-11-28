@@ -17,9 +17,9 @@ from oo_ratchet.gate_options import (
     Report,
 )
 
+from .gateinput import Scanner
 from .pyproject import PyprojectError
 from .report import SuppressionReport
-from .scanner import Scanner
 
 _FILES = GateFiles(
     ".suppression-baseline.json",

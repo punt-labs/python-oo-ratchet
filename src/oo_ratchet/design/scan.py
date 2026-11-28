@@ -43,10 +43,11 @@ class DesignScanner:
         skips = LayerCheck.skipper(index, config)
         class_rules = ClassRules(index.interface_methods(), skips)
         findings = [f for m in index.modules() for f in class_rules.findings(m)]
-        findings.extend(BoundaryCheck(index).findings(skips))
+        findings.extend(
+            BoundaryCheck(index).findings(skips, LayerCheck.inward(index, config))
+        )
         findings.extend(DataRules(index, LayerTable.ordered(config)).findings())
-        if config is not None:
-            findings.extend(LayerCheck(index, config).findings())
+        findings.extend(LayerCheck.configured(index, config))
         self._report = DesignReport(findings, index.skipped, len(index.modules()))
         return self
 

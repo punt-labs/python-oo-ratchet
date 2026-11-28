@@ -113,3 +113,63 @@ def test_concrete_import_without_rings_is_still_reported(tmp_path: Path) -> None
 def test_unknown_ring_key_is_still_an_error(tmp_path: Path) -> None:
     root = tree(tmp_path, {}, RINGS + 'plugins = ["pkg.plugins"]\n')
     assert main([str(root)]) == 2
+
+
+FROM_DOMAIN = "from ..domain.store import Store\n\n\ndef make():\n    return Store()\n"
+SAME_RING = RINGS.replace(
+    'domain = ["pkg.domain", "pkg.domain.*"]',
+    'domain = ["pkg.domain", "pkg.domain.*", "pkg.model", "pkg.model.*"]',
+)
+
+
+@pytest.mark.parametrize(
+    "importer,source",
+    [
+        ("application.py", FROM_DOMAIN.replace("..", ".")),
+        ("adapters/wire.py", FROM_DOMAIN),
+    ],
+    ids=["application-to-domain", "adapters-to-domain"],
+)
+def test_import_of_a_concrete_inner_ring_class_is_not_reported(
+    tmp_path: Path, importer: str, source: str
+) -> None:
+    files = {"domain/store.py": STORE, importer: source}
+    assert reported(tree(tmp_path, files, RINGS), Rules.CONCRETE_IMPORT) == set()
+
+
+def test_same_ring_cross_package_concrete_import_is_reported(tmp_path: Path) -> None:
+    files = {
+        "model/store.py": STORE,
+        "domain/wire.py": FROM_DOMAIN.replace("domain", "model"),
+    }
+    root = tree(tmp_path, files, SAME_RING)
+    assert reported(root, Rules.CONCRETE_IMPORT) == {"domain/wire.py"}
+
+
+def test_outward_concrete_import_is_reported(tmp_path: Path) -> None:
+    files = {
+        "adapters/store.py": STORE,
+        "domain/wire.py": FROM_DOMAIN.replace("domain.store", "adapters.store"),
+    }
+    root = tree(tmp_path, files, RINGS)
+    assert reported(root, Rules.CONCRETE_IMPORT) == {"domain/wire.py"}
+
+
+def test_import_from_an_unlayered_module_is_reported(tmp_path: Path) -> None:
+    files = {
+        "loose/store.py": STORE,
+        "application.py": "from .loose.store import Store\n",
+    }
+    root = tree(tmp_path, files, RINGS)
+    assert reported(root, Rules.CONCRETE_IMPORT) == {"application.py"}
+
+
+def test_inward_concrete_import_without_rings_is_still_reported(
+    tmp_path: Path,
+) -> None:
+    files = {
+        "domain/store.py": STORE,
+        "application.py": "from .domain.store import Store\n",
+    }
+    root = tree(tmp_path, files, None)
+    assert reported(root, Rules.CONCRETE_IMPORT) == {"application.py"}

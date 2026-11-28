@@ -1,0 +1,5 @@
+[tool.oo-ratchet.layers]
+domain = ["loans.domain", "loans.domain.*"]
+application = ["loans.application", "loans.application.*"]
+adapters = ["loans.adapters", "loans.adapters.*"]
+entry = ["loans", "loans.api"]

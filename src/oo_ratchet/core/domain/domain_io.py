@@ -5,15 +5,20 @@ from __future__ import annotations
 import ast
 from typing import ClassVar, Self
 
-from .builtin_open import BuiltinOpen
 from .findings import Finding, Rules
+from .io_usage import IoUsage
 from .modules import Module
 from .path_calls import PathCalls
 from .targets import ImportTargets
 
 
 class DomainIO:
-    """Keep domain modules independent of IO libraries, irrespective of usage."""
+    """Keep domain modules independent of IO libraries.
+
+    Every IO library import counts, except ``io``, which counts only when the
+    module uses it to open files (``io.open``, ``io.FileIO``, ``io.open_code``):
+    ``io.StringIO`` and ``io.BytesIO`` are in-memory buffers.
+    """
 
     IO: ClassVar[tuple[str, ...]] = (
         "subprocess",
@@ -79,7 +84,9 @@ class DomainIO:
     def _opens(tree: ast.Module) -> list[ast.Call]:
         """Return the bare unbound ``open`` calls outside TYPE_CHECKING."""
         type_only = ImportTargets.type_only(tree)
-        return [call for call in BuiltinOpen(tree).calls() if id(call) not in type_only]
+        return [
+            call for call in IoUsage(tree).bare_opens() if id(call) not in type_only
+        ]
 
     def _imports(self) -> list[tuple[ast.stmt, str]]:
         type_only = ImportTargets.type_only(self._module.tree)
@@ -91,9 +98,13 @@ class DomainIO:
             for name in self._io_names(node)
         ]
 
-    @classmethod
-    def _io_names(cls, node: ast.Import | ast.ImportFrom) -> list[str]:
-        return [name for name in dict.fromkeys(cls._imported(node)) if cls._is_io(name)]
+    def _io_names(self, node: ast.Import | ast.ImportFrom) -> list[str]:
+        usage = IoUsage(self._module.tree)
+        return [
+            name
+            for name in dict.fromkeys(self._imported(node))
+            if self._is_io(name) and (name != IoUsage.MODULE or usage.opens_files(node))
+        ]
 
     @classmethod
     def _imported(cls, node: ast.Import | ast.ImportFrom) -> list[str]:

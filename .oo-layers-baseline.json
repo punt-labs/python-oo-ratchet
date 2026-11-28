@@ -39,9 +39,6 @@
   "oo_ratchet.oo": [
     "oo_ratchet.oo.cli"
   ],
-  "oo_ratchet.oo.code_lines": [
-    "io"
-  ],
   "oo_ratchet.oo.scorer": [
     "json",
     "oo_ratchet.source_set",
@@ -51,9 +48,6 @@
     "oo_ratchet.suppression.cli",
     "oo_ratchet.suppression.pyproject",
     "oo_ratchet.suppression.report"
-  ],
-  "oo_ratchet.suppression.patterns": [
-    "io"
   ],
   "oo_ratchet.suppression.scanner": [
     "oo_ratchet.source_set",

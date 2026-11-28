@@ -9,7 +9,7 @@ from oo_ratchet.core.domain.layer_config import LayerConfigError
 from oo_ratchet.oo.scorer import Scorer
 from oo_ratchet.source_set import Source, SourceSelection
 
-from .scanner import DesignScanner
+from .scan import DesignScanner
 from .shadow_keys import DesignKey
 
 
@@ -28,18 +28,10 @@ class ShadowScan:
         package_name: str | None = None,
     ) -> Self:
         self = super().__new__(cls)
-        try:
-            scanner = DesignScanner(source, layers, package_name=package_name)
-            report = scanner.report
-        except LayerConfigError as exc:
-            raise LayerConfigError(str(exc).replace(str(repo), "<repo>")) from exc
+        scanner = cls._scan(source, repo, layers, package_name)
+        report = scanner.report
         scorer = Scorer(source, repo)
-        broken = sorted(
-            {p.relative_to(repo).as_posix() for p in report._skipped}
-            | scorer.parse_errors
-        )
-        if broken:
-            raise ValueError(f"unreadable or unparseable Python: {', '.join(broken)}")
+        cls._reject_broken(scanner, scorer, repo)
         self._keys = tuple(
             DesignKey(
                 f.rule,
@@ -63,6 +55,24 @@ class ShadowScan:
     def metrics(self) -> dict[str, dict[str, float]]:
         """Return the OO scorer's per-file projection."""
         return self._metrics
+
+    @staticmethod
+    def _scan(
+        source: Source, repo: Path, layers: Path | None, package_name: str | None
+    ) -> DesignScanner:
+        try:
+            return DesignScanner(source, layers, package_name=package_name)
+        except LayerConfigError as exc:
+            raise LayerConfigError(str(exc).replace(str(repo), "<repo>")) from exc
+
+    @staticmethod
+    def _reject_broken(scanner: DesignScanner, scorer: Scorer, repo: Path) -> None:
+        broken = sorted(
+            {p.relative_to(repo).as_posix() for p in scanner.report._skipped}
+            | scorer.parse_errors
+        )
+        if broken:
+            raise ValueError(f"unreadable or unparseable Python: {', '.join(broken)}")
 
     @staticmethod
     def _module(key: str, package_name: str) -> str:

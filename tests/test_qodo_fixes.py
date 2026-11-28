@@ -10,18 +10,18 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-import oo_ratchet.coupling
-import oo_ratchet.suppression
 from oo_ratchet.core.adapters.formats import AuditFormat
 from oo_ratchet.core.adapters.gitrepo import GitRepo
 from oo_ratchet.core.domain.errors import GitError, StateError
 from oo_ratchet.core.domain.tallies import Tally
+from oo_ratchet.coupling.cli import main as coupling_main
 from oo_ratchet.coupling.imports import ImportResolver
 from oo_ratchet.oo.cli import main as oo_main
 from oo_ratchet.oo.scorer import Scorer
 from oo_ratchet.source_set import Source
+from oo_ratchet.suppression.cli import main as suppression_main
+from oo_ratchet.suppression.gateinput import Scanner
 from oo_ratchet.suppression.patterns import FileSuppressions
-from oo_ratchet.suppression.scanner import Scanner
 
 if TYPE_CHECKING:
     from tests.conftest import GitSandbox
@@ -104,8 +104,8 @@ def test_file_level_suppressions_are_counted(
     ("gate", "extra"),
     [
         (oo_main, ["--allow-no-improvement"]),
-        (oo_ratchet.coupling.main, []),
-        (oo_ratchet.suppression.main, []),
+        (coupling_main, []),
+        (suppression_main, []),
     ],
 )
 def test_tripwire_fails_when_main_has_no_baseline(
@@ -146,12 +146,10 @@ def test_coupling_update_audits_removed_paths(
     git_sandbox.write("src/pkg/a.py", _SRC)
     git_sandbox.write("src/pkg/b.py", _SRC)
     args = ["src/pkg", "--rebaseline", "--allow-ci-write"]
-    assert oo_ratchet.coupling.main(args) == 0
+    assert coupling_main(args) == 0
     base = git_sandbox.commit("base")
     (Path(git_sandbox.root) / "src/pkg/b.py").unlink()
-    oo_ratchet.coupling.main(
-        ["src/pkg", "--update", "--base-ref", base, "--allow-ci-write"]
-    )
+    coupling_main(["src/pkg", "--update", "--base-ref", base, "--allow-ci-write"])
     audit = Path(git_sandbox.root) / ".oo-coupling-audit.jsonl"
     last = json.loads(audit.read_text().splitlines()[-1])
     assert last["removed"] == ["src/pkg/b.py"]

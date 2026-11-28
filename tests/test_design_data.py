@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from oo_ratchet.design.scanner import DesignScanner
+from oo_ratchet.design.scan import DesignScanner
 
 RULES = {"envied-data", "feature-envy", "data-clump", "misplaced-function"}
 MODEL = (
@@ -319,7 +319,7 @@ def test_clump_adversarial_thirty_owners_under_one_second(
     (root / "records.py").write_text("\n".join(classes))
     code = (
         "import sys\nfrom pathlib import Path\n"
-        "from oo_ratchet.design.scanner import DesignScanner\n"
+        "from oo_ratchet.design.scan import DesignScanner\n"
         "print(DesignScanner(Path(sys.argv[1])).report.to_json())"
     )
     start = time.monotonic()

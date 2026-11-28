@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+from collections.abc import Iterator
 from typing import ClassVar, Self
 
 
@@ -31,6 +32,7 @@ class PathTypes:
             "readlink",
         }
     )
+    OWNERS: ClassVar[frozenset[str]] = frozenset({"self", "cls"})
     _classes: set[str]
     _modules: set[str]
     _names: set[str]
@@ -77,9 +79,14 @@ class PathTypes:
         return False
 
     def _attribute(self, node: ast.Attribute) -> bool:
-        if node.attr == "parent":
-            return self.is_path(node.value)
-        return isinstance(node.value, ast.Name) and node.attr in self._attrs
+        if node.attr == "parent" and self.is_path(node.value):
+            return True
+        receiver = node.value
+        return (
+            isinstance(receiver, ast.Name)
+            and receiver.id in self.OWNERS
+            and node.attr in self._attrs
+        )
 
     def _call(self, node: ast.Call) -> bool:
         if self.is_class(node.func):
@@ -110,18 +117,23 @@ class PathTypes:
                 self._bind(node.target)
 
     def _assigned(self, tree: ast.Module) -> None:
-        assigns = [n for n in ast.walk(tree) if isinstance(n, ast.Assign)]
-        for _ in range(3):
-            before = len(self._names)
-            for node in assigns:
-                self._bind_assign(node)
-            if len(self._names) == before:
+        pairs = list(self._assignments(tree))
+        while True:
+            before = (len(self._names), len(self._attrs))
+            for targets, value in pairs:
+                if self.is_path(value):
+                    for target in targets:
+                        self._bind(target)
+            if (len(self._names), len(self._attrs)) == before:
                 return
 
-    def _bind_assign(self, node: ast.Assign) -> None:
-        if self.is_path(node.value):
-            for target in node.targets:
-                self._bind(target)
+    @staticmethod
+    def _assignments(tree: ast.Module) -> Iterator[tuple[list[ast.expr], ast.expr]]:
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Assign):
+                yield node.targets, node.value
+            elif isinstance(node, ast.AnnAssign | ast.NamedExpr) and node.value:
+                yield [node.target], node.value
 
     def _bind(self, target: ast.expr) -> None:
         if isinstance(target, ast.Name):

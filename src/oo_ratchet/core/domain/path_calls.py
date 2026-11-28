@@ -32,6 +32,7 @@ class PathCalls:
             "is_file",
             "is_dir",
             "is_symlink",
+            "is_junction",
             "is_mount",
             "is_socket",
             "is_fifo",

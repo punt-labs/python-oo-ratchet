@@ -60,7 +60,7 @@ import, so a domain module can take a `Path` parameter and call
 gate's `io` edges therefore also count these calls, outside `TYPE_CHECKING`:
 `read_text`, `read_bytes`, `write_text`, `write_bytes`, `open`, `iterdir`,
 `glob`, `rglob`, `walk`, `exists`, `is_file`, `is_dir`, `is_symlink`,
-`is_mount`, `is_socket`, `is_fifo`, `is_block_device`, `is_char_device`,
+`is_junction`, `is_mount`, `is_socket`, `is_fifo`, `is_block_device`, `is_char_device`,
 `stat`, `lstat`, `owner`, `group`, `samefile`, `mkdir`, `rmdir`, `unlink`,
 `rename`, `replace`, `touch`, `chmod`, `lchmod`, `symlink_to`, `hardlink_to`,
 `readlink`, `resolve` and `expanduser`, plus `Path.cwd()` and `Path.home()`.
@@ -71,12 +71,17 @@ imports `pathlib` at runtime gains no new edge. The receiver counts as a
 annotated `Path`, `Path | None`, `Optional[Path]` or `"Path"` (a parameter,
 variable, class attribute or `self.x`), a name assigned a path expression
 (`Path(...)`, a `/` join, `.parent`, `.with_suffix(...)`, `.joinpath(...)`,
-`.resolve()` and similar), or such an expression used directly. Limits: the
-evidence is by name across the whole module, so a name annotated `Path` in
-one function makes a same-named unannotated name elsewhere count as a path;
-types from other modules, `list[Path]` elements, return types and
-`isinstance` narrowing are not followed; a method of an object with no
-evidence (`doc.read_text()`) never counts; and a module that never names
+`.resolve()` and similar, also through an annotated assignment with a path
+value or a `:=`), or such an expression used directly. An attribute counts as
+a path only on `self` or `cls`, or as the `.parent` of a path; an attribute of
+any other object (`document.source`) never does. Limits: the evidence is by
+name across the whole module, so a name annotated `Path` in one function makes
+a same-named unannotated name elsewhere count as a path, and an attribute
+annotated `Path` on one class makes `self.<name>` count in every class;
+types from other modules, return types and `isinstance` narrowing are not
+followed; `list[Path]` elements and loop variables over them, and tuple or
+list unpacking, are not followed; a method of an object with no evidence
+(`doc.read_text()`) never counts; and a module that never names
 `pathlib.Path` has no path evidence.
 
 With the fixed four-ring table, two class and import rules are scoped by ring

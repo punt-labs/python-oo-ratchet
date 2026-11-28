@@ -1,7 +1,4 @@
 {
-  "oo_ratchet.coupling": [
-    "oo_ratchet.coupling.cli"
-  ],
   "oo_ratchet.coupling.packages": [
     "pathlib"
   ],
@@ -15,9 +12,6 @@
     "oo_ratchet.design.report",
     "oo_ratchet.source_set"
   ],
-  "oo_ratchet.design.scanner": [
-    "oo_ratchet.design.scan"
-  ],
   "oo_ratchet.design.shadow": [
     "oo_ratchet.design.legacy_shadow",
     "oo_ratchet.design.namespace_shadow",
@@ -26,18 +20,8 @@
   "oo_ratchet.design.shadow_scan": [
     "oo_ratchet.source_set"
   ],
-  "oo_ratchet.layers": [
-    "oo_ratchet.layers.cli",
-    "oo_ratchet.layers.scan"
-  ],
   "oo_ratchet.layers.scan": [
     "oo_ratchet.source_set"
-  ],
-  "oo_ratchet.layers.strict": [
-    "oo_ratchet.layers.chain"
-  ],
-  "oo_ratchet.oo": [
-    "oo_ratchet.oo.cli"
   ],
   "oo_ratchet.oo.code_lines": [
     "io"
@@ -46,11 +30,6 @@
     "json",
     "oo_ratchet.source_set",
     "pathlib"
-  ],
-  "oo_ratchet.suppression": [
-    "oo_ratchet.suppression.cli",
-    "oo_ratchet.suppression.pyproject",
-    "oo_ratchet.suppression.report"
   ],
   "oo_ratchet.suppression.patterns": [
     "io"

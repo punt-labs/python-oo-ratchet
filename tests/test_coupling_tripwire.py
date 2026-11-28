@@ -14,11 +14,11 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-import oo_ratchet.coupling
 from oo_ratchet.core.adapters.gitrepo import GitRepo
 from oo_ratchet.core.domain.errors import StateError
-from oo_ratchet.coupling import CouplingScorer, CouplingTargets
-from oo_ratchet.coupling.thresholds import COUPLING_METRICS
+from oo_ratchet.coupling.cli import main as coupling_main
+from oo_ratchet.coupling.scorer import CouplingScorer
+from oo_ratchet.coupling.thresholds import COUPLING_METRICS, CouplingTargets
 
 if TYPE_CHECKING:
     from tests.conftest import GitSandbox
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 def test_module_is_importable_as_package() -> None:
     """The package resolves as ``oo_ratchet.coupling`` (regular-package path)."""
-    assert "CouplingScorer" in oo_ratchet.coupling.__all__
+    assert callable(coupling_main)
 
 
 class TestThresholds:
@@ -72,9 +72,7 @@ def _seat_package(sandbox: GitSandbox, hub_imports: str) -> None:
     sandbox.write("src/pkg/b.py", "x = 2\n")
     sandbox.write("src/pkg/c.py", "x = 3\n")
     sandbox.write("src/pkg/hub.py", hub_imports)
-    assert (
-        oo_ratchet.coupling.main(["src/pkg", "--rebaseline", "--allow-ci-write"]) == 0
-    )
+    assert coupling_main(["src/pkg", "--rebaseline", "--allow-ci-write"]) == 0
 
 
 class TestRegressionOnlyVerdict:
@@ -91,11 +89,8 @@ class TestRegressionOnlyVerdict:
         base = git_sandbox.commit("base")
         # hub now imports three siblings — efferent 1 -> 3 regresses.
         git_sandbox.write("src/pkg/hub.py", "from . import a, b, c\n")
-        assert (
-            oo_ratchet.coupling.main(["src/pkg", "--rebaseline", "--allow-ci-write"])
-            == 0
-        )
-        code = oo_ratchet.coupling.main(
+        assert coupling_main(["src/pkg", "--rebaseline", "--allow-ci-write"]) == 0
+        code = coupling_main(
             ["src/pkg", "--check", "--base-ref", base, "--require-base"]
         )
         out = capsys.readouterr().out
@@ -115,12 +110,9 @@ class TestRegressionOnlyVerdict:
         # A brand-new module with efferent 1 is INFO, never a regression. It must
         # be committed to appear in `git diff <base>` (untracked files do not).
         git_sandbox.write("src/pkg/d.py", "from . import a\n")
-        assert (
-            oo_ratchet.coupling.main(["src/pkg", "--rebaseline", "--allow-ci-write"])
-            == 0
-        )
+        assert coupling_main(["src/pkg", "--rebaseline", "--allow-ci-write"]) == 0
         git_sandbox.commit("add d")
-        code = oo_ratchet.coupling.main(
+        code = coupling_main(
             ["src/pkg", "--check", "--base-ref", base, "--require-base"]
         )
         assert code == 0
@@ -135,7 +127,7 @@ class TestRegressionOnlyVerdict:
         monkeypatch.chdir(git_sandbox.root)
         _seat_package(git_sandbox, "from . import a\n")
         git_sandbox.commit("base")
-        code = oo_ratchet.coupling.main(
+        code = coupling_main(
             ["src/pkg", "--check", "--base-ref", "nope", "--require-base"]
         )
         assert code == 1
@@ -173,7 +165,7 @@ class TestBaselineBootstrap:
         base = git_sandbox.commit("base")  # populated baseline committed
         # Touch hub.py without changing any coupling metric.
         git_sandbox.write("src/pkg/hub.py", "from . import a\n# note: unchanged\n")
-        code = oo_ratchet.coupling.main(
+        code = coupling_main(
             ["src/pkg", "--check", "--base-ref", base, "--require-base"]
         )
         assert code == 0
@@ -199,10 +191,7 @@ class TestPushTripwireAdoption:
         sandbox.write("src/pkg/a.py", "x = 1\n")
         sandbox.write("src/pkg/hub.py", "from . import a\n")
         pre = sandbox.commit("pre-adoption (no coupling baseline)")
-        assert (
-            oo_ratchet.coupling.main(["src/pkg", "--rebaseline", "--allow-ci-write"])
-            == 0
-        )
+        assert coupling_main(["src/pkg", "--rebaseline", "--allow-ci-write"]) == 0
         adoption = sandbox.commit("adoption (adds coupling baseline)")
         sandbox.run_git("update-ref", "refs/remotes/origin/main", adoption)
         return pre
@@ -215,7 +204,7 @@ class TestPushTripwireAdoption:
     ) -> None:
         monkeypatch.chdir(git_sandbox.root)
         pre = self._adoption_repo(git_sandbox)
-        code = oo_ratchet.coupling.main(
+        code = coupling_main(
             ["src/pkg", "--check", "--base-ref", pre, "--require-base"]
         )
         assert code == 1
@@ -229,7 +218,7 @@ class TestPushTripwireAdoption:
     ) -> None:
         monkeypatch.chdir(git_sandbox.root)
         pre = self._adoption_repo(git_sandbox)
-        code = oo_ratchet.coupling.main(
+        code = coupling_main(
             ["src/pkg", "--check", "--base-ref", pre, "--require-base", "--tripwire"]
         )
         assert code == 0

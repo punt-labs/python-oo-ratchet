@@ -46,17 +46,16 @@ class TelemetrySettings:
         if not isinstance(enabled, bool):
             logger.warning("Ignoring non-boolean telemetry setting; capture is off")
             return TelemetryConfig(enabled=False)
-        return TelemetryConfig(enabled=enabled, **self._retention(table))
+        return TelemetryConfig(enabled=enabled, retention_days=self._retention(table))
 
-    def _retention(self, table: dict[str, object]) -> dict[str, int]:
-        days = table.get("telemetry-retention-days")
-        if days is None:
-            return {}
+    def _retention(self, table: dict[str, object]) -> int:
+        default = TelemetryConfig().retention_days
+        days = table.get("telemetry-retention-days", default)
         low, high = _RETENTION_DAYS
         if type(days) is int and low <= days <= high:
-            return {"retention_days": days}
+            return days
         logger.warning("Ignoring telemetry-retention-days outside %d..%d", low, high)
-        return {}
+        return default
 
     def _table(self) -> dict[str, object] | None:
         """Return ``[tool.oo-ratchet]``, ``{}`` when absent, ``None`` when unusable."""

@@ -32,6 +32,11 @@ class OutcomeLog:
             "nothing-to-relax",
             "not-scored",
             "no-row",
+            "parse-refused",
+            "new-violations",
+            "stale-entries",
+            "refuse-problems",
+            "refuse-new",
         }
     )
 

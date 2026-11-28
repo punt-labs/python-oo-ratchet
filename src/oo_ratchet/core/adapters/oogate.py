@@ -13,7 +13,6 @@ from oo_ratchet.core.application.policy import GatePolicy
 from oo_ratchet.core.application.reconcile import Reconcile
 from oo_ratchet.core.application.update import Update
 from oo_ratchet.core.application.waive import Rebaseline, Relax
-from oo_ratchet.core.domain.errors import StateError
 from oo_ratchet.source_set import Source, SourceSelection
 
 from .gatecli import GateCli
@@ -23,7 +22,6 @@ from .oocli import OoCli
 from .oorequest import Requested
 from .oostore import OoBaselineStore
 from .ootree import OoTree
-from .outcomelog import OutcomeLog
 
 if TYPE_CHECKING:
     from oo_ratchet.oo.scorer import Scorer
@@ -72,11 +70,7 @@ class OoGate:
         if not SourceSelection.path(req.src).exists():
             return [f"Not found: {req.src}"], 1
         scorer = self._score(req.src, self._root)
-        try:
-            return self._dispatch(scorer)
-        except StateError as exc:
-            OutcomeLog.unreadable(exc)
-            return [f"FAIL: {exc}"], 1
+        return self._dispatch(scorer)
 
     def _rebaseline_files_guard(self) -> Report | None:
         """Refuse a malformed ``--rebaseline-files`` before the target is scored."""

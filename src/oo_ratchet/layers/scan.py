@@ -48,7 +48,14 @@ class LayerScan:
     def __new__(cls, src: Source, config: LayerConfig | None = None) -> Self:
         self = super().__new__(cls)
         self._src = SourceSelection(src)
-        self._config = config or cls._load(src)
+        anchor = self._src.config_anchor
+        if config is None:
+            read = SourceSelection.layer_table(anchor)
+            self._config = cls._config_of(read.table, src)
+            self._config_path = read.path
+        else:
+            self._config = config
+            self._config_path = SourceSelection.layer_table(anchor, parse=False).path
         self._src.require_package(LayersScanError)
         index = ModuleIndex(self._src)
         if index.skipped:
@@ -63,7 +70,6 @@ class LayerScan:
         self._violations = tuple(edges.violations())
         self._unassigned = tuple(edges.unassigned())
         self._unresolvable = tuple(edges.unresolvable())
-        self._config_path = LayerTable.nearest(self._src.config_anchor)
         self._package = index.package_name
         return self
 
@@ -154,8 +160,8 @@ class LayerScan:
         )
 
     @staticmethod
-    def _load(src: Source) -> LayerConfig:
-        config = LayerTable.read(SourceSelection(src).config_anchor).config()
+    def _config_of(table: LayerTable, src: Source) -> LayerConfig:
+        config = table.config()
         if config is None:
             msg = f"no [tool.oo-ratchet.layers] table above {src}"
             raise LayerConfigError(msg)

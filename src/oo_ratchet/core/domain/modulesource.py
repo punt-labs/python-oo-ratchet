@@ -33,6 +33,10 @@ class ModuleSource(Protocol):
         """Return ``path`` relative to the source portion that owns it."""
         ...
 
+    def read_source(self, path: Path) -> str:
+        """Return the text of the Python file ``path``; ``OSError`` if unreadable."""
+        ...
+
     def package_dirs(self) -> list[Path]:
         """Return the non-root package directories of the selection."""
         ...

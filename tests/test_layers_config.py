@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from oo_ratchet.core.adapters.layertablefile import LayerTableFile
 from oo_ratchet.core.domain.declared_layers import DeclaredLayers
 from oo_ratchet.core.domain.layer_config import LayerConfig, LayerConfigError
 from oo_ratchet.core.domain.layer_table import LayerTable
@@ -126,7 +127,7 @@ class TestValidation:
         (tmp_path / "pyproject.toml").write_text(
             '[tool.oo-ratchet.layers.kernel]\nprefixes = ["kernel"]\n'
         )
-        config = LayerTable.read(tmp_path).config()
+        config = LayerTableFile.read(tmp_path).table.config()
         assert config is not None
         assert config.layer("app.kernel") == "kernel"
 

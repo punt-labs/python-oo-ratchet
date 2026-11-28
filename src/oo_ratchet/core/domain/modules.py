@@ -147,7 +147,7 @@ class ModuleIndex:
 
     def _add(self, path: Path) -> None:
         try:
-            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+            tree = ast.parse(self._source.read_source(path), filename=str(path))
         except (OSError, SyntaxError, UnicodeDecodeError, ValueError):
             self._skipped.append(path)
             return

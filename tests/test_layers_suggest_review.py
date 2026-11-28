@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+from oo_ratchet.core.adapters.layertablefile import LayerTableFile
 from oo_ratchet.core.domain.layer_table import LayerTable
 from oo_ratchet.layers.cli import main
 from tests.conftest import GitSandbox
@@ -33,7 +34,7 @@ def roundtrip(repo: LayersRepo) -> tuple[str, dict[str, object]]:
 
 
 def none_nearest(_src: object) -> None:
-    """Stand in for ``LayerTable.nearest`` when no pyproject exists."""
+    """Stand in for ``LayerTableFile.nearest`` when no pyproject exists."""
     return
 
 
@@ -225,7 +226,7 @@ class TestScriptsTable:
         self, repo: LayersRepo, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         start(repo)
-        monkeypatch.setattr(LayerTable, "nearest", staticmethod(none_nearest))
+        monkeypatch.setattr(LayerTableFile, "nearest", staticmethod(none_nearest))
         out = repo.run("--suggest")[1]
         assert "console scripts were not read" in out
 

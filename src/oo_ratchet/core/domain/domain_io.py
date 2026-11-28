@@ -1,4 +1,4 @@
-"""Import-based IO dependencies and conservatively unbound bare open calls."""
+"""Import-based IO dependencies, unbound bare open calls and Path file IO."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from typing import ClassVar, Self
 from .builtin_open import BuiltinOpen
 from .findings import Finding, Rules
 from .modules import Module
+from .path_calls import PathCalls
 from .targets import ImportTargets
 
 
@@ -35,6 +36,7 @@ class DomainIO:
         "tempfile",
         "glob",
     )
+    PATHLIB: ClassVar[str] = "pathlib"
     _module: Module
 
     def __new__(cls, module: Module) -> Self:
@@ -43,19 +45,35 @@ class DomainIO:
         return self
 
     def findings(self) -> list[Finding]:
-        """Return one finding per IO module import, plus bare unbound opens."""
+        """Return one finding per IO import, bare unbound open and Path IO call."""
         out = [self._finding(node, name) for node, name in self._imports()]
         out.extend(
             self._finding(node, "open") for node in self._opens(self._module.tree)
         )
+        out.extend(
+            self._finding(node, self.PATHLIB)
+            for node in self._path_calls(self._module.tree)
+        )
         return out
 
     def targets(self) -> list[str]:
-        """Return the sorted distinct IO targets, a bare ``open`` as builtins.open."""
+        """Return the sorted distinct IO targets.
+
+        A bare ``open`` is ``builtins.open``; a file-system method on a ``Path``
+        object is ``pathlib``, the module an import of it would be keyed by.
+        """
         names = {name for _, name in self._imports()}
         if self._opens(self._module.tree):
             names.add("builtins.open")
+        if self._path_calls(self._module.tree):
+            names.add(self.PATHLIB)
         return sorted(names)
+
+    @staticmethod
+    def _path_calls(tree: ast.Module) -> list[ast.Call]:
+        """Return the file-system calls on ``Path`` objects outside TYPE_CHECKING."""
+        type_only = ImportTargets.type_only(tree)
+        return [call for call in PathCalls(tree).calls() if id(call) not in type_only]
 
     @staticmethod
     def _opens(tree: ast.Module) -> list[ast.Call]:

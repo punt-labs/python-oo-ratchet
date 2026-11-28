@@ -67,7 +67,7 @@ def test_concurrent_writers_roll_the_log_over_intact_and_private(
     assert backups, "the writers never crossed the rollover threshold"
     assert len(backups) <= _BACKUPS
     assert _mode(logs) == 0o700
-    seen: set[tuple[str, str]] = set()
+    seen: list[tuple[str, str]] = []
     for path in [*files, *logs.glob("*.lock")]:
         assert _mode(path) == 0o600, path.name
     for path in files:
@@ -77,5 +77,6 @@ def test_concurrent_writers_roll_the_log_over_intact_and_private(
         for line in path.read_text("utf-8").splitlines():
             match = _RECORD.match(line)
             assert match, f"torn or foreign record in {path.name}: {line[:120]!r}"
-            seen.add((match[1], match[2]))
-    assert len(seen) == _WRITERS * _RECORDS  # no loss, no duplicate
+            seen.append((match[1], match[2]))
+    assert len(seen) == _WRITERS * _RECORDS  # no record lost
+    assert len(seen) == len(set(seen))  # no record written twice

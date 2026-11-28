@@ -113,6 +113,7 @@ entry = [
   "oo_ratchet.gates",
   "oo_ratchet.logging_config",
   "oo_ratchet.usage",
+  "oo_ratchet.telemetry_settings",
   "oo_ratchet.*.cli",
 ]
 adapters = [

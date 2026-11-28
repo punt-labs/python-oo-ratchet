@@ -6,6 +6,7 @@ from typing import Self
 
 from oo_ratchet.core.adapters.edgegate import EdgeGate
 from oo_ratchet.core.adapters.gitrepo import GitRepo
+from oo_ratchet.core.adapters.outcomelog import OutcomeLog
 from oo_ratchet.core.domain.exits import Outcome
 from oo_ratchet.gate_options import (
     Flag,
@@ -99,6 +100,7 @@ class LayersRun:
         try:
             return self._dispatch(LayerScan(self._opts.src), git)
         except FAILURES as exc:
+            OutcomeLog.unreadable(exc)
             return Outcome.failed(f"FAIL: {exc}")
 
     def _inside(self, git: GitRepo) -> bool:
@@ -110,6 +112,7 @@ class LayersRun:
         try:
             return Suggestion(self._opts.src).outcome()
         except FAILURES as exc:
+            OutcomeLog.unreadable(exc)
             return Outcome.failed(f"FAIL: {exc}")
 
     def _dispatch(self, scan: LayerScan, git: GitRepo) -> Outcome:

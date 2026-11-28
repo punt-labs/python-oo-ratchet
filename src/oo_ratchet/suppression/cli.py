@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Self
 
+from oo_ratchet.core.adapters.outcomelog import OutcomeLog
 from oo_ratchet.core.adapters.tallygate import GateFiles, TallyGate
 from oo_ratchet.core.domain.errors import StateError
 from oo_ratchet.core.domain.tallies import Tally
@@ -93,6 +94,7 @@ class SuppressionRun:
             self._gate.prepare()
             lines, code = self._dispatch(report)
         except (StateError, PyprojectError, OSError, UnicodeDecodeError) as exc:
+            OutcomeLog.unreadable(exc)
             lines, code = [f"FAIL: {exc}"], 1
         return lines, code
 

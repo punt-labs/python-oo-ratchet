@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import ClassVar, Self
 
+from oo_ratchet.core.adapters.outcomelog import OutcomeLog
 from oo_ratchet.core.domain.tallies import TallyRecord
 from oo_ratchet.core.domain.tallyverdicts import TallyVerdict
 from oo_ratchet.core.domain.totals import TotalReview
@@ -71,7 +72,8 @@ class TallyCli:
 
     @staticmethod
     def exit_code(verdict: TallyVerdict) -> int:
-        """Return 0 for a passing verdict, 1 for a failing one."""
+        """Return 0 for a passing verdict, 1 for a failing one; log a refusal."""
+        OutcomeLog(verdict.failures).refused()
         return 0 if verdict.passed else 1
 
     def text(self, result: TallyVerdict) -> list[str]:

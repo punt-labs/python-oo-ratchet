@@ -354,19 +354,89 @@ to the baseline gates; design retains its advisory `--shadow-check REF`.
 
 ## Diagnostics and Usage Telemetry
 
-Gate reports and `--json` output go to stdout only. Each `oo-ratchet` run also
-writes diagnostics (gate start and finish, baseline and audit writes, git
-degradation) through the shared
-[`punt-observe`](https://pypi.org/project/punt-observe/) package to a private,
-redacted, rotated log at `~/.punt-labs/oo-ratchet/logs/oo-ratchet.log`;
-warnings and errors are echoed to stderr.
+Gate reports and `--json` output go to stdout only. Diagnostics and usage
+capture are two separate pipelines with separate files, both written through
+the shared [`punt-observe`](https://pypi.org/project/punt-observe/) package.
 
-Each run also records one local usage event, `oo-ratchet.cli.<gate>` version
-1, carrying only its outcome (`pass`, `fail`, `invalid`, `error`) and duration,
-in `~/.punt-labs/oo-ratchet/telemetry.db` (90-day retention). No paths, source,
-baselines or report text are recorded and nothing leaves the machine.
-`PUNT_TELEMETRY=off` or `OO_RATCHET_TELEMETRY=off` turns capture off without
-affecting the log.
+### Diagnostic log
+
+Each run appends to `~/.punt-labs/oo-ratchet/logs/oo-ratchet.log`, one line per
+record: `2026-11-27 22:28:00 [INFO] oo_ratchet.usage: Finished oo gate: pass in 7 ms`.
+
+- **Location and permissions.** The directory is `0700`; the log, its backups
+  `oo-ratchet.log.1` to `.5` and the rotation lock file are `0600`. Existing
+  loose files are tightened at startup. If one cannot be (a backup slot that is
+  a symlink, for example), the run stops with exit 2 and
+  `cannot open the diagnostic log`, and writes nothing.
+- **Rotation.** 5 MiB per file, 5 backups, safe for several oo-ratchet
+  processes writing at once (a lock file serializes the rollover). Total
+  storage stays under 30 MiB.
+- **Redaction.** Every record is redacted after formatting, including
+  exception text and tracebacks: URL credentials, paths and query strings are
+  masked, control characters are escaped, and a record is one physical line.
+  The home directory prefix of a path becomes `~`. The rest of a path is kept
+  as written, so a repository's directory names appear in the lines that name
+  a baseline or audit file.
+- **Levels.** INFO records a decision or a state change. WARNING records a
+  refusal the caller must act on or state that could not be read. ERROR
+  records an unexpected exception, with its redacted traceback. Warnings and
+  errors are also echoed to stderr.
+- **What a run logs.**
+  - Start: `Running <gate> gate (oo-ratchet <version>)`; end:
+    `Finished <gate> gate: <outcome> in <n> ms`.
+  - A write that changes state: `Wrote baseline <path>: <n> files`,
+    `Wrote suppression baseline <path>: <n> total`,
+    `Wrote layers baseline <path>: <n> edges`,
+    `Appended <verdict> entry to audit <path>` (the verdict is `pass`,
+    `rebaseline-files`, `relax` and so on). `--update`, `--rebaseline`,
+    `--rebaseline-files`, `--reconcile` and `--relax` all log through these.
+    Counts and file names only: never a baseline row, a `--reason` or a
+    `--justify` text.
+  - A refusal or failed check: `Operation refused: <kind>, <kind> (<n>
+    subjects)`. The kinds are the closed names the report uses, such as
+    `regression`, `no-improvement`, `suppression-increase`, `base-unresolvable`
+    and `ci-write`. A gate doing its job (a regression, a refused loosening)
+    is INFO; a cause you can fix, such as an unresolvable base, is a WARNING.
+    The subjects (file names) are counted, not listed.
+  - Unreadable state: `Gate state unreadable (<ErrorType>): '<message>'`, a
+    WARNING, for a corrupt baseline, an unreadable audit log, a bad
+    `pyproject.toml` or a failed git command.
+  - An unexpected exception: an ERROR line with the traceback, then the
+    exception propagates.
+  - Git degradation: a WARNING when git cannot run.
+  - Nothing else: no per-file or per-iteration lines.
+
+### Usage telemetry
+
+Each run records one local event, `oo-ratchet.cli.<gate>` schema version 1, in
+`~/.punt-labs/oo-ratchet/telemetry.db` (SQLite; the directory is `0700`, the
+database and its `-wal` and `-shm` files `0600`). The schema is an allowlist of
+two typed attributes: `outcome` (`pass`, `fail`, `invalid` or `error`) and
+`duration_ms`. An unknown attribute, a wrong type or an unknown version drops
+the event; it never fails the run. No paths, source, baselines or report text
+are recorded, no identifier is hashed (so no salt file is created), and nothing
+leaves the machine: oo-ratchet imports no exporter, and network export is a
+`punt-observe` setting that needs its own opt-in.
+
+- **Retention.** 90 days by default. Expired rows are deleted and the space is
+  reclaimed when the database is opened at the start of the next run.
+  `telemetry-retention-days = N` (1 to 3650) under `[tool.oo-ratchet]` changes
+  it; a value outside the range is ignored with a WARNING and the 90-day
+  default applies. Retention cannot be unlimited.
+- **Off switches.** Any one of these turns capture off, and nothing is opened
+  while off: no database, no sidecar files, no background thread. The diagnostic
+  log is unaffected.
+
+  | Switch | Scope |
+  |--------|-------|
+  | `PUNT_TELEMETRY=off` | every Punt Labs tool on the machine |
+  | `OO_RATCHET_TELEMETRY=off` | oo-ratchet, from the environment |
+  | `telemetry = false` under `[tool.oo-ratchet]` | one project |
+
+  `off`, `0`, `false` and `no` all mean off in the environment variables. The
+  `pyproject.toml` is the nearest one found from the current directory up to
+  the repository root. A `telemetry` value that is not `true` or `false`, or a
+  `pyproject.toml` that cannot be parsed, turns capture off and logs a WARNING.
 
 ## What the Ratchet Measures and Does Not
 

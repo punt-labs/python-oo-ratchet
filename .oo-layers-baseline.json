@@ -23,15 +23,9 @@
   "oo_ratchet.layers.scan": [
     "oo_ratchet.source_set"
   ],
-  "oo_ratchet.oo.code_lines": [
-    "io"
-  ],
   "oo_ratchet.oo.scorer": [
     "json",
     "oo_ratchet.source_set",
     "pathlib"
-  ],
-  "oo_ratchet.suppression.patterns": [
-    "io"
   ]
 }

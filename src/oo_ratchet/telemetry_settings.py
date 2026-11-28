@@ -8,11 +8,14 @@ environment switches ``PUNT_TELEMETRY=off`` and
 ``OO_RATCHET_TELEMETRY=off`` are applied by ``punt-observe`` on top of this,
 and any off switch wins. A setting that cannot be read or is the wrong type
 turns capture off rather than guess, and says so in the diagnostic log.
+An environment off switch is honoured before the filesystem is touched, and
+no filesystem error ever escapes: telemetry never fails a tool.
 """
 
 from __future__ import annotations
 
 import logging
+import os
 import tomllib
 from pathlib import Path
 from typing import Self, final
@@ -22,6 +25,9 @@ from punt_observe.telemetry import TelemetryConfig
 __all__ = ["TelemetrySettings"]
 
 logger = logging.getLogger(__name__)
+
+_OFF_VALUES = frozenset({"off", "0", "false", "no"})
+_OFF_VARIABLES = ("PUNT_TELEMETRY", "OO_RATCHET_TELEMETRY")
 
 @final
 class TelemetrySettings:
@@ -38,6 +44,8 @@ class TelemetrySettings:
 
     def config(self) -> TelemetryConfig:
         """Return the capture configuration these settings select."""
+        if self._env_off():
+            return TelemetryConfig(enabled=False)
         table = self._table()
         if table is None:
             return TelemetryConfig(enabled=False)
@@ -47,13 +55,24 @@ class TelemetrySettings:
             return TelemetryConfig(enabled=False)
         return TelemetryConfig(enabled=enabled)
 
+    @staticmethod
+    def _env_off() -> bool:
+        return any(
+            os.environ.get(name, "").strip().lower() in _OFF_VALUES
+            for name in _OFF_VARIABLES
+        )
+
     def _table(self) -> dict[str, object] | None:
         """Return ``[tool.oo-ratchet]``, ``{}`` when absent, ``None`` when unusable."""
-        for parent in (self._start, *self._start.parents):
-            if (file := parent / "pyproject.toml").is_file():
-                return self._read(file)
-            if (parent / ".git").exists():
-                break
+        try:
+            for parent in (self._start, *self._start.parents):
+                if (file := parent / "pyproject.toml").is_file():
+                    return self._read(file)
+                if (parent / ".git").exists():
+                    break
+        except OSError:
+            logger.warning("Cannot search for the telemetry settings; capture is off")
+            return None
         return {}
 
     @staticmethod

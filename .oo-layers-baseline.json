@@ -33,11 +33,5 @@
   ],
   "oo_ratchet.suppression.patterns": [
     "io"
-  ],
-  "oo_ratchet.suppression.scanner": [
-    "oo_ratchet.source_set",
-    "oo_ratchet.suppression.pyproject",
-    "oo_ratchet.suppression.report",
-    "pathlib"
   ]
 }

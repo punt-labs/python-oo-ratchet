@@ -21,10 +21,10 @@ from oo_ratchet.core.domain.errors import GitError, StateError
 from oo_ratchet.core.domain.ledgers import Ceiling, Ledger
 from oo_ratchet.core.domain.tallies import Tally
 from oo_ratchet.suppression.cli import main
+from oo_ratchet.suppression.gateinput import Scanner
 from oo_ratchet.suppression.patterns import FileSuppressions
 from oo_ratchet.suppression.pyproject import PerFileIgnoresCounter, PyprojectError
 from oo_ratchet.suppression.report import SuppressionReport
-from oo_ratchet.suppression.scanner import Scanner
 
 # Every ratchet/CLI test drives a real git init/commit/checkout sequence --
 # see the marker rationale on test_oo_ratchet.py and the measured timing in

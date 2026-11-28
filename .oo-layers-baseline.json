@@ -2,15 +2,6 @@
   "oo_ratchet.coupling": [
     "oo_ratchet.coupling.cli"
   ],
-  "oo_ratchet.coupling.packages": [
-    "pathlib"
-  ],
-  "oo_ratchet.coupling.scorer": [
-    "oo_ratchet.coupling.config",
-    "oo_ratchet.coupling.tree",
-    "oo_ratchet.source_set",
-    "pathlib"
-  ],
   "oo_ratchet.design.scan": [
     "oo_ratchet.design.report",
     "oo_ratchet.source_set"

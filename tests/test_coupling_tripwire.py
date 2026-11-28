@@ -17,8 +17,9 @@ import pytest
 import oo_ratchet.coupling
 from oo_ratchet.core.adapters.gitrepo import GitRepo
 from oo_ratchet.core.domain.errors import StateError
-from oo_ratchet.coupling import CouplingScorer, CouplingTargets
+from oo_ratchet.coupling import CouplingTargets
 from oo_ratchet.coupling.thresholds import COUPLING_METRICS
+from oo_ratchet.coupling.trees import score_path
 
 if TYPE_CHECKING:
     from tests.conftest import GitSandbox
@@ -261,5 +262,5 @@ class TestScorerKeys:
         monkeypatch.chdir(git_sandbox.root)
         git_sandbox.write("src/pkg/a.py", "x = 1\n")
         git_sandbox.write("src/pkg/hub.py", "from . import a\n")
-        scorer = CouplingScorer(git_sandbox.root / "src/pkg", git_sandbox.root)
+        scorer = score_path(git_sandbox.root / "src/pkg", git_sandbox.root)
         assert "src/pkg/hub.py" in scorer.files

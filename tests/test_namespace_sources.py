@@ -10,8 +10,9 @@ import pytest
 
 from oo_ratchet.__main__ import main
 from oo_ratchet.coupling.cli import SPEC as COUPLING
-from oo_ratchet.coupling.graph import ImportGraph
-from oo_ratchet.coupling.scorer import CouplingScorer
+from oo_ratchet.coupling.config import CouplingConfig
+from oo_ratchet.coupling.tree import CouplingTree
+from oo_ratchet.coupling.trees import TreeScan, score_path
 from oo_ratchet.design.scan import DesignScanner
 from oo_ratchet.gate_options import GateOptions
 from oo_ratchet.layers.scan import LayerScan
@@ -69,12 +70,12 @@ def test_split_matches_entire_graph_cycles_metrics_and_layers(
     single, split = trees
     before, after = SourceSelection(single), SourceSelection(split)
     a, b = (
-        ImportGraph.build(s, frozenset(s.key_for(p) for p in s.files()))
+        TreeScan(CouplingTree(s), Path(), CouplingConfig()).graph
         for s in (before, after)
     )
     assert a.edges == b.edges
     assert a.cycle_members() == b.cycle_members() == {"a.core", "b.core"}
-    old, new = CouplingScorer(single), CouplingScorer(split)
+    old, new = score_path(single), score_path(split)
     by_module_old = {
         before.key_for(Path(str(r["file"]))): {
             k: v for k, v in r.items() if k != "file"
@@ -113,7 +114,7 @@ def test_sources_are_deduplicated_and_keep_physical_baseline_keys(
     root = source.project
     assert root is not None
     assert Scorer(source, root).results == Scorer(duplicate, root).results
-    assert CouplingScorer(source, root).files == frozenset(
+    assert score_path(source, root).files == frozenset(
         str(p.relative_to(root)) for p in SourceSelection.files(source)
     )
     write(source.roots[0], "a/suppressed.py", HEADER + "x = 1  # noqa: F841\n")
@@ -180,7 +181,7 @@ def test_legacy_module_matches_existing_oo_baseline_golden(tmp_path: Path) -> No
     row = Scorer(fixture, tmp_path).results[0]
     assert {k: row[k] for k in baseline} == baseline
     coupling = json.loads((repo / "tests/golden_layout_coupling.json").read_text())
-    metrics = CouplingScorer(fixture, tmp_path).results[0]
+    metrics = score_path(fixture, tmp_path).results[0]
     assert {k: metrics[k] for k in coupling} == coupling
 
 
@@ -229,4 +230,4 @@ def test_resolved_namespace_is_passed_through_unchanged(
 def test_resolved_legacy_file_preserves_single_file_metrics(tmp_path: Path) -> None:
     file = write(tmp_path, "app/a.py", HEADER + "from .b import Beta\n")
     write(tmp_path, "app/b.py", HEADER + "class Beta: pass\n")
-    assert CouplingScorer(file).results == CouplingScorer(SourceSelection(file)).results
+    assert score_path(file).results == score_path(SourceSelection(file)).results

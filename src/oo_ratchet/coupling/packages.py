@@ -2,14 +2,11 @@
 
 from __future__ import annotations
 
-import ast
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Self
 
-from oo_ratchet.core.domain.modulesource import ModuleSource
-
 from .graph import ImportGraph
+from .packageinit import PackageInit
 
 
 @dataclass(frozen=True, slots=True)
@@ -38,30 +35,27 @@ class PackageMetrics:
 class PackageScorer:
     """Score each sub-package of a tree against the shared import graph."""
 
-    _source: ModuleSource
+    _inits: tuple[PackageInit, ...]
     _graph: ImportGraph
 
-    def __new__(cls, source: ModuleSource, graph: ImportGraph) -> Self:
+    def __new__(cls, inits: tuple[PackageInit, ...], graph: ImportGraph) -> Self:
         self = super().__new__(cls)
-        self._source = source
+        self._inits = inits
         self._graph = graph
         return self
 
     def score(self) -> list[PackageMetrics]:
         """Return metrics for every sub-package (dirs with ``__init__.py``)."""
-        return [self._score_one(pkg_dir) for pkg_dir in self._sub_packages()]
+        return [self._score_one(init) for init in self._inits]
 
-    def _sub_packages(self) -> list[Path]:
-        return self._source.package_dirs()
-
-    def _score_one(self, pkg_dir: Path) -> PackageMetrics:
-        pkg_name = self._source.key_for(pkg_dir / "__init__.py")
+    def _score_one(self, init: PackageInit) -> PackageMetrics:
+        pkg_name = init.name
         keys = self._module_keys(pkg_name)
         return PackageMetrics(
             package=pkg_name,
             modules=len(keys),
             pkg_efferent_coupling=self._efferent(pkg_name, keys),
-            pkg_interface_width=self._interface_width(pkg_dir),
+            pkg_interface_width=init.interface_width(),
             pkg_intra_density=self._intra_density(keys, pkg_name),
             pkg_cohesion=self._cohesion(keys),
         )
@@ -102,43 +96,3 @@ class PackageScorer:
             if any(dep in keys and dep != key for dep in self._graph.neighbors(key))
         )
         return round(with_dep / n, 3)
-
-    def _interface_width(self, pkg_dir: Path) -> int:
-        init = pkg_dir / "__init__.py"
-        if not init.exists():
-            return 0
-        try:
-            tree = ast.parse(init.read_text(), filename=str(init))
-        except (SyntaxError, OSError, UnicodeDecodeError):
-            # Package interface width is a display-only metric; an unreadable
-            # __init__.py contributes 0 here. The gate is unaffected: the scorer
-            # records the same file as an error and the ratchet fails on it when
-            # touched.
-            return 0
-        explicit = self._all_width(tree)
-        return explicit if explicit is not None else self._import_width(tree)
-
-    @staticmethod
-    def _all_width(tree: ast.Module) -> int | None:
-        """Return ``len(__all__)`` for the package init, else ``None``."""
-        for node in ast.iter_child_nodes(tree):
-            if not isinstance(node, ast.Assign):
-                continue
-            for target in node.targets:
-                if (
-                    isinstance(target, ast.Name)
-                    and target.id == "__all__"
-                    and isinstance(node.value, (ast.List, ast.Tuple))
-                ):
-                    return len(node.value.elts)
-        return None
-
-    @staticmethod
-    def _import_width(tree: ast.Module) -> int:
-        return sum(
-            1
-            for node in ast.iter_child_nodes(tree)
-            if isinstance(node, ast.ImportFrom) and node.module is not None
-            for alias in node.names
-            if not alias.name.startswith("_")
-        )

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Self
+from typing import TYPE_CHECKING, Self
 
 from oo_ratchet.core.adapters.metricgate import MetricFiles, MetricGate
 from oo_ratchet.core.adapters.outcomelog import OutcomeLog
@@ -19,7 +19,10 @@ from oo_ratchet.gate_options import (
 from .config import CouplingConfig, CouplingConfigError
 from .gateinput import GateInput
 from .report import CouplingReport
-from .scorer import CouplingScorer
+from .trees import score_path
+
+if TYPE_CHECKING:
+    from .scorer import CouplingScorer
 
 _FILES = MetricFiles(".oo-coupling-baseline.json", ".oo-coupling-audit.jsonl")
 _GUARDS = {
@@ -91,7 +94,7 @@ class CouplingRun:
             # UnicodeDecodeError) or a corrupt in-tree baseline must surface as a
             # clean non-zero, not a traceback.
             config = CouplingConfig.load(self._gate.root)
-            scorer = CouplingScorer(self._opts.src, self._gate.root, config)
+            scorer = score_path(self._opts.src, self._gate.root, config)
             gate_input = GateInput(config, scorer)
             self._gate.prepare(gate_input.policy, gate_input.measurement)
             lines, code = self._dispatch(scorer)

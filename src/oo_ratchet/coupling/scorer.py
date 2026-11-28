@@ -1,47 +1,34 @@
-"""Score a file or directory of modules for coupling and cohesion."""
+"""Aggregate scored coupling rows into a summary and PASS/FAIL grades."""
 
 from __future__ import annotations
 
-import ast
-from pathlib import Path
-from typing import TYPE_CHECKING, Self
+from typing import Self
 
-from .config import CouplingConfig
-from .imports import ImportResolver
-from .metrics import ModuleCouplingMetrics
 from .packages import PackageMetrics
 from .thresholds import COUPLING_METRICS, MAX_AGGREGATED, CouplingTargets
-from .tree import CouplingTree
-
-if TYPE_CHECKING:
-    from oo_ratchet.source_set import Source
 
 
 class CouplingScorer:
-    """Score modules against coupling/cohesion thresholds.
+    """Summarize per-file coupling rows against coupling/cohesion thresholds.
 
-    Keys are normalized repo-relative (POSIX) against ``repo_root`` so scorer
-    output, baseline keys, and git-diff paths all intersect cleanly regardless
-    of how the target path was spelled on the command line.
+    The rows are already scored (keys normalized repo-relative POSIX by the
+    adapter that read the files), so this class holds no path and does no IO.
     """
 
     _results: list[dict[str, float | int | str]]
     _packages: tuple[PackageMetrics, ...]
-    _config: CouplingConfig
+    _caps: dict[str, dict[str, float]]
 
     def __new__(
         cls,
-        target: Source,
-        repo_root: Path | None = None,
-        config: CouplingConfig | None = None,
+        results: list[dict[str, float | int | str]],
+        packages: tuple[PackageMetrics, ...],
+        caps: dict[str, dict[str, float]] | None = None,
     ) -> Self:
         self = super().__new__(cls)
-        root = repo_root if repo_root is not None else Path.cwd()
-        self._config = config if config is not None else CouplingConfig()
-        tree = CouplingTree(target)
-        cycle = tree.cycles
-        self._results = [self._safe_score(f, tree, cycle, root) for f in tree.files]
-        self._packages = tree.packages
+        self._results = results
+        self._packages = packages
+        self._caps = caps if caps is not None else {}
         return self
 
     @property
@@ -50,9 +37,9 @@ class CouplingScorer:
         return self._results
 
     @property
-    def config(self) -> CouplingConfig:
-        """Return the repository coupling settings this scorer applied."""
-        return self._config
+    def targets(self) -> CouplingTargets:
+        """Return the targets each file is judged against, under its caps."""
+        return CouplingTargets(self._caps)
 
     @property
     def packages(self) -> tuple[PackageMetrics, ...]:
@@ -72,7 +59,7 @@ class CouplingScorer:
     @property
     def summary(self) -> dict[str, float]:
         """Return the aggregated metric summary across all scored files."""
-        return self._aggregate()
+        return self._aggregate(self._results)
 
     @property
     def grades(self) -> dict[str, str]:
@@ -88,7 +75,7 @@ class CouplingScorer:
         }
 
     def _passes(self, metric: str, value: float) -> bool:
-        targets = CouplingTargets(self._config.caps)
+        targets = self.targets
         capped, rest = self._split_capped(metric)
         if not all(targets.metric(metric, f).meets(v) for f, v in capped):
             return False
@@ -108,7 +95,7 @@ class CouplingScorer:
             if "error" in r or metric not in r:
                 continue
             path = str(r["file"])
-            bucket = capped if metric in self._config.caps.get(path, {}) else rest
+            bucket = capped if metric in self._caps.get(path, {}) else rest
             bucket.append((path, float(r[metric])))
         return capped, rest
 
@@ -117,45 +104,10 @@ class CouplingScorer:
         """Return the number of aggregated metrics failing their threshold."""
         return sum(1 for g in self.grades.values() if g == "FAIL")
 
-    def _safe_score(
-        self,
-        py_file: Path,
-        scope: CouplingTree,
-        cycle: frozenset[str],
-        root: Path,
-    ) -> dict[str, float | int | str]:
-        key = self._normalize(py_file, root)
-        try:
-            tree = ast.parse(py_file.read_text(), filename=str(py_file))
-        except (SyntaxError, OSError, UnicodeDecodeError) as exc:
-            # A file that cannot be read or decoded is scored as an error, like a
-            # syntax error: the ratchet fails on it if it is a touched file
-            # (fail-closed), rather than crashing the whole scoring pass.
-            return {"file": key, "error": str(exc)}
-        mod_key = scope.source.key_for(py_file)
-        resolver = ImportResolver(
-            mod_key,
-            scope.modules,
-            scope.source.name,
-            is_package=py_file.name == "__init__.py",
-        )
-        metrics = ModuleCouplingMetrics(
-            key, tree, resolver, self._config.stateless_values
-        ).compute()
-        metrics["circular_imports"] = 1 if mod_key in cycle else 0
-        return metrics
-
     @staticmethod
-    def _normalize(path: Path, root: Path) -> str:
-        resolved = path.resolve()
-        try:
-            return resolved.relative_to(root.resolve()).as_posix()
-        except ValueError:
-            return path.as_posix()
-
-    def _aggregate(self) -> dict[str, float]:
+    def _aggregate(results: list[dict[str, float | int | str]]) -> dict[str, float]:
         agg: dict[str, list[float]] = {k: [] for k in COUPLING_METRICS.names}
-        for r in self._results:
+        for r in results:
             if "error" in r:
                 continue
             for k in COUPLING_METRICS.names:

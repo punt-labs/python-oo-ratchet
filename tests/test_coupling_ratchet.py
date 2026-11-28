@@ -25,6 +25,7 @@ from oo_ratchet.coupling.cli import main
 from oo_ratchet.coupling.config import CouplingConfig
 from oo_ratchet.coupling.gateinput import GateInput
 from oo_ratchet.coupling.scorer import CouplingScorer
+from oo_ratchet.coupling.trees import score_path
 
 BASELINE = ".oo-coupling-baseline.json"
 AUDIT = ".oo-coupling-audit.jsonl"
@@ -231,11 +232,11 @@ class GitFixture:
 
     def metrics(self, subdir: str = "pkg") -> dict[str, dict[str, float]]:
         """Return the scored metrics of ``subdir``, as a baseline holds them."""
-        scorer = CouplingScorer(self._root / subdir, self._root)
+        scorer = score_path(self._root / subdir, self._root)
         return GateInput(CouplingConfig(), scorer).measurement.metrics()
 
     def scorer(self, subdir: str = "pkg") -> CouplingScorer:
-        return CouplingScorer(self._root / subdir, self._root)
+        return score_path(self._root / subdir, self._root)
 
 
 @pytest.fixture

@@ -8,15 +8,11 @@ from typing import Self
 
 from oo_ratchet.source_set import Source, SourceSelection
 
-from .graph import ImportGraph
-from .packages import PackageMetrics, PackageScorer
-
 
 class CouplingTree:
-    """Own discovery and the complete graph before per-file metrics are scored."""
+    """Own discovery of the files a coupling scan covers."""
 
     _source: SourceSelection
-    _graph: ImportGraph
     _file: Path | None
 
     def __new__(cls, target: Source) -> Self:
@@ -24,17 +20,17 @@ class CouplingTree:
         source = SourceSelection(target)
         self._file = source.file
         self._source = SourceSelection(self._file.parent if self._file else source)
-        self._graph = (
-            ImportGraph({})
-            if self._file
-            else ImportGraph.build(self._source, self.modules)
-        )
         return self
 
     @property
     def source(self) -> SourceSelection:
         """Return the namespace-wide source selection."""
         return self._source
+
+    @property
+    def is_file(self) -> bool:
+        """Return whether the target is one legacy file, not a package tree."""
+        return self._file is not None
 
     @cached_property
     def modules(self) -> frozenset[str]:
@@ -45,17 +41,3 @@ class CouplingTree:
     def files(self) -> list[Path]:
         """Return selected files, not siblings of a legacy file target."""
         return [self._file] if self._file else self._source.files()
-
-    @property
-    def cycles(self) -> frozenset[str]:
-        """Return cycle membership measured across all selected portions."""
-        return frozenset(self._graph.cycle_members())
-
-    @property
-    def packages(self) -> tuple[PackageMetrics, ...]:
-        """Return package metrics only for whole-tree scans."""
-        return (
-            ()
-            if self._file
-            else tuple(PackageScorer(self._source, self._graph).score())
-        )

@@ -1,8 +1,10 @@
 """The per-project usage-capture switch in ``[tool.oo-ratchet]``.
 
-``telemetry = false`` turns usage capture off for the project;
-``telemetry-retention-days = N`` (1 to 3650) shortens or lengthens the 90-day
-default. The environment switches ``PUNT_TELEMETRY=off`` and
+``telemetry = false`` turns usage capture off for the project. Retention is
+not a project setting: events carry no project key and the store is shared by
+every repository on the machine, so retention stays the 90-day default.
+Other keys of the table are not this class's and are ignored here. The
+environment switches ``PUNT_TELEMETRY=off`` and
 ``OO_RATCHET_TELEMETRY=off`` are applied by ``punt-observe`` on top of this,
 and any off switch wins. A setting that cannot be read or is the wrong type
 turns capture off rather than guess, and says so in the diagnostic log.
@@ -20,9 +22,6 @@ from punt_observe.telemetry import TelemetryConfig
 __all__ = ["TelemetrySettings"]
 
 logger = logging.getLogger(__name__)
-
-_RETENTION_DAYS = (1, 3650)
-
 
 @final
 class TelemetrySettings:
@@ -46,16 +45,7 @@ class TelemetrySettings:
         if not isinstance(enabled, bool):
             logger.warning("Ignoring non-boolean telemetry setting; capture is off")
             return TelemetryConfig(enabled=False)
-        return TelemetryConfig(enabled=enabled, retention_days=self._retention(table))
-
-    def _retention(self, table: dict[str, object]) -> int:
-        default = TelemetryConfig().retention_days
-        days = table.get("telemetry-retention-days", default)
-        low, high = _RETENTION_DAYS
-        if type(days) is int and low <= days <= high:
-            return days
-        logger.warning("Ignoring telemetry-retention-days outside %d..%d", low, high)
-        return default
+        return TelemetryConfig(enabled=enabled)
 
     def _table(self) -> dict[str, object] | None:
         """Return ``[tool.oo-ratchet]``, ``{}`` when absent, ``None`` when unusable."""

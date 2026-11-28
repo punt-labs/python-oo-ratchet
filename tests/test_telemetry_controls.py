@@ -139,8 +139,8 @@ def test_default_retention_is_ninety_days(tmp_path: Path) -> None:
     assert TelemetrySettings(tmp_path).config().retention_days == 90
 
 
-@pytest.mark.parametrize("days", ["0", "3651", "'forever'", "1.5", "true"])
-def test_out_of_range_retention_keeps_the_default(tmp_path: Path, days: str) -> None:
+@pytest.mark.parametrize("days", ["0", "7", "3651", "'forever'", "1.5", "true"])
+def test_project_retention_key_is_ignored(tmp_path: Path, days: str) -> None:
     (tmp_path / "pyproject.toml").write_text(
         f"[tool.oo-ratchet]\ntelemetry-retention-days = {days}\n"
     )
@@ -163,26 +163,20 @@ def test_expired_rows_are_pruned_on_the_next_run(
     assert _count(private_home) == 1  # the 91-day-old row is gone, today's stays
 
 
-def test_configured_retention_prunes_sooner(
+def test_a_project_retention_setting_never_prunes_the_shared_store(
     private_home: Path, repo: GitSandbox
 ) -> None:
     config = "[tool.oo-ratchet]\ntelemetry-retention-days = 7\n"
     _run(private_home, repo, config=config)
-    _run(private_home, repo, config=config)
     now = time.time_ns()
     conn = sqlite3.connect(_db(private_home))
-    conn.execute("UPDATE spans SET end_ns = ? WHERE rowid = 1", (now - 10 * _DAY_NS,))
-    conn.execute("UPDATE spans SET end_ns = ? WHERE rowid = 2", (now - 3 * _DAY_NS,))
+    conn.execute("UPDATE spans SET end_ns = ?", (now - 10 * _DAY_NS,))
     conn.commit()
     conn.close()
 
     _run(private_home, repo, config=config)
 
-    conn = sqlite3.connect(_db(private_home))
-    ages = conn.execute("SELECT end_ns FROM spans ORDER BY rowid").fetchall()
-    conn.close()
-    assert len(ages) == 2  # the 10-day row is gone; the 3-day and new rows stay
-    assert min(age for (age,) in ages) < now - 2 * _DAY_NS
+    assert _count(private_home) == 2  # the 10-day-old row is inside 90 days
 
 
 # TEL-3, TEL-4: the schema is an allowlist of two typed attributes.

@@ -172,19 +172,20 @@ domain = ["logic"]
 
 Each run records one local usage event with an outcome and a duration (see
 [Diagnostics and Usage Telemetry](REFERENCE.md#diagnostics-and-usage-telemetry)).
-Two keys under `[tool.oo-ratchet]` control it:
+One key under `[tool.oo-ratchet]` controls it:
 
 ```toml
 [tool.oo-ratchet]
 telemetry = false
-telemetry-retention-days = 30
 ```
 
 - `telemetry = false` turns capture off for this project. The default is
   `true`. `PUNT_TELEMETRY=off` and `OO_RATCHET_TELEMETRY=off` in the
   environment also turn it off, and any one of the three wins.
-- `telemetry-retention-days` is how long events are kept, 1 to 3650. The
-  default is 90.
+- Retention is not a project setting. The store is shared by every
+  repository on the machine and events carry no project key, so retention is
+  the 90-day default for all of them. A `telemetry-retention-days` key is
+  ignored.
 
 ### Source Selection
 

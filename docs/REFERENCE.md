@@ -53,6 +53,11 @@ responsibility problems such as `envied-data` and `feature-envy`. Those
 findings measure design better than module size or shape does. Their precision
 on adopter repositories is measured (see [Shadow Design Ratchet](DESIGN.md#shadow-design-ratchet)): only
 `stateless-single-method` is gate-capable; `stateless-function-bag` is 67%.
+Two rules are scoped by evidence so they do not report what the architecture
+allows: `concrete-cross-package-import` skips a concrete class imported from a
+strictly inner ring of the fixed four-ring table, and `domain-io` reports `io`
+only when the module opens files with it, not for `io.StringIO` or
+`io.BytesIO` (see [DESIGN.md](DESIGN.md)).
 
 Parameter counts include positional-only, ordinary and keyword-only arguments,
 exclude `*args` / `**kwargs`, and subtract a leading `self` or `cls`; no

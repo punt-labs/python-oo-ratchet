@@ -17,6 +17,7 @@ from __future__ import annotations
 import logging
 import os
 import tomllib
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Self, final
 
@@ -28,6 +29,54 @@ logger = logging.getLogger(__name__)
 
 _OFF_VALUES = frozenset({"off", "0", "false", "no"})
 _OFF_VARIABLES = ("PUNT_TELEMETRY", "OO_RATCHET_TELEMETRY")
+
+
+def _env_off() -> bool:
+    """Return whether an environment switch turns capture off."""
+    return any(
+        os.environ.get(name, "").strip().lower() in _OFF_VALUES
+        for name in _OFF_VARIABLES
+    )
+
+
+def _flag(table: dict[str, object]) -> bool:
+    """Return the ``telemetry`` key; a value that is not a boolean means off."""
+    enabled = table.get("telemetry", True)
+    if isinstance(enabled, bool):
+        return enabled
+    logger.warning("Ignoring non-boolean telemetry setting; capture is off")
+    return False
+
+
+def _section(tool: object) -> dict[str, object] | None:
+    table = tool.get("oo-ratchet", {}) if isinstance(tool, dict) else {}
+    return table if isinstance(table, dict) else None
+
+
+def _read(file: Path) -> dict[str, object] | None:
+    """Return ``[tool.oo-ratchet]`` of ``file``, ``None`` when it is unusable."""
+    try:
+        data = tomllib.loads(file.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError):
+        logger.warning("Cannot read the telemetry settings; capture is off")
+        return None
+    return _section(data.get("tool", {}))
+
+
+def _directories(start: Path) -> Iterator[Path]:
+    """Yield ``start`` and its parents, ending at the repository root."""
+    for directory in (start, *start.parents):
+        yield directory
+        if (directory / ".git").exists():
+            return
+
+
+def _nearest(start: Path) -> Path | None:
+    """Return the nearest ``pyproject.toml`` from ``start`` up to the repository."""
+    for directory in _directories(start):
+        if (file := directory / "pyproject.toml").is_file():
+            return file
+    return None
 
 
 @final
@@ -45,44 +94,19 @@ class TelemetrySettings:
 
     def config(self) -> TelemetryConfig:
         """Return the capture configuration these settings select."""
-        if self._env_off():
-            return TelemetryConfig(enabled=False)
-        table = self._table()
-        if table is None:
-            return TelemetryConfig(enabled=False)
-        enabled = table.get("telemetry", True)
-        if not isinstance(enabled, bool):
-            logger.warning("Ignoring non-boolean telemetry setting; capture is off")
-            return TelemetryConfig(enabled=False)
-        return TelemetryConfig(enabled=enabled)
+        return TelemetryConfig(enabled=self._enabled())
 
-    @staticmethod
-    def _env_off() -> bool:
-        return any(
-            os.environ.get(name, "").strip().lower() in _OFF_VALUES
-            for name in _OFF_VARIABLES
-        )
+    def _enabled(self) -> bool:
+        if _env_off():
+            return False
+        table = self._table()
+        return table is not None and _flag(table)
 
     def _table(self) -> dict[str, object] | None:
         """Return ``[tool.oo-ratchet]``, ``{}`` when absent, ``None`` when unusable."""
         try:
-            for parent in (self._start, *self._start.parents):
-                if (file := parent / "pyproject.toml").is_file():
-                    return self._read(file)
-                if (parent / ".git").exists():
-                    break
+            file = _nearest(self._start)
         except OSError:
             logger.warning("Cannot search for the telemetry settings; capture is off")
             return None
-        return {}
-
-    @staticmethod
-    def _read(file: Path) -> dict[str, object] | None:
-        try:
-            data = tomllib.loads(file.read_text(encoding="utf-8"))
-        except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError):
-            logger.warning("Cannot read the telemetry settings; capture is off")
-            return None
-        tool = data.get("tool", {})
-        table = tool.get("oo-ratchet", {}) if isinstance(tool, dict) else {}
-        return table if isinstance(table, dict) else None
+        return {} if file is None else _read(file)

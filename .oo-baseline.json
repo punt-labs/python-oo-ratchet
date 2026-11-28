@@ -1249,7 +1249,7 @@
     "avg_params": 1.5,
     "max_complexity": 2.0,
     "avg_complexity": 1.5,
-    "module_size": 33.0,
+    "module_size": 31.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -1366,10 +1366,10 @@
   },
   "src/oo_ratchet/design/shadow_scan.py": {
     "encapsulation_ratio": 1.0,
-    "avg_params": 2.17,
+    "avg_params": 2.33,
     "max_complexity": 3.0,
     "avg_complexity": 2.17,
-    "module_size": 64.0,
+    "module_size": 66.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -1410,6 +1410,16 @@
     "max_complexity": 7.0,
     "avg_complexity": 4.0,
     "module_size": 99.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
+  "src/oo_ratchet/design/tree.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 4.0,
+    "max_complexity": 1.0,
+    "avg_complexity": 1.0,
+    "module_size": 18.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -1729,12 +1739,12 @@
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
   },
-  "src/oo_ratchet/oo/scorer.py": {
+  "src/oo_ratchet/oo/scoring.py": {
     "encapsulation_ratio": 1.0,
-    "avg_params": 0.53,
-    "max_complexity": 10.0,
-    "avg_complexity": 3.27,
-    "module_size": 123.0,
+    "avg_params": 0.23,
+    "max_complexity": 8.0,
+    "avg_complexity": 3.31,
+    "module_size": 90.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -1745,6 +1755,16 @@
     "max_complexity": 0.0,
     "avg_complexity": 0.0,
     "module_size": 15.0,
+    "init_violations": 0.0,
+    "public_attr_violations": 0.0,
+    "future_annotations": 1.0
+  },
+  "src/oo_ratchet/oo/tree.py": {
+    "encapsulation_ratio": 1.0,
+    "avg_params": 1.6,
+    "max_complexity": 3.0,
+    "avg_complexity": 1.8,
+    "module_size": 32.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0

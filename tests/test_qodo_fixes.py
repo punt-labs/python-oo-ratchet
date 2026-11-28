@@ -17,7 +17,7 @@ from oo_ratchet.core.domain.tallies import Tally
 from oo_ratchet.coupling.cli import main as coupling_main
 from oo_ratchet.coupling.imports import ImportResolver
 from oo_ratchet.oo.cli import main as oo_main
-from oo_ratchet.oo.scorer import Scorer
+from oo_ratchet.oo.tree import Scorer
 from oo_ratchet.source_set import Source
 from oo_ratchet.suppression.cli import main as suppression_main
 from oo_ratchet.suppression.gateinput import Scanner

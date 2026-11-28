@@ -18,8 +18,8 @@ from oo_ratchet.core.domain.changes import Diff
 from oo_ratchet.core.domain.errors import StateError
 from oo_ratchet.oo.cli import main as oo_main
 from oo_ratchet.oo.metrics import ModuleMetrics
-from oo_ratchet.oo.scorer import Scorer
 from oo_ratchet.oo.thresholds import OO_METRICS
+from oo_ratchet.oo.tree import Scorer
 from tests.gate_runs import Ratchet, Scored
 
 if TYPE_CHECKING:

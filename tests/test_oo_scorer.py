@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from oo_ratchet.oo.scorer import Scorer
+from oo_ratchet.oo.tree import Scorer
 
 GOOD = '''from __future__ import annotations
 

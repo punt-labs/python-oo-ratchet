@@ -36,7 +36,18 @@ _SHUTDOWN_TIMEOUT_S = 2.0
 type Outcome = Literal["pass", "fail", "invalid", "error"]
 
 _OUTCOMES: tuple[Outcome, ...] = ("pass", "fail", "invalid", "error")
-_BY_EXIT_CODE: dict[int, Outcome] = {0: "pass", 1: "fail", 2: "invalid"}
+_BY_EXIT_CODE: dict[int | None, Outcome] = {
+    None: "pass",
+    0: "pass",
+    1: "fail",
+    2: "invalid",
+}
+_LEVELS: dict[Outcome, int] = {
+    "pass": logging.INFO,
+    "fail": logging.INFO,
+    "invalid": logging.WARNING,
+    "error": logging.ERROR,
+}
 
 
 _SIGNAL_PREFIX = f"{TOOL}.cli."
@@ -44,9 +55,7 @@ _SIGNAL_PREFIX = f"{TOOL}.cli."
 
 def _outcome_of(code: object) -> Outcome:
     """Return the outcome of an exit code; anything unexpected is an error."""
-    if code is None:
-        return "pass"
-    return _BY_EXIT_CODE.get(code, "error") if isinstance(code, int) else "error"
+    return _BY_EXIT_CODE.get(code, "error") if isinstance(code, int | None) else "error"
 
 
 @final
@@ -98,22 +107,36 @@ class Usage:
         recording an ``error`` outcome. Recording itself never raises.
         """
         outcome: Outcome = "error"
+        failure: Exception | None = None
         started = time.monotonic()
         try:
             code = call()
-        except SystemExit as exc:
-            outcome = _outcome_of(exc.code)
+        except (SystemExit, Exception) as exc:
+            outcome, failure = self._classify(exc)
             raise
         else:
             outcome = _outcome_of(code)
             return code
         finally:
             duration_ms = (time.monotonic() - started) * 1000
-            log = logger.info if outcome in {"pass", "fail"} else logger.warning
-            log("Finished %s gate: %s in %.0f ms", gate, outcome, duration_ms)
+            logger.log(
+                _LEVELS[outcome],
+                "Finished %s gate: %s in %.0f ms",
+                gate,
+                outcome,
+                duration_ms,
+                exc_info=failure,
+            )
             self._telemetry.event(
                 _SIGNAL_PREFIX + gate,
                 SCHEMA_VERSION,
                 outcome=outcome,
                 duration_ms=duration_ms,
             )
+
+    @staticmethod
+    def _classify(exc: SystemExit | Exception) -> tuple[Outcome, Exception | None]:
+        """Return the outcome of an exit and the exception to log, if unexpected."""
+        if isinstance(exc, SystemExit):
+            return _outcome_of(exc.code), None
+        return "error", exc

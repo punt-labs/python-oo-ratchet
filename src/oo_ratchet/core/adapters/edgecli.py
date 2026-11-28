@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import ClassVar
 
+from oo_ratchet.core.adapters.outcomelog import OutcomeLog
 from oo_ratchet.core.domain.edges import EdgeVerdict
 from oo_ratchet.core.domain.layer_edges import Edge
 from oo_ratchet.core.domain.verdicts import Failure
@@ -60,7 +61,8 @@ class EdgeCli:
 
     @staticmethod
     def exit_code(result: EdgeVerdict) -> int:
-        """Return 0 for a passing verdict, 1 for a failing one."""
+        """Return 0 for a passing verdict, 1 for a failing one; log a refusal."""
+        OutcomeLog(result.failures).refused()
         return 0 if result.passed else 1
 
     def text(self, result: EdgeVerdict) -> list[str]:

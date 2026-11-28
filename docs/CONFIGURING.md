@@ -168,6 +168,24 @@ list, exits 1:
 domain = ["logic"]
 ```
 
+### Telemetry Settings
+
+Each run records one local usage event with an outcome and a duration (see
+[Diagnostics and Usage Telemetry](REFERENCE.md#diagnostics-and-usage-telemetry)).
+Two keys under `[tool.oo-ratchet]` control it:
+
+```toml
+[tool.oo-ratchet]
+telemetry = false
+telemetry-retention-days = 30
+```
+
+- `telemetry = false` turns capture off for this project. The default is
+  `true`. `PUNT_TELEMETRY=off` and `OO_RATCHET_TELEMETRY=off` in the
+  environment also turn it off, and any one of the three wins.
+- `telemetry-retention-days` is how long events are kept, 1 to 3650. The
+  default is 90.
+
 ### Source Selection
 
 A package split across several directories is one scan. Name the shared

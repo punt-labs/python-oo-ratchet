@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import sys
 from collections.abc import Callable
 from dataclasses import dataclass, replace
@@ -203,6 +204,9 @@ class GateCommand:
         try:
             lines, code = self._build(options).run()
         except StateError as exc:
+            logging.getLogger(__name__).warning(
+                "Gate state unreadable (%s): %r", type(exc).__name__, str(exc)
+            )
             lines, code = [f"FAIL: {exc}"], 1
         sys.stdout.writelines(line + "\n" for line in lines)
         return code

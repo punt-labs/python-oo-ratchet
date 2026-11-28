@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Self
 
 from oo_ratchet.core.adapters.metricgate import MetricFiles, MetricGate
+from oo_ratchet.core.adapters.outcomelog import OutcomeLog
 from oo_ratchet.core.domain.errors import StateError
 from oo_ratchet.gate_options import (
     Flag,
@@ -95,6 +96,7 @@ class CouplingRun:
             self._gate.prepare(gate_input.policy, gate_input.measurement)
             lines, code = self._dispatch(scorer)
         except (StateError, CouplingConfigError, OSError, UnicodeDecodeError) as exc:
+            OutcomeLog.unreadable(exc)
             lines, code = [f"FAIL: {exc}"], 1
         return lines, code
 

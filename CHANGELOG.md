@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Added
+
+- `telemetry = false` and `telemetry-retention-days = N` under
+  `[tool.oo-ratchet]` turn usage capture off for a project or change its
+  90-day retention. The environment switches `PUNT_TELEMETRY=off` and
+  `OO_RATCHET_TELEMETRY=off` still work, and any off switch wins.
+- The diagnostic log now records every refusal (`Operation refused: <kind>`),
+  unreadable state (`Gate state unreadable`) and unexpected exception (an
+  ERROR with its redacted traceback). Before, these left only
+  `Finished <gate> gate: fail` or `error`.
+
 ### Changed
 
 - Documentation restructure. `README.md` is now a short overview that follows

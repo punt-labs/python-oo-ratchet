@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import sys
 from pathlib import Path
 from typing import Self
@@ -11,6 +12,8 @@ from oo_ratchet.core.domain.errors import GitError
 from oo_ratchet.source_set import Source, SourceSelection
 
 from .enforcement.output import DesignRun
+
+logger = logging.getLogger(__name__)
 
 
 class DesignOutput:
@@ -34,6 +37,7 @@ class DesignOutput:
     def run(self) -> int:
         """Return 2 for invalid input, 1 for an enforced finding, else 0."""
         if not SourceSelection.path(self._root).is_dir():
+            logger.warning("Design scan refused: source is not a directory")
             sys.stderr.write(f"oo-ratchet design: {self._root} is not a directory\n")
             return 2
         try:
@@ -43,5 +47,6 @@ class DesignOutput:
             sys.stdout.write(design.render(as_json=self._json))
             return design.status()
         except (GitError, OSError, ValueError) as exc:
+            logger.warning("Design scan failed (%s)", type(exc).__name__)
             sys.stderr.write(f"oo-ratchet design: {exc}\n")
             return 2

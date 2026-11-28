@@ -22,6 +22,7 @@ from .oocli import OoCli
 from .oorequest import Requested
 from .oostore import OoBaselineStore
 from .ootree import OoTree
+from .outcomelog import OutcomeLog
 
 if TYPE_CHECKING:
     from oo_ratchet.oo.scorer import Scorer
@@ -137,6 +138,7 @@ class OoGate:
         """Run a baseline write unless CI forbids it."""
         blocked = GateCli.write_blocked(allow_ci_write=self._req.allow_ci_write)
         if blocked is not None:
+            OutcomeLog(blocked.failures).refused()
             return [f"FAIL: {OoCli.COMMON['ci-write']}"], 1
         return operation(ports)
 

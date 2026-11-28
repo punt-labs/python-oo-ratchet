@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from oo_ratchet.__main__ import main as dispatch
-from oo_ratchet.design.scanner import DesignScanner
+from oo_ratchet.design.scan import DesignScanner
 
 ROOT = Path(__file__).resolve().parent.parent
 

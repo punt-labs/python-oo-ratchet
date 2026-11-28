@@ -23,8 +23,8 @@ IO" (adapters, entry):
   `*.tree`, `*.gateinput`, `*.failures`, `*.suggest*`, `*.legacy_shadow`,
   `*.namespace_shadow`, `*.pyproject`, `design.enforcement.output`,
   `source_archive`, `source_history`, `source_set`, `sources`.
-- application (20): `core.application.*`, `backfill`, `design.comparison`,
-  `design.shadow_report`.
+- application (21): `core.application.*`, `backfill`, `design.comparison`,
+  `design.shadow_report`, `layers.chain`.
 - domain (73): `core.domain.*` and the pure modules the `oo_ratchet.*`
   catch-all sweeps into domain (`design.*_rules`, `coupling.graph`,
   `coupling.metrics`, `layers.ring_*`, `oo.thresholds`, and so on).
@@ -36,15 +36,21 @@ Sixteen of them are the sixteen source modules of the 30 baselined edges in
 
 | Module | What the suggester says | Judgement |
 |---|---|---|
+| `coupling` (`__init__`) | domain, but imports `coupling.cli` | Real violation (baselined). |
 | `coupling.packages` | domain, imports `pathlib` | Real violation (baselined). |
 | `coupling.scorer` | domain, imports `pathlib`, `source_set`, `config`, `tree` | Real violation (baselined); the module does file IO. |
 | `design.scan` | application, imports `design.report` (adapters) and `source_set` | Real violation (baselined). |
+| `design.scanner` | domain, reaches IO through `design.scan` | Real violation (baselined); follows from `design.scan`. |
 | `design.shadow` | application, imports `legacy_shadow`, `namespace_shadow`, `source_set` | Real violation (baselined). |
 | `design.shadow_scan` | application, imports `source_set` (adapters) | Real violation (baselined). |
+| `layers` (`__init__`) | domain, imports `layers.cli` and `layers.scan` | Real violation (baselined). |
 | `layers.scan` | application, imports `source_set` (adapters) | Real violation (baselined). |
+| `layers.strict` | domain, imports `layers.chain` (application) | Real violation (baselined), or a table error: `chain` may belong in domain. For the lead. |
+| `oo` (`__init__`) | domain, imports `oo.cli` | Real violation (baselined). |
 | `oo.scorer` | domain, imports `json`, `pathlib`, `source_set` | Real violation (baselined). |
 | `oo.code_lines` | domain, imports `io` | Not a code violation: it only calls `io.StringIO(source).readline`, which is in memory. The gate's IO list (`core/domain/domain_io.py`) counts `io`, so the edge is baselined. A rule-precision problem shared by gate and suggester, not a suggest bug. Narrowing it would shrink the baseline by 2. For the lead. |
 | `suppression.patterns` | domain, imports `io` | Same as `oo.code_lines` (`io.StringIO`). |
+| `suppression` (`__init__`) | domain, imports `suppression.cli`, `pyproject`, `report` | Real violation (baselined). |
 | `suppression.scanner` | domain, imports `pathlib`, `source_set`, `pyproject`, `report` | Real violation (baselined). |
 | `oo.metrics` | domain, reaches IO through `oo.code_lines -> io` | Follows from `oo.code_lines`; not in the baseline because the baseline holds direct edges only. |
 | `design.size_rules` | same chain through `oo.code_lines` | Same. |
@@ -86,7 +92,7 @@ work, so no baseline moved.
 3. `gate_options` and `design.output` import `argparse` and sit in adapters;
    the table should place them in entry, or the argparse code should move into
    a `*.cli` module.
-4. `layers.strict -> layers.export_chain`: `export_chain` is domain (it does no IO).
+4. `layers.strict -> layers.chain`: decide whether `chain` is domain.
 5. Running the new `check-design` gate against `HEAD~4` (before the A4 refactor
    commits) reports 6 added `layer-import` findings for `SourceSelection`
    (`design.scan`, `design.shadow`, `design.shadow_scan`, `layers.scan`,

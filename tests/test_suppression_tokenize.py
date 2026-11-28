@@ -13,7 +13,7 @@ from oo_ratchet.suppression.cli import main as suppression_main
 from oo_ratchet.suppression.patterns import FileSuppressions
 
 
-def test_module_is_importable_as_package() -> None:
+def test_cli_main_is_callable() -> None:
     """The package resolves as ``oo_ratchet.suppression`` (regular-package path)."""
     assert callable(suppression_main)
 

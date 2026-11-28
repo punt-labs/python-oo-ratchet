@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from tests.conftest import GitSandbox
 
 
-def test_module_is_importable_as_package() -> None:
+def test_cli_main_is_callable() -> None:
     """The package resolves as ``oo_ratchet.oo`` (regular-package path)."""
     assert callable(oo_main)
 

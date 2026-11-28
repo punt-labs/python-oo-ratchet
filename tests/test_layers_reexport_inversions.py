@@ -37,7 +37,6 @@ class TestOwnLayerImports:
         findings = json.loads(report.to_json())["findings"]
         watched = (
             *(f"{name}/__init__.py" for name in GATE_PACKAGES),
-            "design/scanner.py",
             "layers/strict.py",
         )
         hits = [

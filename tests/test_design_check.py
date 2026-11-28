@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 from oo_ratchet.__main__ import main as cli_main
 from oo_ratchet.core.domain.findings import Finding, Rules
-from oo_ratchet.design.scanner import DesignScanner
+from oo_ratchet.design.scan import DesignScanner
 
 if TYPE_CHECKING:
     import pytest

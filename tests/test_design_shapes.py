@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from oo_ratchet.design.scanner import DesignScanner
+from oo_ratchet.design.scan import DesignScanner
 
 RULES = {"primitive-params", "tag-switch", "middle-man", "split-cohesion", "size-cap"}
 

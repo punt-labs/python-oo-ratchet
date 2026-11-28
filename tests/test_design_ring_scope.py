@@ -9,7 +9,7 @@ import pytest
 
 from oo_ratchet.core.domain.findings import Rules
 from oo_ratchet.design.cli import main
-from oo_ratchet.design.scanner import DesignScanner
+from oo_ratchet.design.scan import DesignScanner
 
 RINGS = """[tool.oo-ratchet.layers]
 entry = ["pkg", "pkg.entry"]

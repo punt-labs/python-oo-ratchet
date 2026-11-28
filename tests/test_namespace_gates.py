@@ -17,7 +17,7 @@ from oo_ratchet.coupling.cli import SPEC as COUPLING
 from oo_ratchet.gate_options import GateOptions
 from oo_ratchet.source_history import SourceHistory
 from oo_ratchet.source_set import Source, SourceSelection
-from oo_ratchet.suppression.scanner import Scanner
+from oo_ratchet.suppression.gateinput import Scanner
 from tests.conftest import GitSandbox
 from tests.test_namespace_sources import CONFIG, HEADER
 

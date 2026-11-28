@@ -1,0 +1,14 @@
+# Keys are relative to the variant's loans/ package, never line numbers.
+# Both variants import a concrete class inward (application -> domain; good
+# also adapters -> domain and entry -> adapters): none of those are reported.
+[bad]
+findings = [
+  {rule = "concrete-cross-package-import", path = "domain/policy.py", symbol = "FeeStore"},
+  {rule = "layer-import", path = "domain/policy.py", symbol = "FeeStore"},
+  {rule = "domain-io", path = "domain/report.py", symbol = "io"},
+]
+
+[good]
+findings = [
+
+]

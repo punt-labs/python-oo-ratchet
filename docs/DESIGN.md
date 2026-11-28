@@ -40,9 +40,17 @@ No table means no layer findings; an empty table marks every module unlayered.
   relative, submodule and `TYPE_CHECKING` imports.
 - `domain-io`: imports subprocess, socket, shutil, json, sqlite3, httpx, requests,
   urllib.request, typer, rich, mcp, fastmcp, logging.handlers, os, os.path,
-  pathlib, io, tempfile or glob. Findings are purely import-based, once per
+  pathlib, io, tempfile or glob. Findings are import-based, once per
   imported module per import statement, keyed by that module; `TYPE_CHECKING`
   imports are exempt. Even `os.path.join` or `PurePath` usage triggers the rule.
+  The one exception is `io`, which the module's usage decides: `io.StringIO`,
+  `io.BytesIO`, `io.TextIOWrapper` and the other in-memory members are not file
+  IO. An `io` import is reported unless every use of the name is an attribute
+  access to such a member; `io.open`, `io.FileIO`, `io.open_code`, an unknown
+  attribute, `getattr(io, ...)`, passing `io` on or aliasing it (`stream = io`)
+  all report, as do `from io import open`, `FileIO`, `open_code` and `*`. An
+  `import io` with no use is not reported. A literal
+  `importlib.import_module("io")` still counts as IO in the layers gate.
   Domain code reaches the filesystem and environment through an injected port.
   Bare `open(...)` calls also fire, but any binding of `open` anywhere in the
   module (including parameters, nested definitions and pattern captures)
@@ -92,8 +100,16 @@ With the fixed four-ring table, two class and import rules are scoped by ring
   the boundary is not a function-object strategy. They still fire in `domain`,
   `application` and unlayered modules.
 - `concrete-cross-package-import` is not reported for imports made by an `entry`
-  module: the entry ring is the composition root and wires concrete adapters. It
-  still fires for imports made by every other ring and unlayered modules.
+  module: the entry ring is the composition root and wires concrete adapters.
+  It is also not reported when the import points at a strictly inner ring
+  (entry, adapters, application, domain, outermost first): the Dependency Rule
+  lets an outer ring depend on the entities of an inner one, so an adapter or
+  use case importing a domain class is not a leak. It still fires when the
+  imported module is in the same ring (in another top-level package) or an
+  outer ring, or matches no ring, and for imports made by unlayered modules.
+  The ring of the imported module is that of the module the name is imported
+  from, not of a re-exported definition behind it. With no table, or the
+  declared-layers form, nothing changes.
 
 Data-placement checks run **without** layer configuration too. With a table,
 declarations and consumers in `entry` or `adapters` are excluded; application,

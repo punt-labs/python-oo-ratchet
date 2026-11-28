@@ -84,6 +84,7 @@ def test_eval_catalogue() -> None:
         "over-split",
         "god-class",
         "decoys",
+        "ring-precision",
     }
     for pair in PAIRS:
         for variant in VARIANTS:

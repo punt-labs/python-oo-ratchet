@@ -95,7 +95,6 @@ def test_nested_relative_import_and_inward_allowed(tmp_path: Path) -> None:
         "os",
         "os.path",
         "pathlib",
-        "io",
         "tempfile",
         "glob",
     ],
@@ -285,7 +284,7 @@ def test_lexically_normalized_package_names(
         ("from os import getenv as env", "os"),
         ("from os.path import join", "os.path"),
         ("from pathlib import PurePath", "pathlib"),
-        ("import io", "io"),
+        ("import io\nf = io.open('x')", "io"),
         ("import tempfile", "tempfile"),
         ("import glob", "glob"),
         ("import os\ndef f(os): return os.getenv('HOME')", "os"),
@@ -368,3 +367,37 @@ def test_relative_import_is_not_external_io(tmp_path: Path) -> None:
     assert (
         keys(package(tmp_path, "from .json import loads\nimport jsonpickle")) == set()
     )
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "import io\nbuf = io.StringIO()",
+        "import io\nbuf = io.BytesIO(b'')\nwrap = io.TextIOWrapper(buf)",
+        "from io import StringIO, BytesIO",
+        "import io as stream\nbuf = stream.StringIO()",
+        "import io",
+    ],
+)
+def test_io_for_in_memory_buffers_is_not_file_io(tmp_path: Path, source: str) -> None:
+    assert keys(package(tmp_path, source)) == set()
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "import io\nf = io.open('x')",
+        "import io\nf = io.FileIO('x')",
+        "import io\nf = io.open_code('x')",
+        "import io as stream\nf = stream.open('x')",
+        "from io import open as reopen",
+        "from io import StringIO, FileIO",
+        "from io import *\nf = FileIO('x')",
+        "from io import *\nf = open_code('x')",
+        "import io\nf = getattr(io, 'open')('x')",
+        "import io\nstream = io\nf = stream.open('x')",
+        "import io\nuse(io)",
+    ],
+)
+def test_io_used_for_files_is_reported(tmp_path: Path, source: str) -> None:
+    assert keys(package(tmp_path, source)) == {(Rules.DOMAIN_IO, "domain.py", "io")}

@@ -15,6 +15,22 @@
 
 ### Fixed
 
+- The design check is more precise in two rules. With the fixed four-ring
+  `[tool.oo-ratchet.layers]` table, `concrete-cross-package-import` no longer
+  reports a concrete class imported from a strictly inner ring (adapters or
+  application importing a domain class): the Dependency Rule allows that.
+  Same-ring, outward and unlayered imports, and every run without the
+  four-ring table, report as before. The `domain-io` rule and the layers `io`
+  edges from static imports now treat `io` by usage: `io.StringIO`,
+  `io.BytesIO` and an unused `import io` are no longer reported; any other use
+  of `io` (`io.open`, `io.FileIO`, `getattr(io, ...)`, `from io import *`)
+  still is, and a literal `importlib.import_module("io")` still is an edge. Output formats and the Tier 0 and Tier 1
+  keys are unchanged, but `design --shadow-check` and `--enforce` compare
+  findings against the merge base, so adopters will see these findings as
+  removed (and a layers baseline holding an `-> io` edge from in-memory use
+  now needs `layers --update`; `--check` reports the stale entry). On this
+  repository, 90 `concrete-cross-package-import` findings became 75 and 19
+  `domain-io` findings became 17.
 - The domain-purity check (layers `io` edges and the design `domain-io`
   rule) now counts file IO done through `Path` methods (`read_text`,
   `write_text`, `open`, `iterdir`, `glob`, `exists`, `mkdir`, `unlink` and

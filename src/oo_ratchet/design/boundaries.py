@@ -20,7 +20,9 @@ class BoundaryCheck:
     A boundary is a top-level sub-package (``voxd``, ``providers``); root-level
     modules form one more component. The imported name must resolve, directly
     or through one ``__init__`` re-export, to a class defined in the tree that
-    is neither a value shape nor an interface. Imports under
+    is neither a value shape nor an interface. With the fixed four rings, an
+    import that points at a strictly inner ring is the Dependency Rule's allowed
+    direction and is not reported. Imports under
     ``if TYPE_CHECKING:`` are still reported, marked type-only.
     """
 
@@ -33,24 +35,31 @@ class BoundaryCheck:
         self._targets = ImportTargets(index)
         return self
 
-    def findings(self, skips: Callable[[Module, str], bool]) -> list[Finding]:
+    def findings(
+        self,
+        skips: Callable[[Module, str], bool],
+        inward: Callable[[Module, str], bool] = lambda _module, _target: False,
+    ) -> list[Finding]:
         """Return every concrete cross-package import in the tree.
 
-        Modules for which ``skips`` is true for the rule are not scanned.
+        Modules for which ``skips`` is true for the rule are not scanned, and an
+        import for which ``inward(module, target key)`` is true is not reported.
         """
         return [
             f
             for module in self._index.modules()
             if not skips(module, Rules.CONCRETE_IMPORT)
-            for f in self._scan(module)
+            for f in self._scan(module, inward)
         ]
 
-    def _scan(self, module: Module) -> list[Finding]:
+    def _scan(
+        self, module: Module, inward: Callable[[Module, str], bool]
+    ) -> list[Finding]:
         type_only = self._targets.type_only(module.tree)
         out: list[Finding] = []
         for node in module.import_froms():
             target = self._crossing(module, node)
-            if target is None:
+            if target is None or inward(module, target):
                 continue
             out.extend(
                 self._finding(

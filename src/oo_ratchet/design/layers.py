@@ -56,6 +56,40 @@ class LayerCheck:
             return lambda _module, _rule: False
         return cls(index, config).skips
 
+    @classmethod
+    def configured(
+        cls, index: ModuleIndex, config: LayerConfig | None
+    ) -> list[Finding]:
+        """Return the layer findings of ``config``; with none, there are none."""
+        return [] if config is None else cls(index, config).findings()
+
+    @classmethod
+    def inward(
+        cls, index: ModuleIndex, config: LayerConfig | None
+    ) -> Callable[[Module, str], bool]:
+        """Return the test of an import pointing at an inner ring; none: never."""
+        if config is None:
+            return lambda _module, _target: False
+        return cls(index, config).points_inward
+
+    def points_inward(self, module: Module, target: str) -> bool:
+        """Return whether ``module`` imports ``target`` from a strictly inner ring.
+
+        The Dependency Rule lets an outer ring depend on the entities of an
+        inner one, so such an import is not a concrete-class leak. Same-ring,
+        outward and unlayered targets are not inward; neither is a config
+        without ordered rings.
+        """
+        if not self._config.ORDERED:
+            return False
+        source = self._config.layer(self._found.name(module))
+        found = self._index.get(target)
+        if source is None or found is None:
+            return False
+        inner = self._config.layer(self._found.name(found))
+        order = self._config.ORDER
+        return inner is not None and order.index(inner) > order.index(source)
+
     def skips(self, module: Module, rule: str) -> bool:
         """Return whether ``rule`` is not reported for ``module``'s ring.
 

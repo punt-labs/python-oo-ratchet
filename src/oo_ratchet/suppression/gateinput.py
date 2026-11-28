@@ -1,4 +1,4 @@
-"""Scan a file or directory tree for suppression comments."""
+"""Read a target's files and pyproject, and build its suppression report."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from typing import Self
 
 from oo_ratchet.source_set import Source, SourceSelection
 
-from .patterns import FileSuppressions
+from .census import SuppressionCensus
 from .pyproject import PerFileIgnoresCounter
 from .report import SuppressionReport
 
@@ -21,7 +21,7 @@ class Scanner:
     def __new__(cls, target: Source, project_root: Path | None = None) -> Self:
         self = super().__new__(cls)
         root = project_root if project_root is not None else Path.cwd()
-        file_results = self._collect_files(target)
+        file_results = SuppressionCensus(self._read_all(target)).files
         pfi = PerFileIgnoresCounter(root / "pyproject.toml")
         report = SuppressionReport.from_files(file_results, pfi.total, pfi.breakdown)
         # A namespace report keys files relative to the project root.
@@ -50,8 +50,5 @@ class Scanner:
             return path.read_text(encoding="utf-8")
 
     @staticmethod
-    def _collect_files(target: Source) -> list[FileSuppressions]:
-        return [
-            FileSuppressions(str(p), Scanner._read(p))
-            for p in SourceSelection(target).files()
-        ]
+    def _read_all(target: Source) -> dict[str, str]:
+        return {str(p): Scanner._read(p) for p in SourceSelection(target).files()}

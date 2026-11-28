@@ -6,12 +6,10 @@ from .cli import main
 from .patterns import FileSuppressions
 from .pyproject import PerFileIgnoresCounter
 from .report import SuppressionReport
-from .scanner import Scanner
 
 __all__ = [
     "FileSuppressions",
     "PerFileIgnoresCounter",
-    "Scanner",
     "SuppressionReport",
     "main",
 ]

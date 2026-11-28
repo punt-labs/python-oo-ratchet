@@ -12,8 +12,8 @@ from oo_ratchet.coupling.config import CouplingConfig, CouplingConfigError
 from oo_ratchet.coupling.imports import ImportResolver
 from oo_ratchet.coupling.metrics import ModuleCouplingMetrics
 from oo_ratchet.coupling.report import CouplingReport
-from oo_ratchet.coupling.scorer import CouplingScorer
 from oo_ratchet.coupling.thresholds import CouplingTargets
+from oo_ratchet.coupling.trees import score_path
 
 from .test_coupling_ratchet import GitFixture
 
@@ -125,9 +125,7 @@ class TestPathCaps:
 
     def test_per_file_report_honors_cap(self, fx: GitFixture) -> None:
         _hub(fx, 12)
-        scorer = CouplingScorer(
-            fx.root / "pkg", fx.root, CouplingConfig(caps=_HUB_CAPS)
-        )
+        scorer = score_path(fx.root / "pkg", fx.root, CouplingConfig(caps=_HUB_CAPS))
         lines = CouplingReport(scorer).render_per_file()
         hub = lines.index("\n  pkg/hub.py")
         assert "PASS" in lines[hub + 1]
@@ -182,20 +180,18 @@ class TestCappedGrades:
 
     def test_capped_hub_passes_summary(self, fx: GitFixture) -> None:
         _hub(fx, 12)
-        capped = CouplingScorer(
-            fx.root / "pkg", fx.root, CouplingConfig(caps=_HUB_CAPS)
-        )
-        strict = CouplingScorer(fx.root / "pkg", fx.root)
+        capped = score_path(fx.root / "pkg", fx.root, CouplingConfig(caps=_HUB_CAPS))
+        strict = score_path(fx.root / "pkg", fx.root)
         assert capped.grades["efferent_coupling"] == "PASS"
         assert strict.grades["efferent_coupling"] == "FAIL"
 
     def test_averaged_metric_honors_cap(self, fx: GitFixture) -> None:
         _hub(fx, 1)
         fx.write("pkg/m0.py", _PUBLIC_STATE)
-        strict = CouplingScorer(fx.root / "pkg", fx.root)
+        strict = score_path(fx.root / "pkg", fx.root)
         assert strict.grades["avg_lcom"] == "FAIL" or strict.summary["avg_lcom"] <= 0.5
         caps = {"pkg/m0.py": {"avg_lcom": 1.0, "max_lcom": 1.0}}
-        capped = CouplingScorer(fx.root / "pkg", fx.root, CouplingConfig(caps=caps))
+        capped = score_path(fx.root / "pkg", fx.root, CouplingConfig(caps=caps))
         assert capped.grades["avg_lcom"] == "PASS"
         assert capped.grades["max_lcom"] == "PASS"
 

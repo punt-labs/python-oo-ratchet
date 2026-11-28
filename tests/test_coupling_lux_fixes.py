@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import cast
 
 from oo_ratchet.coupling.graph import ImportGraph
-from oo_ratchet.coupling.scorer import CouplingScorer
+from oo_ratchet.coupling.trees import score_path
 
 _HEADER = "from __future__ import annotations\n\n\n"
 
@@ -102,7 +102,7 @@ def _max_lcom(tmp_path: Path, sources: dict[str, str]) -> dict[str, float]:
     (pkg / "__init__.py").write_text("")
     for stem, src in sources.items():
         (pkg / f"{stem}.py").write_text(src)
-    scorer = CouplingScorer(pkg, tmp_path)
+    scorer = score_path(pkg, tmp_path)
     return {
         Path(str(r["file"])).stem: cast("float", r["max_lcom"])
         for r in scorer.results

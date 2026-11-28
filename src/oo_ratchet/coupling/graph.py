@@ -2,13 +2,9 @@
 
 from __future__ import annotations
 
-import ast
 from typing import Self
 
-from oo_ratchet.core.domain.modulesource import ModuleSource
-
 from .components import Components
-from .imports import ImportResolver
 
 
 class ImportGraph:
@@ -26,28 +22,6 @@ class ImportGraph:
         self = super().__new__(cls)
         self._edges = edges
         return self
-
-    @classmethod
-    def build(cls, source: ModuleSource, modules: frozenset[str]) -> Self:
-        """Parse every module of ``source`` into an import graph."""
-        edges: dict[str, set[str]] = {}
-        for py_file in sorted(source.files()):
-            key = source.key_for(py_file)
-            try:
-                tree = ast.parse(py_file.read_text(), filename=str(py_file))
-            except (SyntaxError, OSError, UnicodeDecodeError):
-                # Unparseable/unreadable modules are omitted from the import
-                # graph; the scorer records the same file as an error so the
-                # ratchet still fails closed on it when it is touched.
-                continue
-            resolver = ImportResolver(
-                key,
-                modules,
-                source.name,
-                is_package=py_file.name == "__init__.py",
-            )
-            edges[key] = resolver.internal_imports(tree)
-        return cls(edges)
 
     @property
     def edges(self) -> dict[str, set[str]]:

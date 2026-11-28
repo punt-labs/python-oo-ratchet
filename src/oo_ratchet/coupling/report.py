@@ -6,7 +6,7 @@ import json
 from typing import Self
 
 from .scorer import CouplingScorer
-from .thresholds import COUPLING_METRICS, CouplingTargets
+from .thresholds import COUPLING_METRICS
 
 
 class CouplingReport:
@@ -61,7 +61,7 @@ class CouplingReport:
     def render_per_file(self) -> list[str]:
         """Return the per-file breakdown, honoring the ``__main__`` relaxation."""
         lines = ["\n--- Per-file breakdown ---"]
-        targets = CouplingTargets(self._scorer.config.caps)
+        targets = self._scorer.targets
         for r in self._scorer.results:
             fpath = str(r.get("file", "?"))
             lines.append(f"\n  {fpath}")

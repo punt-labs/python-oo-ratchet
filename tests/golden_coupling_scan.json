@@ -1,0 +1,147 @@
+{
+  "file": {
+    "aggregate": {
+      "avg_lcom": 0.0,
+      "circular_imports": 0.0,
+      "efferent_coupling": 1.0,
+      "max_lcom": 0.0,
+      "public_names": 1.0
+    },
+    "grades": {
+      "avg_lcom": "PASS",
+      "circular_imports": "PASS",
+      "efferent_coupling": "PASS",
+      "max_lcom": "PASS",
+      "public_names": "PASS"
+    },
+    "packages": [],
+    "per_file": [
+      {
+        "avg_lcom": 0.0,
+        "circular_imports": 0,
+        "efferent_coupling": 1,
+        "file": "pkg/a.py",
+        "max_lcom": 0.0,
+        "public_names": 1
+      }
+    ],
+    "thresholds": {
+      "avg_lcom": "<= 0.5",
+      "circular_imports": "== 0",
+      "efferent_coupling": "<= 10",
+      "max_lcom": "<= 0.8",
+      "public_names": "<= 15"
+    }
+  },
+  "package": {
+    "aggregate": {
+      "avg_lcom": 0.0,
+      "circular_imports": 1.0,
+      "efferent_coupling": 3.0,
+      "max_lcom": 0.0,
+      "public_names": 3.0
+    },
+    "grades": {
+      "avg_lcom": "PASS",
+      "circular_imports": "FAIL",
+      "efferent_coupling": "PASS",
+      "max_lcom": "PASS",
+      "public_names": "PASS"
+    },
+    "packages": [
+      {
+        "modules": 1,
+        "package": "empty",
+        "pkg_cohesion": 0.0,
+        "pkg_efferent_coupling": 0,
+        "pkg_interface_width": 0,
+        "pkg_intra_density": 0.0
+      },
+      {
+        "modules": 3,
+        "package": "sub",
+        "pkg_cohesion": 0.667,
+        "pkg_efferent_coupling": 1,
+        "pkg_interface_width": 3,
+        "pkg_intra_density": 0.333
+      }
+    ],
+    "per_file": [
+      {
+        "avg_lcom": 0.0,
+        "circular_imports": 0,
+        "efferent_coupling": 2,
+        "file": "pkg/__init__.py",
+        "max_lcom": 0.0,
+        "public_names": 0
+      },
+      {
+        "avg_lcom": 0.0,
+        "circular_imports": 1,
+        "efferent_coupling": 1,
+        "file": "pkg/a.py",
+        "max_lcom": 0.0,
+        "public_names": 1
+      },
+      {
+        "avg_lcom": 0.0,
+        "circular_imports": 1,
+        "efferent_coupling": 1,
+        "file": "pkg/b.py",
+        "max_lcom": 0.0,
+        "public_names": 1
+      },
+      {
+        "error": "invalid syntax (bad.py, line 1)",
+        "file": "pkg/bad.py"
+      },
+      {
+        "avg_lcom": 0.0,
+        "circular_imports": 0,
+        "efferent_coupling": 0,
+        "file": "pkg/empty/__init__.py",
+        "max_lcom": 0.0,
+        "public_names": 0
+      },
+      {
+        "avg_lcom": 0.0,
+        "circular_imports": 0,
+        "efferent_coupling": 3,
+        "file": "pkg/hub.py",
+        "max_lcom": 0.0,
+        "public_names": 0
+      },
+      {
+        "avg_lcom": 0.0,
+        "circular_imports": 0,
+        "efferent_coupling": 1,
+        "file": "pkg/sub/__init__.py",
+        "max_lcom": 0.0,
+        "public_names": 3
+      },
+      {
+        "avg_lcom": 0.0,
+        "circular_imports": 0,
+        "efferent_coupling": 1,
+        "file": "pkg/sub/one.py",
+        "max_lcom": 0.0,
+        "public_names": 1
+      },
+      {
+        "avg_lcom": 0.0,
+        "circular_imports": 0,
+        "efferent_coupling": 1,
+        "file": "pkg/sub/two.py",
+        "max_lcom": 0.0,
+        "public_names": 0
+      }
+    ],
+    "thresholds": {
+      "avg_lcom": "<= 0.5",
+      "circular_imports": "== 0",
+      "efferent_coupling": "<= 10",
+      "max_lcom": "<= 0.8",
+      "public_names": "<= 15"
+    }
+  }
+}

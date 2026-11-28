@@ -31,8 +31,17 @@ def _log(home: Path) -> str:
     return path.read_text("utf-8")
 
 
+def _records(home: Path, needle: str) -> list[str]:
+    """Return every log line that contains ``needle``."""
+    return [line for line in _log(home).splitlines() if needle in line]
+
+
 def _run(
-    home: Path, cwd: Path, *args: str, monkeypatch: pytest.MonkeyPatch
+    home: Path,
+    cwd: Path,
+    *args: str,
+    monkeypatch: pytest.MonkeyPatch,
+    **env: str,
 ) -> subprocess.CompletedProcess[str]:
     monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
     return subprocess.run(
@@ -40,7 +49,7 @@ def _run(
         cwd=cwd,
         capture_output=True,
         text=True,
-        env={**os.environ, "HOME": str(home)},
+        env={**os.environ, "HOME": str(home), **env},
         timeout=_TIMEOUT_S,
         check=False,
     )
@@ -115,8 +124,9 @@ def test_regression_refusal_is_an_info_line_with_a_subject_count(
     )
 
     assert result.returncode == 1, result.stdout
-    assert "[INFO]" in _log(private_home)
-    assert "refused: suppression-increase" in _log(private_home)
+    (record,) = _records(private_home, "Operation refused")
+    assert "[INFO]" in record
+    assert "Operation refused: suppression-increase (0 subjects)" in record
 
 
 def test_unexpected_failure_logs_an_error_with_the_traceback(
@@ -167,3 +177,66 @@ def test_a_blessed_baseline_logs_what_was_written_not_why(
     assert "Wrote baseline" in text
     assert "Appended rebaseline-files entry to audit" in text
     assert "SECRET-REASON" not in text
+
+
+def test_a_ci_blocked_oo_write_logs_one_warning_naming_the_kind(
+    private_home: Path, repo: GitSandbox, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    result = _run(
+        private_home,
+        repo.root,
+        "oo",
+        "pkg",
+        "--update",
+        monkeypatch=monkeypatch,
+        GITHUB_ACTIONS="true",
+    )
+
+    assert result.returncode == 1, result.stdout
+    (record,) = _records(private_home, "Operation refused")
+    assert "[WARNING]" in record
+    assert "Operation refused: ci-write (0 subjects)" in record
+
+
+def test_an_enforced_design_finding_logs_one_info_line_with_the_count(
+    private_home: Path, repo: GitSandbox, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    base = repo.run_git("rev-parse", "HEAD").strip()
+    repo.write("pkg/m.py", _MODULE + "x = 0\n" * 401)
+    repo.commit("add a middle man")
+
+    result = _run(
+        private_home,
+        repo.root,
+        "design",
+        "pkg",
+        "--shadow-check",
+        base,
+        "--enforce",
+        monkeypatch=monkeypatch,
+    )
+
+    assert result.returncode == 1, result.stderr
+    (record,) = _records(private_home, "Design findings enforced")
+    assert "[INFO]" in record
+    assert "Design findings enforced: 1 added gate-capable" in record
+
+
+def test_a_design_scan_error_logs_one_warning_without_the_message(
+    private_home: Path, repo: GitSandbox, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    result = _run(
+        private_home,
+        repo.root,
+        "design",
+        "pkg",
+        "--shadow-check",
+        "SECRET-REF",
+        monkeypatch=monkeypatch,
+    )
+
+    assert result.returncode == 2, result.stderr
+    (record,) = _records(private_home, "Design scan failed")
+    assert "[WARNING]" in record
+    assert "GitError" in record
+    assert "SECRET-REF" not in _log(private_home)

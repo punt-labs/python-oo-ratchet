@@ -137,7 +137,7 @@ class OoGate:
         """Run a baseline write unless CI forbids it."""
         blocked = GateCli.write_blocked(allow_ci_write=self._req.allow_ci_write)
         if blocked is not None:
-            return [f"FAIL: {OoCli.COMMON['ci-write']}"], 1
+            return [f"FAIL: {OoCli.COMMON['ci-write']}"], self._views.exit_code(blocked)
         return operation(ports)
 
     def _update(self, ports: Ports) -> Report:

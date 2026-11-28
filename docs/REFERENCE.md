@@ -420,9 +420,9 @@ leaves the machine: oo-ratchet imports no exporter, and network export is a
 
 - **Retention.** 90 days by default. Expired rows are deleted and the space is
   reclaimed when the database is opened at the start of the next run.
-  `telemetry-retention-days = N` (1 to 3650) under `[tool.oo-ratchet]` changes
-  it; a value outside the range is ignored with a WARNING and the 90-day
-  default applies. Retention cannot be unlimited.
+  Retention is machine-scoped: the store is shared by every repository and
+  events carry no project key, so no `pyproject.toml` setting changes it (a
+  `telemetry-retention-days` key is ignored). Retention cannot be unlimited.
 - **Off switches.** Any one of these turns capture off, and nothing is opened
   while off: no database, no sidecar files, no background thread. The diagnostic
   log is unaffected.

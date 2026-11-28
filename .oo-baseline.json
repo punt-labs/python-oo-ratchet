@@ -1219,7 +1219,7 @@
     "avg_params": 1.5,
     "max_complexity": 5.0,
     "avg_complexity": 3.5,
-    "module_size": 48.0,
+    "module_size": 53.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -1299,7 +1299,7 @@
     "avg_params": 0.5,
     "max_complexity": 3.0,
     "avg_complexity": 2.5,
-    "module_size": 35.0,
+    "module_size": 39.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -1871,9 +1871,9 @@
   "src/oo_ratchet/telemetry_settings.py": {
     "encapsulation_ratio": 1.0,
     "avg_params": 0.6,
-    "max_complexity": 4.0,
-    "avg_complexity": 3.0,
-    "module_size": 51.0,
+    "max_complexity": 3.0,
+    "avg_complexity": 2.3,
+    "module_size": 65.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0

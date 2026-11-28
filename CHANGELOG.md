@@ -4,9 +4,9 @@
 
 ### Added
 
-- `telemetry = false` and `telemetry-retention-days = N` under
-  `[tool.oo-ratchet]` turn usage capture off for a project or change its
-  90-day retention. The environment switches `PUNT_TELEMETRY=off` and
+- `telemetry = false` under `[tool.oo-ratchet]` turns usage capture off for a
+  project. Retention stays the machine-wide 90-day default; the store is shared
+  by every repository, so no project setting changes it. The environment switches `PUNT_TELEMETRY=off` and
   `OO_RATCHET_TELEMETRY=off` still work, and any off switch wins.
 - The diagnostic log now records every refusal (`Operation refused: <kind>`),
   unreadable state (`Gate state unreadable`) and unexpected exception (an

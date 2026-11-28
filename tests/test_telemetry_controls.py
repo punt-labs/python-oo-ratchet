@@ -15,6 +15,7 @@ import subprocess
 import sys
 import threading
 import time
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -120,6 +121,64 @@ def test_unreadable_settings_turn_capture_off_and_say_so(
     assert "capture is off" in log.read_text("utf-8")
 
 
+@pytest.fixture
+def untraversable_pyproject(repo: GitSandbox, tmp_path: Path) -> Iterator[None]:
+    """Symlink the repository's ``pyproject.toml`` into a ``chmod 000`` directory."""
+    locked = tmp_path / "locked"
+    locked.mkdir()
+    (locked / "pyproject.toml").write_text("[tool.oo-ratchet]\ntelemetry = true\n")
+    link = repo.root / "pyproject.toml"
+    link.unlink()
+    link.symlink_to(locked / "pyproject.toml")
+    locked.chmod(0)
+    try:
+        yield
+    finally:
+        locked.chmod(0o700)
+
+
+def _run_keeping_config(
+    home: Path, repo: GitSandbox, **env: str
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, "-m", "oo_ratchet", "suppressions", "pkg"],
+        cwd=repo.root,
+        capture_output=True,
+        text=True,
+        env={**os.environ, "HOME": str(home), **env},
+        timeout=_TIMEOUT_S,
+        check=False,
+    )
+
+
+@pytest.mark.skipif(os.geteuid() == 0, reason="root ignores directory modes")
+def test_an_untraversable_pyproject_never_fails_the_gate(
+    private_home: Path, repo: GitSandbox, untraversable_pyproject: None
+) -> None:
+    result = _run_keeping_config(private_home, repo)
+
+    # The gate fails closed on the unreadable config; telemetry does not abort it.
+    assert result.returncode == 1, result.stderr
+    assert "Traceback" not in result.stderr
+    assert "Gate state unreadable" in result.stderr
+    assert not _db(private_home).exists()  # no readable setting: capture is off
+    log = private_home / ".punt-labs" / "oo-ratchet" / "logs" / "oo-ratchet.log"
+    assert "[WARNING]" in log.read_text("utf-8")
+
+
+@pytest.mark.skipif(os.geteuid() == 0, reason="root ignores directory modes")
+def test_env_off_switch_wins_before_any_filesystem_probe(
+    private_home: Path, repo: GitSandbox, untraversable_pyproject: None
+) -> None:
+    result = _run_keeping_config(private_home, repo, PUNT_TELEMETRY="off")
+
+    assert result.returncode == 1, result.stderr  # the gate's own fail-closed exit
+    assert "Traceback" not in result.stderr
+    assert not _db(private_home).exists()
+    log = private_home / ".punt-labs" / "oo-ratchet" / "logs" / "oo-ratchet.log"
+    assert "telemetry settings" not in log.read_text("utf-8")  # never probed
+
+
 def test_disabled_capture_starts_no_worker_thread() -> None:
     before = {t.name for t in threading.enumerate()}
     usage = Usage(["oo"])
@@ -139,8 +198,8 @@ def test_default_retention_is_ninety_days(tmp_path: Path) -> None:
     assert TelemetrySettings(tmp_path).config().retention_days == 90
 
 
-@pytest.mark.parametrize("days", ["0", "3651", "'forever'", "1.5", "true"])
-def test_out_of_range_retention_keeps_the_default(tmp_path: Path, days: str) -> None:
+@pytest.mark.parametrize("days", ["0", "7", "3651", "'forever'", "1.5", "true"])
+def test_project_retention_key_is_ignored(tmp_path: Path, days: str) -> None:
     (tmp_path / "pyproject.toml").write_text(
         f"[tool.oo-ratchet]\ntelemetry-retention-days = {days}\n"
     )
@@ -163,26 +222,20 @@ def test_expired_rows_are_pruned_on_the_next_run(
     assert _count(private_home) == 1  # the 91-day-old row is gone, today's stays
 
 
-def test_configured_retention_prunes_sooner(
+def test_a_project_retention_setting_never_prunes_the_shared_store(
     private_home: Path, repo: GitSandbox
 ) -> None:
     config = "[tool.oo-ratchet]\ntelemetry-retention-days = 7\n"
     _run(private_home, repo, config=config)
-    _run(private_home, repo, config=config)
     now = time.time_ns()
     conn = sqlite3.connect(_db(private_home))
-    conn.execute("UPDATE spans SET end_ns = ? WHERE rowid = 1", (now - 10 * _DAY_NS,))
-    conn.execute("UPDATE spans SET end_ns = ? WHERE rowid = 2", (now - 3 * _DAY_NS,))
+    conn.execute("UPDATE spans SET end_ns = ?", (now - 10 * _DAY_NS,))
     conn.commit()
     conn.close()
 
     _run(private_home, repo, config=config)
 
-    conn = sqlite3.connect(_db(private_home))
-    ages = conn.execute("SELECT end_ns FROM spans ORDER BY rowid").fetchall()
-    conn.close()
-    assert len(ages) == 2  # the 10-day row is gone; the 3-day and new rows stay
-    assert min(age for (age,) in ages) < now - 2 * _DAY_NS
+    assert _count(private_home) == 2  # the 10-day-old row is inside 90 days
 
 
 # TEL-3, TEL-4: the schema is an allowlist of two typed attributes.

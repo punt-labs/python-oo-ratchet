@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import sys
 from collections.abc import Callable
 from dataclasses import dataclass, replace
@@ -10,7 +11,6 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Protocol, Self
 
-from oo_ratchet.core.adapters.outcomelog import OutcomeLog
 from oo_ratchet.core.domain.errors import StateError
 
 from .source_set import Source, SourceSelection
@@ -204,7 +204,9 @@ class GateCommand:
         try:
             lines, code = self._build(options).run()
         except StateError as exc:
-            OutcomeLog.unreadable(exc)
+            logging.getLogger(__name__).warning(
+                "Gate state unreadable (%s): %r", type(exc).__name__, str(exc)
+            )
             lines, code = [f"FAIL: {exc}"], 1
         sys.stdout.writelines(line + "\n" for line in lines)
         return code

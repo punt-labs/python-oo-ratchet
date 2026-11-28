@@ -13,11 +13,12 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-import oo_ratchet.oo
 from oo_ratchet.core.adapters.gitrepo import GitRepo
 from oo_ratchet.core.domain.changes import Diff
 from oo_ratchet.core.domain.errors import StateError
-from oo_ratchet.oo import OO_METRICS, ModuleMetrics
+from oo_ratchet.oo.cli import main as oo_main
+from oo_ratchet.oo.metrics import ModuleMetrics
+from oo_ratchet.oo.thresholds import OO_METRICS
 from oo_ratchet.oo.tree import Scorer
 from tests.gate_runs import Ratchet, Scored
 
@@ -25,9 +26,9 @@ if TYPE_CHECKING:
     from tests.conftest import GitSandbox
 
 
-def test_module_is_importable_as_package() -> None:
+def test_cli_main_is_callable() -> None:
     """The package resolves as ``oo_ratchet.oo`` (regular-package path)."""
-    assert "main" in oo_ratchet.oo.__all__
+    assert callable(oo_main)
 
 
 # A minimal, standards-clean module with hand-derived metrics.
@@ -217,13 +218,13 @@ _BAD_MODULE_SIZE_SOURCE = (
 
 def _seat(argv: list[str]) -> int:
     """Score with a writer verb, tolerating the CI write guard."""
-    return oo_ratchet.oo.main([*argv, "--allow-ci-write"])
+    return oo_main([*argv, "--allow-ci-write"])
 
 
 def _check(base: str) -> int:
     """Run --check against a resolved base ref, fail-closed."""
     argv = ["src", "--check", "--base-ref", base, "--require-base"]
-    return oo_ratchet.oo.main(argv)
+    return oo_main(argv)
 
 
 def _check_against_base(
@@ -312,7 +313,7 @@ class TestMergeBaseCheck:
         git_sandbox.write("src/mod.py", _BASE_SOURCE)
         assert _seat(["src", "--rebaseline"]) == 0
         git_sandbox.commit("base")
-        code = oo_ratchet.oo.main(
+        code = oo_main(
             ["src", "--check", "--base-ref", "nonexistent", "--require-base"]
         )
         assert code == 1
@@ -331,7 +332,7 @@ class TestAuditCompleteness:
         monkeypatch.chdir(git_sandbox.root)
         git_sandbox.write("src/mod.py", _WIDGET_SOURCE)
         git_sandbox.write(".oo-baseline.json", "{}\n")
-        code = oo_ratchet.oo.main(["src", "--audit-completeness"])
+        code = oo_main(["src", "--audit-completeness"])
         assert code == 1
         assert "missing from baseline" in capsys.readouterr().out
 
@@ -343,7 +344,7 @@ class TestAuditCompleteness:
         monkeypatch.chdir(git_sandbox.root)
         git_sandbox.write("src/mod.py", _WIDGET_SOURCE)
         assert _seat(["src", "--rebaseline"]) == 0
-        assert oo_ratchet.oo.main(["src", "--audit-completeness"]) == 0
+        assert oo_main(["src", "--audit-completeness"]) == 0
 
 
 class TestFailClosedOnCorruptBlob:
@@ -385,9 +386,7 @@ class TestFailClosedOnCorruptBlob:
     ) -> None:
         monkeypatch.chdir(git_sandbox.root)
         sha = self._commit_baseline(git_sandbox, '{"src/mod.py": "not-a-dict"}\n')
-        code = oo_ratchet.oo.main(
-            ["src", "--check", "--base-ref", sha, "--require-base"]
-        )
+        code = oo_main(["src", "--check", "--base-ref", sha, "--require-base"])
         assert code == 1
         assert "FAIL" in capsys.readouterr().out
 

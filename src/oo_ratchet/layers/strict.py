@@ -9,8 +9,8 @@ from oo_ratchet.core.domain.layer_config import LayerConfig
 from oo_ratchet.core.domain.layer_violations import LayerViolations, Site
 from oo_ratchet.core.domain.modules import Module, ModuleIndex
 
-from .chain import ExportChain
 from .dynamic import DynamicImports
+from .export_chain import ExportChain
 
 
 class StrictViolations(LayerViolations):

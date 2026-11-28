@@ -5,8 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import cast
 
-from oo_ratchet.coupling import CouplingScorer
 from oo_ratchet.coupling.graph import ImportGraph
+from oo_ratchet.coupling.scorer import CouplingScorer
 
 _HEADER = "from __future__ import annotations\n\n\n"
 

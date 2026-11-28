@@ -18,7 +18,7 @@ from oo_ratchet.layers.scan import LayerScan
 from oo_ratchet.oo.tree import Scorer
 from oo_ratchet.source_history import SourceHistory
 from oo_ratchet.source_set import SourceSelection
-from oo_ratchet.suppression.scanner import Scanner
+from oo_ratchet.suppression.gateinput import Scanner
 
 HEADER = "from __future__ import annotations\n"
 CONFIG = """[tool.oo-ratchet.layers.a]

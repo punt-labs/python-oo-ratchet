@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import ClassVar, Self
 
+from oo_ratchet.core.adapters.outcomelog import OutcomeLog
 from oo_ratchet.core.domain.records import AuditRecord
 from oo_ratchet.core.domain.verdicts import Failure, MetricRow, Verdict
 
@@ -89,7 +90,8 @@ class OoCli:
 
     @staticmethod
     def exit_code(verdict: Verdict) -> int:
-        """Return 0 for a passing verdict, 1 for a failing one."""
+        """Return 0 for a passing verdict, 1 for a failing one; log a refusal."""
+        OutcomeLog(verdict.failures).refused()
         return 0 if verdict.passed else 1
 
     def check(self, verdict: Verdict) -> list[str]:

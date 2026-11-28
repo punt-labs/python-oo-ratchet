@@ -10,6 +10,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Protocol, Self
 
+from oo_ratchet.core.adapters.outcomelog import OutcomeLog
 from oo_ratchet.core.domain.errors import StateError
 
 from .source_set import Source, SourceSelection
@@ -203,6 +204,7 @@ class GateCommand:
         try:
             lines, code = self._build(options).run()
         except StateError as exc:
+            OutcomeLog.unreadable(exc)
             lines, code = [f"FAIL: {exc}"], 1
         sys.stdout.writelines(line + "\n" for line in lines)
         return code

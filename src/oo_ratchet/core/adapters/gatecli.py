@@ -7,6 +7,7 @@ import os
 from dataclasses import asdict
 from typing import ClassVar, Self
 
+from oo_ratchet.core.adapters.outcomelog import OutcomeLog
 from oo_ratchet.core.domain.verdicts import Failure, MetricRow, Verdict
 
 
@@ -56,7 +57,8 @@ class GateCli:
 
     @staticmethod
     def exit_code(verdict: Verdict) -> int:
-        """Return 0 for a passing verdict, 1 for a failing one."""
+        """Return 0 for a passing verdict, 1 for a failing one; log a refusal."""
+        OutcomeLog(verdict.failures).refused()
         return 0 if verdict.passed else 1
 
     def text(self, verdict: Verdict) -> list[str]:

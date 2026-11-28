@@ -98,19 +98,31 @@ class Usage:
         recording an ``error`` outcome. Recording itself never raises.
         """
         outcome: Outcome = "error"
+        failure: Exception | None = None
         started = time.monotonic()
         try:
             code = call()
         except SystemExit as exc:
             outcome = _outcome_of(exc.code)
             raise
+        except Exception as exc:
+            failure = exc
+            raise
         else:
             outcome = _outcome_of(code)
             return code
         finally:
             duration_ms = (time.monotonic() - started) * 1000
-            log = logger.info if outcome in {"pass", "fail"} else logger.warning
-            log("Finished %s gate: %s in %.0f ms", gate, outcome, duration_ms)
+            if failure is not None:
+                logger.error(
+                    "Finished %s gate: error in %.0f ms",
+                    gate,
+                    duration_ms,
+                    exc_info=failure,
+                )
+            else:
+                log = logger.info if outcome in {"pass", "fail"} else logger.warning
+                log("Finished %s gate: %s in %.0f ms", gate, outcome, duration_ms)
             self._telemetry.event(
                 _SIGNAL_PREFIX + gate,
                 SCHEMA_VERSION,

@@ -23,6 +23,7 @@ from .oocli import OoCli
 from .oorequest import Requested
 from .oostore import OoBaselineStore
 from .ootree import OoTree
+from .outcomelog import OutcomeLog
 
 if TYPE_CHECKING:
     from oo_ratchet.oo.scorer import Scorer
@@ -74,6 +75,7 @@ class OoGate:
         try:
             return self._dispatch(scorer)
         except StateError as exc:
+            OutcomeLog.unreadable(exc)
             return [f"FAIL: {exc}"], 1
 
     def _rebaseline_files_guard(self) -> Report | None:

@@ -48,9 +48,14 @@ class SourceSelection:
         return namespace(target) if isinstance(target, Sources) else legacy(target)
 
     @staticmethod
-    def layer_table(anchor: Path, override: Path | None = None) -> LayerRead:
-        """Read ``override`` or the nearest pyproject above ``anchor``."""
-        return LayerTableFile.read(anchor, override)
+    def layer_table(
+        anchor: Path, override: Path | None = None, *, parse: bool = True
+    ) -> LayerRead:
+        """Read ``override`` or the nearest pyproject above ``anchor``.
+
+        With ``parse=False`` only the file is located; its table is empty.
+        """
+        return LayerTableFile.read(anchor, override, parse=parse)
 
     @property
     def target(self) -> Path | Sources:

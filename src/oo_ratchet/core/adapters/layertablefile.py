@@ -34,11 +34,19 @@ class LayerTableFile:
         )
 
     @classmethod
-    def read(cls, anchor: Path, override: Path | None = None) -> LayerRead:
-        """Read an explicit file or the nearest ancestor pyproject, if any."""
+    def read(
+        cls, anchor: Path, override: Path | None = None, *, parse: bool = True
+    ) -> LayerRead:
+        """Read an explicit file or the nearest ancestor pyproject, if any.
+
+        With ``parse=False`` the file is located but not read: the table is
+        empty, so a malformed pyproject cannot raise.
+        """
         path = override or cls.nearest(anchor)
-        if path is None:
-            return LayerRead(LayerTable({}, "no pyproject"), None)
+        if path is None or not parse:
+            return LayerRead(
+                LayerTable({}, "no pyproject" if path is None else "unread"), path
+            )
         table = LayerTable(cls._read(path), str(path), strict=override is not None)
         return LayerRead(table, path)
 

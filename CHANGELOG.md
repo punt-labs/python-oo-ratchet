@@ -21,9 +21,10 @@
   application importing a domain class): the Dependency Rule allows that.
   Same-ring, outward and unlayered imports, and every run without the
   four-ring table, report as before. The `domain-io` rule and the layers `io`
-  edges now treat `io` by usage: `io.StringIO`, `io.BytesIO` and an unused
-  `import io` are no longer reported; `io.open`, `io.FileIO`, `io.open_code`
-  and `from io import open` still are. Output formats and the Tier 0 and Tier 1
+  edges from static imports now treat `io` by usage: `io.StringIO`,
+  `io.BytesIO` and an unused `import io` are no longer reported; any other use
+  of `io` (`io.open`, `io.FileIO`, `getattr(io, ...)`, `from io import *`)
+  still is, and a literal `importlib.import_module("io")` still is an edge. Output formats and the Tier 0 and Tier 1
   keys are unchanged, but `design --shadow-check` and `--enforce` compare
   findings against the merge base, so adopters will see these findings as
   removed (and a layers baseline holding an `-> io` edge from in-memory use

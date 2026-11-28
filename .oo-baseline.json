@@ -617,10 +617,10 @@
   },
   "src/oo_ratchet/core/domain/domain_io.py": {
     "encapsulation_ratio": 1.0,
-    "avg_params": 0.83,
+    "avg_params": 0.92,
     "max_complexity": 5.0,
-    "avg_complexity": 3.17,
-    "module_size": 105.0,
+    "avg_complexity": 3.08,
+    "module_size": 104.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0
@@ -677,10 +677,10 @@
   },
   "src/oo_ratchet/core/domain/io_usage.py": {
     "encapsulation_ratio": 1.0,
-    "avg_params": 1.2,
+    "avg_params": 1.12,
     "max_complexity": 7.0,
-    "avg_complexity": 3.0,
-    "module_size": 28.0,
+    "avg_complexity": 2.88,
+    "module_size": 69.0,
     "init_violations": 0.0,
     "public_attr_violations": 0.0,
     "future_annotations": 1.0

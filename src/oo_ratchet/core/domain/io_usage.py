@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import ast
-from typing import ClassVar, Self
+from typing import ClassVar, Self, TypeGuard
 
 from .builtin_open import BuiltinOpen
 
@@ -11,24 +11,52 @@ from .builtin_open import BuiltinOpen
 class IoUsage:
     """``io`` holds in-memory buffers (``StringIO``, ``BytesIO``) and file openers.
 
-    An import of ``io`` is file IO only when the module uses a file opener from
-    it: ``io.open``, ``io.FileIO`` or ``io.open_code``, called through the
-    module or an alias of it, or imported by name with ``from io import``.
-    ``io.StringIO``, ``io.BytesIO`` and wrappers over them touch no file.
+    An import of ``io`` is file IO unless every use of it is an attribute access
+    to a known in-memory member (``io.StringIO``, ``io.BytesIO``,
+    ``io.TextIOWrapper`` ...). ``io.open``, ``io.FileIO``, ``io.open_code``, an
+    unknown attribute, ``getattr(io, ...)``, passing ``io`` on or aliasing it
+    all count, and so does ``from io import`` of an opener or ``*``. An unused
+    ``import io`` does not.
     """
 
     MODULE: ClassVar[str] = "io"
     OPENERS: ClassVar[frozenset[str]] = frozenset({"open", "FileIO", "open_code"})
+    MEMORY: ClassVar[frozenset[str]] = frozenset(
+        {
+            "StringIO",
+            "BytesIO",
+            "TextIOWrapper",
+            "BufferedReader",
+            "BufferedWriter",
+            "BufferedRandom",
+            "BufferedRWPair",
+            "IOBase",
+            "RawIOBase",
+            "BufferedIOBase",
+            "TextIOBase",
+            "IncrementalNewlineDecoder",
+            "UnsupportedOperation",
+            "BlockingIOError",
+            "DEFAULT_BUFFER_SIZE",
+            "SEEK_SET",
+            "SEEK_CUR",
+            "SEEK_END",
+            "text_encoding",
+        }
+    )
     _tree: ast.Module
+    _leaked: frozenset[str]
 
     def __new__(cls, tree: ast.Module) -> Self:
         self = super().__new__(cls)
         self._tree = tree
+        self._leaked = cls._leaks(tree)
         return self
 
-    def bare_opens(self) -> list[ast.Call]:
-        """Return the unbound bare ``open`` calls of the module."""
-        return BuiltinOpen(self._tree).calls()
+    @staticmethod
+    def bare_opens(tree: ast.Module) -> list[ast.Call]:
+        """Return the unbound bare ``open`` calls of ``tree``."""
+        return BuiltinOpen(tree).calls()
 
     def counts(self, node: ast.Import | ast.ImportFrom, name: str) -> bool:
         """Return whether the IO import ``name`` made by ``node`` is file IO."""
@@ -37,14 +65,34 @@ class IoUsage:
     def opens_files(self, node: ast.Import | ast.ImportFrom) -> bool:
         """Return whether the ``io`` import ``node`` is used to open files."""
         if isinstance(node, ast.ImportFrom):
-            return any(alias.name in self.OPENERS for alias in node.names)
-        bound = {a.asname or a.name for a in node.names if a.name == self.MODULE}
-        return any(self._opener_of(n, bound) for n in ast.walk(self._tree))
-
-    def _opener_of(self, node: ast.AST, bound: set[str]) -> bool:
-        return (
-            isinstance(node, ast.Attribute)
-            and node.attr in self.OPENERS
-            and isinstance(node.value, ast.Name)
-            and node.value.id in bound
+            return any(a.name == "*" or a.name in self.OPENERS for a in node.names)
+        return any(
+            (a.asname or a.name) in self._leaked
+            for a in node.names
+            if a.name == self.MODULE
         )
+
+    @classmethod
+    def _leaks(cls, tree: ast.Module) -> frozenset[str]:
+        """Return the names read other than as ``<name>.<in-memory member>``."""
+        safe = cls._members(tree)
+        return frozenset(
+            n.id for n in ast.walk(tree) if cls._is_read(n) and id(n) not in safe
+        )
+
+    @classmethod
+    def _members(cls, tree: ast.Module) -> set[int]:
+        """Return the ids of names that are the object of an in-memory member."""
+        return {
+            id(n.value)
+            for n in ast.walk(tree)
+            if isinstance(n, ast.Attribute) and cls._is_member(n)
+        }
+
+    @classmethod
+    def _is_member(cls, node: ast.Attribute) -> bool:
+        return node.attr in cls.MEMORY and isinstance(node.value, ast.Name)
+
+    @staticmethod
+    def _is_read(node: ast.AST) -> TypeGuard[ast.Name]:
+        return isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)

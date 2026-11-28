@@ -84,26 +84,25 @@ class DomainIO:
     def _opens(tree: ast.Module) -> list[ast.Call]:
         """Return the bare unbound ``open`` calls outside TYPE_CHECKING."""
         type_only = ImportTargets.type_only(tree)
-        return [
-            call for call in IoUsage(tree).bare_opens() if id(call) not in type_only
-        ]
+        return [call for call in IoUsage.bare_opens(tree) if id(call) not in type_only]
 
     def _imports(self) -> list[tuple[ast.stmt, str]]:
         type_only = ImportTargets.type_only(self._module.tree)
+        usage = IoUsage(self._module.tree)
         return [
             (node, name)
             for node in ast.walk(self._module.tree)
             if isinstance(node, (ast.Import, ast.ImportFrom))
             and id(node) not in type_only
-            for name in self._io_names(node)
+            for name in self._io_names(node, usage)
         ]
 
-    def _io_names(self, node: ast.Import | ast.ImportFrom) -> list[str]:
-        usage = IoUsage(self._module.tree)
+    @classmethod
+    def _io_names(cls, node: ast.Import | ast.ImportFrom, usage: IoUsage) -> list[str]:
         return [
             name
-            for name in dict.fromkeys(self._imported(node))
-            if self._is_io(name) and (name != IoUsage.MODULE or usage.opens_files(node))
+            for name in dict.fromkeys(cls._imported(node))
+            if cls._is_io(name) and usage.counts(node, name)
         ]
 
     @classmethod

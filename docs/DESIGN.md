@@ -44,11 +44,13 @@ No table means no layer findings; an empty table marks every module unlayered.
   imported module per import statement, keyed by that module; `TYPE_CHECKING`
   imports are exempt. Even `os.path.join` or `PurePath` usage triggers the rule.
   The one exception is `io`, which the module's usage decides: `io.StringIO`,
-  `io.BytesIO` and wrappers over them are in-memory buffers, not file IO. An
-  `io` import is reported only when the module calls `io.open`, `io.FileIO` or
-  `io.open_code` (through the module or an alias of it), or imports one of
-  those names with `from io import`; an `import io` with no such use is not
-  reported. Reading the opener through another binding is not followed.
+  `io.BytesIO`, `io.TextIOWrapper` and the other in-memory members are not file
+  IO. An `io` import is reported unless every use of the name is an attribute
+  access to such a member; `io.open`, `io.FileIO`, `io.open_code`, an unknown
+  attribute, `getattr(io, ...)`, passing `io` on or aliasing it (`stream = io`)
+  all report, as do `from io import open`, `FileIO`, `open_code` and `*`. An
+  `import io` with no use is not reported. A literal
+  `importlib.import_module("io")` still counts as IO in the layers gate.
   Domain code reaches the filesystem and environment through an injected port.
   Bare `open(...)` calls also fire, but any binding of `open` anywhere in the
   module (including parameters, nested definitions and pattern captures)

@@ -392,6 +392,11 @@ def test_io_for_in_memory_buffers_is_not_file_io(tmp_path: Path, source: str) ->
         "import io as stream\nf = stream.open('x')",
         "from io import open as reopen",
         "from io import StringIO, FileIO",
+        "from io import *\nf = FileIO('x')",
+        "from io import *\nf = open_code('x')",
+        "import io\nf = getattr(io, 'open')('x')",
+        "import io\nstream = io\nf = stream.open('x')",
+        "import io\nuse(io)",
     ],
 )
 def test_io_used_for_files_is_reported(tmp_path: Path, source: str) -> None:

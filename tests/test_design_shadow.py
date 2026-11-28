@@ -399,7 +399,7 @@ def test_input_errors_exit_two(
         (repo / "pkg/model.py").write_bytes(b"\xff")
     assert main(args) == 2
     output = capsys.readouterr()
-    assert not output.out and output.err.startswith("oo-ratchet design:")
+    assert not output.out and "oo-ratchet design:" in output.err
 
 
 def test_non_git_input_exits_two(

@@ -123,7 +123,7 @@ def test_unreadable_settings_turn_capture_off_and_say_so(
 
 @pytest.fixture
 def untraversable_pyproject(repo: GitSandbox, tmp_path: Path) -> Iterator[None]:
-    """Make the repository's ``pyproject.toml`` a symlink into a ``chmod 000`` directory."""
+    """Symlink the repository's ``pyproject.toml`` into a ``chmod 000`` directory."""
     locked = tmp_path / "locked"
     locked.mkdir()
     (locked / "pyproject.toml").write_text("[tool.oo-ratchet]\ntelemetry = true\n")
@@ -157,7 +157,7 @@ def test_an_untraversable_pyproject_never_fails_the_gate(
 ) -> None:
     result = _run_keeping_config(private_home, repo)
 
-    # The gate itself fails closed on the unreadable config; telemetry does not abort it.
+    # The gate fails closed on the unreadable config; telemetry does not abort it.
     assert result.returncode == 1, result.stderr
     assert "Traceback" not in result.stderr
     assert "Gate state unreadable" in result.stderr

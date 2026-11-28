@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 _OFF_VALUES = frozenset({"off", "0", "false", "no"})
 _OFF_VARIABLES = ("PUNT_TELEMETRY", "OO_RATCHET_TELEMETRY")
 
+
 @final
 class TelemetrySettings:
     """Read the telemetry keys of the nearest ``pyproject.toml`` above a directory."""

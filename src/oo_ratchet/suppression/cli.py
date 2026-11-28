@@ -78,7 +78,7 @@ class SuppressionRun:
     def _writes(self) -> bool:
         """Return whether the request writes the baseline or the ledger."""
         opts = self._opts
-        return opts.update or opts.rebaseline or opts.relax is not None
+        return any((opts.update, opts.rebaseline, opts.relax is not None))
 
     def run(self) -> Report:
         """Execute the requested operation and return its report."""
@@ -129,6 +129,10 @@ class SuppressionRun:
                 source=opts.source,
                 allow_ci_write=opts.allow_ci_write,
             )
+        return self._relax(tally)
+
+    def _relax(self, tally: Tally) -> Report:
+        opts = self._opts
         return self._gate.relax(
             tally,
             base_ref=opts.base_ref,

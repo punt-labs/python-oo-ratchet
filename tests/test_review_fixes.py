@@ -7,9 +7,9 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-import oo_ratchet.coupling
-import oo_ratchet.oo
-import oo_ratchet.suppression
+from oo_ratchet.coupling.cli import main as coupling_main
+from oo_ratchet.oo.cli import main as oo_main
+from oo_ratchet.suppression.cli import main as suppression_main
 
 if TYPE_CHECKING:
     from tests.conftest import GitSandbox
@@ -33,8 +33,8 @@ def _adopt(sandbox: GitSandbox) -> str:
     pre = sandbox.commit("pre-adoption")
     sandbox.write("src/pkg/__init__.py", "")
     sandbox.write("src/pkg/thing.py", _SRC)
-    assert oo_ratchet.oo.main(["src/pkg", "--rebaseline", "--allow-ci-write"]) == 0
-    assert oo_ratchet.suppression.main(["src/pkg", "--update", "--allow-ci-write"]) == 0
+    assert oo_main(["src/pkg", "--rebaseline", "--allow-ci-write"]) == 0
+    assert suppression_main(["src/pkg", "--update", "--allow-ci-write"]) == 0
     adoption = sandbox.commit("adoption")
     sandbox.run_git("update-ref", "refs/remotes/origin/main", adoption)
     return pre
@@ -43,8 +43,8 @@ def _adopt(sandbox: GitSandbox) -> str:
 @pytest.mark.parametrize(
     ("gate", "extra"),
     [
-        (oo_ratchet.oo.main, ["--allow-no-improvement"]),
-        (oo_ratchet.suppression.main, []),
+        (oo_main, ["--allow-no-improvement"]),
+        (suppression_main, []),
     ],
 )
 def test_push_tripwire_passes_only_the_adoption_merge(
@@ -65,8 +65,8 @@ def test_push_tripwire_passes_only_the_adoption_merge(
 @pytest.mark.parametrize(
     ("gate", "baseline"),
     [
-        (oo_ratchet.oo.main, ".oo-baseline.json"),
-        (oo_ratchet.coupling.main, ".oo-coupling-baseline.json"),
+        (oo_main, ".oo-baseline.json"),
+        (coupling_main, ".oo-coupling-baseline.json"),
     ],
 )
 def test_scoped_update_keeps_rows_of_other_modified_files(

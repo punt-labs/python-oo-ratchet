@@ -10,7 +10,7 @@ import pytest
 from oo_ratchet.core.domain.findings import Rules
 from oo_ratchet.core.domain.layer_config import LayerConfig, LayerConfigError
 from oo_ratchet.design.cli import main
-from oo_ratchet.design.scanner import DesignScanner
+from oo_ratchet.design.scan import DesignScanner
 
 LAYERS = {
     Rules.LAYER_IMPORT,

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Self
 
+from oo_ratchet.core.adapters.layertablefile import LayerTableFile
 from oo_ratchet.core.domain.exits import Outcome
 from oo_ratchet.core.domain.layer_table import LayerTable
 from oo_ratchet.core.domain.modules import ModuleIndex
@@ -36,12 +37,12 @@ class Suggestion:
         self._src = src
         index = cls._index(src)
         anchor = SourceSelection(src).config_anchor
-        nearest = LayerTable.nearest(anchor)
+        nearest = LayerTableFile.nearest(anchor)
         scripts = ConsoleScripts(nearest)
         facts = PackageFacts(index, scripts).all()
         if not any("." in fact.name for fact in facts):
             raise LayersScanError(f"no modules to check under {src}")
-        table = LayerTable.ordered(LayerTable.read(anchor).config())
+        table = LayerTable.ordered(LayerTableFile.read(anchor).config())
         intent = RingIntent(table, SuggestNames(nearest).table)
         verdicts = RingRules(facts, intent, index.package_name).verdicts()
         self._lists = RingLists(verdicts, index.package_name)

@@ -3,13 +3,10 @@
 from __future__ import annotations
 
 import tomllib
-from typing import TYPE_CHECKING, Self
+from typing import Self
 
 from .declared_layers import DeclaredLayers
 from .layer_config import LayerConfig, LayerConfigError
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 
 class LayerTable:
@@ -25,14 +22,6 @@ class LayerTable:
         self._label = label
         self._strict = strict
         return self
-
-    @classmethod
-    def read(cls, anchor: Path, override: Path | None = None) -> Self:
-        """Read an explicit file or the nearest ancestor pyproject, if any."""
-        path = override or cls.nearest(anchor)
-        if path is None:
-            return cls({}, "no pyproject")
-        return cls(cls._read(path), str(path), strict=override is not None)
 
     @classmethod
     def from_text(cls, text: str, label: str) -> Self:
@@ -73,22 +62,3 @@ class LayerTable:
         if any(isinstance(value, dict) for value in table.values()):
             return DeclaredLayers(table)
         return LayerConfig(table)
-
-    @staticmethod
-    def nearest(anchor: Path) -> Path | None:
-        """Return the pyproject of ``anchor`` or its nearest ancestor, if any."""
-        return next(
-            (
-                parent / "pyproject.toml"
-                for parent in (anchor.resolve(), *anchor.resolve().parents)
-                if (parent / "pyproject.toml").is_file()
-            ),
-            None,
-        )
-
-    @staticmethod
-    def _read(path: Path) -> object:
-        try:
-            return tomllib.loads(path.read_text(encoding="utf-8"))
-        except (OSError, UnicodeError, tomllib.TOMLDecodeError) as exc:
-            raise LayerConfigError(f"cannot read {path}: {exc}") from exc

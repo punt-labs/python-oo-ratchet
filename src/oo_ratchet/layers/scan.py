@@ -8,7 +8,6 @@ from typing import Self
 
 from oo_ratchet.core.domain.layer_config import LayerConfig, LayerConfigError
 from oo_ratchet.core.domain.layer_edges import Edge, Violation
-from oo_ratchet.core.domain.layer_table import LayerTable
 from oo_ratchet.core.domain.layer_widening import LayerWidening
 from oo_ratchet.core.domain.modules import ModuleIndex
 from oo_ratchet.source_set import Source, SourceSelection
@@ -63,7 +62,7 @@ class LayerScan:
         self._violations = tuple(edges.violations())
         self._unassigned = tuple(edges.unassigned())
         self._unresolvable = tuple(edges.unresolvable())
-        self._config_path = LayerTable.nearest(self._src.config_anchor)
+        self._config_path = SourceSelection(self._src).layer_config_path()
         self._package = index.package_name
         return self
 
@@ -155,7 +154,7 @@ class LayerScan:
 
     @staticmethod
     def _load(src: Source) -> LayerConfig:
-        config = LayerTable.read(SourceSelection(src).config_anchor).config()
+        config = SourceSelection(src).layer_table().config()
         if config is None:
             msg = f"no [tool.oo-ratchet.layers] table above {src}"
             raise LayerConfigError(msg)

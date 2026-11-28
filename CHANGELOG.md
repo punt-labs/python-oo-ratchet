@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- The domain-purity check (layers `io` edges and the design `domain-io`
+  rule) now counts file IO done through `Path` methods (`read_text`,
+  `write_text`, `open`, `iterdir`, `glob`, `exists`, `mkdir`, `unlink` and
+  similar), keyed `pathlib`. Before, a domain module with a `TYPE_CHECKING`-only
+  `Path` import and a `path.read_text()` call passed. A receiver must be
+  evidenced as a `Path` in the module (an annotation, `Path(...)`, a path
+  expression); a `read_text` on any other object is not an edge. Adopters
+  whose domain modules do this will see new `io` edges in `layers --check`;
+  fix them or accept them once with `layers --update --allow-config-change`.
+  On this repo the new detection found two real cases, both fixed rather than
+  baselined: `core/domain/modules.py` (`ModuleIndex` read each source file
+  through `Path.read_text`; it now calls `ModuleSource.read_source`) and
+  `core/domain/layer_table.py` (`LayerTable.read` and `nearest` read and
+  searched the file system; they moved to the adapter `LayerTableFile`).
+  The layers baseline did not change.
+
 ### Changed
 
 - Documentation restructure. `README.md` is now a short overview that follows

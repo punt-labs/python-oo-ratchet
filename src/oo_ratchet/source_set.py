@@ -10,6 +10,9 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Self
 
+from oo_ratchet.core.domain.layer_table import LayerTable
+
+from .core.adapters.layertablefile import LayerTableFile
 from .sources import Sources
 
 type Source = Path | SourceSelection
@@ -45,6 +48,14 @@ class SourceSelection:
         """Apply ``legacy`` to a lone path or ``namespace`` to its portions."""
         target = self._target
         return namespace(target) if isinstance(target, Sources) else legacy(target)
+
+    def layer_table(self, override: Path | None = None) -> LayerTable:
+        """Read ``override`` or the nearest pyproject above the config anchor."""
+        return LayerTableFile.read(self.config_anchor, override)
+
+    def layer_config_path(self) -> Path | None:
+        """Return the nearest pyproject above the config anchor, if any."""
+        return LayerTableFile.nearest(self.config_anchor)
 
     @property
     def target(self) -> Path | Sources:
@@ -129,6 +140,11 @@ class SourceSelection:
         return any(
             (root / component).is_dir() for root in Sources.portions(self._target)
         )
+
+    @staticmethod
+    def read_source(path: Path) -> str:
+        """Return the UTF-8 text of the Python file ``path``."""
+        return path.read_text(encoding="utf-8")
 
     def package_dirs(self) -> list[Path]:
         """Return non-root regular packages from the selected portions."""

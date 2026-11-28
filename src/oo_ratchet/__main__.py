@@ -5,11 +5,13 @@ from __future__ import annotations
 import logging
 import sys
 from collections.abc import Callable
+from pathlib import Path
 from typing import ClassVar, Self
 
 from oo_ratchet import __version__
 from oo_ratchet.gates import GATES as REGISTRY
 from oo_ratchet.logging_config import DiagnosticLog, LoggingSetupError
+from oo_ratchet.telemetry_settings import TelemetrySettings
 from oo_ratchet.usage import Usage
 
 logger = logging.getLogger(__name__)
@@ -56,7 +58,7 @@ class Dispatcher:
             return 2
         logger.info("Running %s gate (oo-ratchet %s)", name, __version__)
         usage = Usage(self.GATES)
-        usage.start()
+        usage.start(TelemetrySettings(Path.cwd()).config())
         try:
             return usage.run(name, lambda: gate(self._args[1:]))
         finally:

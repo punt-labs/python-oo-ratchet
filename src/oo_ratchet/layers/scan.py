@@ -62,7 +62,8 @@ class LayerScan:
         self._violations = tuple(edges.violations())
         self._unassigned = tuple(edges.unassigned())
         self._unresolvable = tuple(edges.unresolvable())
-        self._config_path = SourceSelection(self._src).layer_config_path()
+        read = SourceSelection.layer_table(self._src.config_anchor)
+        self._config_path = read.path
         self._package = index.package_name
         return self
 
@@ -154,7 +155,8 @@ class LayerScan:
 
     @staticmethod
     def _load(src: Source) -> LayerConfig:
-        config = SourceSelection(src).layer_table().config()
+        anchor = SourceSelection(src).config_anchor
+        config = SourceSelection.layer_table(anchor).table.config()
         if config is None:
             msg = f"no [tool.oo-ratchet.layers] table above {src}"
             raise LayerConfigError(msg)

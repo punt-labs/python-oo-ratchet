@@ -94,13 +94,13 @@ class PathTypes:
     def _imports(self, tree: ast.Module) -> None:
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom) and node.module == "pathlib":
-                self._classes.update(
-                    a.asname or a.name for a in node.names if a.name == "Path"
-                )
+                self._classes.update(self._bound(node, "Path"))
             elif isinstance(node, ast.Import):
-                self._modules.update(
-                    a.asname or a.name for a in node.names if a.name == "pathlib"
-                )
+                self._modules.update(self._bound(node, "pathlib"))
+
+    @staticmethod
+    def _bound(node: ast.Import | ast.ImportFrom, name: str) -> list[str]:
+        return [a.asname or a.name for a in node.names if a.name == name]
 
     def _annotated(self, tree: ast.Module) -> None:
         for node in ast.walk(tree):
@@ -110,14 +110,18 @@ class PathTypes:
                 self._bind(node.target)
 
     def _assigned(self, tree: ast.Module) -> None:
+        assigns = [n for n in ast.walk(tree) if isinstance(n, ast.Assign)]
         for _ in range(3):
             before = len(self._names)
-            for node in ast.walk(tree):
-                if isinstance(node, ast.Assign) and self.is_path(node.value):
-                    for target in node.targets:
-                        self._bind(target)
+            for node in assigns:
+                self._bind_assign(node)
             if len(self._names) == before:
                 return
+
+    def _bind_assign(self, node: ast.Assign) -> None:
+        if self.is_path(node.value):
+            for target in node.targets:
+                self._bind(target)
 
     def _bind(self, target: ast.expr) -> None:
         if isinstance(target, ast.Name):
@@ -131,8 +135,11 @@ class PathTypes:
             return False
         if self.is_class(node):
             return True
-        if isinstance(node, ast.Constant) and isinstance(node.value, str):
-            return self._string(node.value)
+        if isinstance(node, ast.Constant):
+            return isinstance(node.value, str) and self._string(node.value)
+        return self._compound(node)
+
+    def _compound(self, node: ast.expr) -> bool:
         if isinstance(node, ast.BinOp) and isinstance(node.op, ast.BitOr):
             return self._annotation(node.left) or self._annotation(node.right)
         if isinstance(node, ast.Subscript) and self._optional(node.value):

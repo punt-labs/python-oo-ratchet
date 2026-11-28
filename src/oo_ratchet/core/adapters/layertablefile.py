@@ -3,10 +3,19 @@
 from __future__ import annotations
 
 import tomllib
+from dataclasses import dataclass
 from pathlib import Path
 
 from oo_ratchet.core.domain.layer_config import LayerConfigError
 from oo_ratchet.core.domain.layer_table import LayerTable
+
+
+@dataclass(frozen=True)
+class LayerRead:
+    """A layers table and the pyproject it came from (``None`` when there is none)."""
+
+    table: LayerTable
+    path: Path | None
 
 
 class LayerTableFile:
@@ -25,12 +34,13 @@ class LayerTableFile:
         )
 
     @classmethod
-    def read(cls, anchor: Path, override: Path | None = None) -> LayerTable:
+    def read(cls, anchor: Path, override: Path | None = None) -> LayerRead:
         """Read an explicit file or the nearest ancestor pyproject, if any."""
         path = override or cls.nearest(anchor)
         if path is None:
-            return LayerTable({}, "no pyproject")
-        return LayerTable(cls._read(path), str(path), strict=override is not None)
+            return LayerRead(LayerTable({}, "no pyproject"), None)
+        table = LayerTable(cls._read(path), str(path), strict=override is not None)
+        return LayerRead(table, path)
 
     @staticmethod
     def _read(path: Path) -> object:

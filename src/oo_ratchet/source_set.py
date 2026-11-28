@@ -10,9 +10,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Self
 
-from oo_ratchet.core.domain.layer_table import LayerTable
-
-from .core.adapters.layertablefile import LayerTableFile
+from .core.adapters.layertablefile import LayerRead, LayerTableFile
 from .sources import Sources
 
 type Source = Path | SourceSelection
@@ -49,13 +47,10 @@ class SourceSelection:
         target = self._target
         return namespace(target) if isinstance(target, Sources) else legacy(target)
 
-    def layer_table(self, override: Path | None = None) -> LayerTable:
-        """Read ``override`` or the nearest pyproject above the config anchor."""
-        return LayerTableFile.read(self.config_anchor, override)
-
-    def layer_config_path(self) -> Path | None:
-        """Return the nearest pyproject above the config anchor, if any."""
-        return LayerTableFile.nearest(self.config_anchor)
+    @staticmethod
+    def layer_table(anchor: Path, override: Path | None = None) -> LayerRead:
+        """Read ``override`` or the nearest pyproject above ``anchor``."""
+        return LayerTableFile.read(anchor, override)
 
     @property
     def target(self) -> Path | Sources:

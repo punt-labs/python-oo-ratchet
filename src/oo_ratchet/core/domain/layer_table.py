@@ -34,22 +34,26 @@ class LayerTable:
 
     def config(self) -> LayerConfig | None:
         """Return the config the table describes; ``None`` when it has none."""
-        table = self._document
+        table: object = self._document
         for key in ("tool", "oo-ratchet", "layers"):
-            if not isinstance(table, dict):
-                raise LayerConfigError(
-                    f"{self._label}: layer configuration must be a table"
-                )
-            if key not in table:
-                if self._strict:
-                    raise LayerConfigError(
-                        f"{self._label}: missing [tool.oo-ratchet.layers]"
-                    )
+            table = self._step(table, key)
+            if table is None:
                 return None
-            table = table[key]
         if not isinstance(table, dict):
             raise LayerConfigError(f"{self._label}: layers must be a table")
         return self.build(table)
+
+    def _step(self, table: object, key: str) -> object | None:
+        if not isinstance(table, dict):
+            raise LayerConfigError(
+                f"{self._label}: layer configuration must be a table"
+            )
+        if key in table:
+            found: object = table[key]
+            return found
+        if self._strict:
+            raise LayerConfigError(f"{self._label}: missing [tool.oo-ratchet.layers]")
+        return None
 
     @staticmethod
     def ordered(config: LayerConfig | None) -> LayerConfig | None:
